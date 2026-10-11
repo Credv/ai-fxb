@@ -30,7 +30,7 @@
         </div>
         <div class="masthead__text">
           <h1>AI 窗口</h1>
-          <p class="masthead__sub">全球 AI 情报控制台 · 汇总 / 前沿技术 / 商机(保留历史 · 静默同步 · 今日新增标记 NEW)</p>
+          <p class="masthead__sub">全球 AI 情报控制台</p>
         </div>
       </div>
 
@@ -38,6 +38,9 @@
         <div class="source-chip" id="sourceChip" title="数据来源状态">
           <span class="source-chip__dot" id="sourceDot"></span>
           <span id="sourceLabel">未配置</span>
+        </div>
+        <div class="source-chip" id="usageChip" title="API token 消耗统计">
+          <span>静默 <b id="usageSilent">0</b> tok</span>
         </div>
         <button class="btn btn--ghost" id="settingsBtn" type="button" title="设置">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden="true">
@@ -49,7 +52,7 @@
       </div>
     </header>
 
-    <p class="updated" id="updatedLine">新闻与商机分开生成,单次请求更小、更易成功。先在「设置」填写千问 API。</p>
+    <p class="updated" id="updatedLine">正在载入…</p>
 
     <nav class="tabs" role="tablist" aria-label="主导航">
       <button class="tab is-active" role="tab" id="tab-sum" aria-controls="panel-sum" aria-selected="true" data-view="sum" type="button">
@@ -70,7 +73,7 @@
       <!-- 新闻面板 -->
       <section class="panel" id="panel-news" role="tabpanel" aria-labelledby="tab-news" hidden>
         <div class="toolbar">
-          <div class="chips" id="rangeChips"></div>
+          <span class="toolbar__sel" id="newsSel"></span>
           <div class="spacer"></div>
           <span class="toolbar__status" id="newsStatus"></span>
           <button class="btn btn--primary btn--sm" id="genNewsBtn" type="button">生成新闻</button>
@@ -90,12 +93,12 @@
       <!-- 商机面板 -->
       <section class="panel" id="panel-ops" role="tabpanel" aria-labelledby="tab-ops" hidden>
         <div class="toolbar">
-          <div class="chips" id="opsModeChips"></div>
+          <span class="toolbar__sel" id="opsSel"></span>
           <div class="spacer"></div>
           <span class="toolbar__status" id="opsStatus"></span>
           <button class="btn btn--primary btn--sm" id="genOpsBtn" type="button">生成商机</button>
         </div>
-        <p class="ops-hint">选择类型后分别生成:「AI 赛道商机」来自近期市场动态;「国家政策支持」解析中国近半年国家级 / 城市级最新 AI 规划;「本地机会」结合你在「设置」里配置的所在地区(默认福建省),检索当地 AI 政策与产业动态。三类分开生成、请求更小更易成功,结果融合显示并用标签区分。</p>
+        <p class="ops-hint">点「生成商机」后会在弹窗里选择类型并二次确认才发起请求:「AI 赛道商机」来自近期市场动态;「国家政策支持」解析中国近半年国家级 / 城市级最新 AI 规划;「本地机会」结合你在「设置」里配置的所在地区(默认福建省),检索当地 AI 政策与产业动态。三类分开生成、请求更小更易成功,结果融合显示并用标签区分。</p>
         <div class="panel-state" id="opsState" hidden></div>
         <div id="opsBody" hidden>
           <div class="stats" id="opsStats"></div>
@@ -112,7 +115,7 @@
       <!-- 汇总面板 -->
       <section class="panel is-active" id="panel-sum" role="tabpanel" aria-labelledby="tab-sum">
         <div class="toolbar">
-          <div class="chips" id="sumRangeChips"></div>
+          <span class="toolbar__sel" id="sumSel"></span>
           <div class="spacer"></div>
           <span class="toolbar__status" id="sumStatus"></span>
           <button class="btn btn--primary btn--sm" id="genSumBtn" type="button">生成汇总</button>
@@ -128,7 +131,7 @@
       <!-- 前沿技术面板 -->
       <section class="panel" id="panel-tech" role="tabpanel" aria-labelledby="tab-tech" hidden>
         <div class="toolbar">
-          <span class="toolbar__hint">最新出现的 AI 技术 / 名词,用大白话讲清原理与影响</span>
+          <span class="toolbar__sel" id="techSel"></span>
           <div class="spacer"></div>
           <span class="toolbar__status" id="techStatus"></span>
           <button class="btn btn--primary btn--sm" id="genTechBtn" type="button">生成前沿技术</button>
@@ -146,8 +149,7 @@
     </main>
 
     <footer class="foot">
-      <span>AI 风向标 · 纯本地个人工具,数据由你配置的大模型 API 实时生成</span>
-      <span class="foot__note" id="footNote"></span>
+      <span>AI 风向标</span>
     </footer>
   </div>
 
@@ -219,6 +221,24 @@
         <div class="spacer"></div>
         <button class="btn btn--ghost" data-close="1" type="button">取消</button>
         <button class="btn btn--primary" id="saveSettings" type="button">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 生成二次确认弹窗 -->
+  <div class="modal" id="genModal" hidden>
+    <div class="modal__backdrop" data-genclose="1"></div>
+    <div class="modal__card modal__card--sm" role="dialog" aria-modal="true" aria-labelledby="genTitle">
+      <div class="modal__head">
+        <h2 id="genTitle">生成确认</h2>
+        <button class="icon-btn" data-genclose="1" type="button" aria-label="关闭">✕</button>
+      </div>
+      <div class="modal__body" id="genBody"></div>
+      <div class="modal__foot">
+        <span class="gen-note" id="genNote"></span>
+        <div class="spacer"></div>
+        <button class="btn btn--ghost" data-genclose="1" type="button">取消</button>
+        <button class="btn btn--primary" id="genConfirmBtn" type="button">确认生成</button>
       </div>
     </div>
   </div>

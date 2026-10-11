@@ -9,6 +9,7 @@
   var STORE_KEY = 'ai-fxb-settings-v1';
   var CACHE_KEY = 'ai-fxb-cache-v4';
   var MODELS_KEY = 'ai-fxb-models-v1';
+  var USAGE_KEY = 'ai-fxb-usage-v1';
 
   var DEFAULTS = {
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
@@ -22,6 +23,7 @@
   };
 
   var RANGES = [1, 3, 5, 7];
+  var TECH_RANGES = [30, 60, 90];
   var RANGE_COUNT = { 1: [4, 6], 3: [6, 8], 5: [8, 10], 7: [9, 12] };
   var NEWS_CATS = ['全部', '模型发布', '融资并购', '政策监管', '产品应用', '研究突破', '行业动态'];
   var REGIONS = ['全部', '全球', '中国', '美国', '欧洲', '其他'];
@@ -40,7 +42,7 @@
   var OPS_MODE_ORDER = ['ai', 'policy', 'local'];
 
   function blankBucket() {
-    return { status: 'idle', items: [], generated_at: '', fetched_at: 0, range: 0, syncing: false, newCount: 0, loadingMode: null, loadError: '', loadErrorDetail: '', loadErrorMode: '', error: '', errorMeta: '', errorDetail: '' };
+    return { status: 'idle', items: [], generated_at: '', fetched_at: 0, range: 0, syncing: false, newCount: 0, tabNew: 0, loadingMode: null, loadError: '', loadErrorDetail: '', loadErrorMode: '', error: '', errorMeta: '', errorDetail: '' };
   }
 
   var state = {
@@ -49,11 +51,13 @@
     view: 'sum',
     newsRange: 3,
     sumRange: 3,
+    techRange: 30,
     opsMode: 'ai',
     news: blankBucket(),
     ops: blankBucket(),
     sum: blankBucket(),
     tech: blankBucket(),
+    usage: loadUsage(),
     filters: { newsCat: '全部', newsRegion: '全部', newsImp: '全部', opsTime: '全部', opsTrack: '全部', opsOrigin: '全部', techTrack: '全部' }
   };
 
@@ -70,6 +74,7 @@
     var d = new Date(ts);
     return pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
+  function fmtDateTime(ts) { return fmtDate(new Date(ts)) + ' ' + fmtTime(ts); }
   function loadSettings() {
     try {
       var raw = localStorage.getItem(STORE_KEY);
@@ -95,6 +100,27 @@
   function saveModelsCache(ids) {
     try { localStorage.setItem(MODELS_KEY, JSON.stringify({ ids: ids, at: Date.now() })); } catch (e) {}
   }
+  // ---------- token 消耗统计(区分静默同步 / 手动) ----------
+  function blankUsage() { return { total: 0, silent: 0, calls: 0, silentCalls: 0, day: '', dayTotal: 0, daySilent: 0 }; }
+  function loadUsage() {
+    try {
+      var raw = localStorage.getItem(USAGE_KEY);
+      if (!raw) return blankUsage();
+      return Object.assign(blankUsage(), JSON.parse(raw));
+    } catch (e) { return blankUsage(); }
+  }
+  function saveUsage() {
+    try { localStorage.setItem(USAGE_KEY, JSON.stringify(state.usage)); } catch (e) {}
+  }
+  function recordUsage(usage, silent) {
+    if (!usage || typeof usage.total_tokens !== 'number') return;
+    var u = state.usage, t = usage.total_tokens, today = todayStr();
+    if (u.day !== today) { u.day = today; u.dayTotal = 0; u.daySilent = 0; }
+    u.total += t; u.calls += 1; u.dayTotal += t;
+    if (silent) { u.silent += t; u.silentCalls += 1; u.daySilent += t; }
+    saveUsage();
+  }
+  function fmtTok(n) { return n >= 1000 ? (Math.round(n / 100) / 10) + 'k' : String(n); }
   function configured() {
     var s = state.settings;
     return !s.demo && !!s.apiKey && !!s.baseUrl && !!s.model;
@@ -118,6 +144,12 @@
     if (isNaN(t)) return 0;
     return Math.floor((Date.now() - t) / 86400000);
   }
+  // 排序键:优先条目自身日期(YYYY-MM-DD),缺失则回退到首次入库日;用于"最新在前"的时间倒序
+  function itemDateKey(it) {
+    var d = String((it && it.date) || '').slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+    return (it && it.firstSeen) || '';
+  }
   // 合并:本次新拉取 + 上次历史;未见过的 id 标 isNew,已见过的保留其 firstSeen
   function mergeBucketItems(kind, oldItems, newItems) {
     oldItems = Array.isArray(oldItems) ? oldItems : [];
@@ -139,6 +171,8 @@
       merged.push(o);
     });
     merged.sort(function (a, b) {
+      var ka = itemDateKey(a), kb = itemDateKey(b);
+      if (ka !== kb) return kb.localeCompare(ka); // 时间倒序:最新的放最前面
       if (!!a.isNew !== !!b.isNew) return a.isNew ? -1 : 1;
       return String(b.firstSeen || '').localeCompare(String(a.firstSeen || ''));
     });
@@ -258,10 +292,11 @@
   }
 
   // 前沿技术:最近出现的新技术 / 新名词,用大白话讲清原理
-  function buildTechMessages() {
+  function buildTechMessages(range) {
+    range = range || state.techRange || 30;
     var today = new Date();
     var dstr = fmtDate(today);
-    var start = fmtDate(new Date(today.getTime() - 90 * 86400000));
+    var start = fmtDate(new Date(today.getTime() - range * 86400000));
     var sys = '你是「AI 风向标」的前沿技术解读引擎,面向想跟上 AI 节奏、又怕被术语劝退的普通人。你会联网检索最近真正冒出来的新技术、新架构、新名词,并用大白话讲清它的原理与意义,不编造、不堆砌旧概念。你只输出一个 JSON 对象,不要输出任何解释、前后缀或 Markdown 代码块。';
     var schema = '{"generated_at":"' + dstr + '","tech":[{' +
       '"term":"技术/名词名称(中文,可含英文缩写),不超过20字",' +
@@ -271,9 +306,9 @@
       '"track":"从[' + OPS_TRACK_ENUM + ']选一个",' +
       '"stage":"从[研究突破,早期产品,规模落地]选一个",' +
       '"source":"来源媒体/机构/论文名","url":"原始链接,没有则空字符串","date":"YYYY-MM-DD"}]}';
-    var user = '今天是 ' + dstr + '。请联网检索 ' + start + ' 至今(最近约 3 个月)AI 领域最新出现、正在被讨论的技术 / 架构 / 名词(例如新型注意力或推理机制、新的 Agent 框架、多模态方法、训练/推理优化、代表性新模型的关键技术等),挑真正"新"的,不要把早已普及的旧概念当新事物。\n' +
+    var user = '今天是 ' + dstr + '。请联网检索 ' + start + ' 至今(最近约 ' + range + ' 天)AI 领域最新出现、正在被讨论的技术 / 架构 / 名词(例如新型注意力或推理机制、新的 Agent 框架、多模态方法、训练/推理优化、代表性新模型的关键技术等),挑真正"新"的,不要把早已普及的旧概念当新事物。\n' +
       '严格按以下 JSON 结构输出:\n' + schema + '\n' +
-      '要求:tech 给出 6 到 9 条,覆盖不同 track 赛道与不同 stage 阶段;principle 必须让外行也看得懂;每条尽量附真实 url 以便深读。全部简体中文。只输出 JSON。';
+      '要求:tech 给出 6 到 9 条,覆盖不同 track 赛道与不同 stage 阶段;principle 必须让外行也看得懂;每条尽量附真实 url 以便深读;date 填该技术/报道真实出现的具体日期(YYYY-MM-DD),务必尽量新,不要把窗口最早那天的旧事物当新内容;输出按 date 从新到旧排列。全部简体中文。只输出 JSON。';
     return [{ role: 'system', content: sys }, { role: 'user', content: user }];
   }
   function normalizeTech(obj) {
@@ -351,7 +386,7 @@
       return res.text().then(function (text) { return { ok: res.ok, status: res.status, text: text }; });
     }).finally(function () { clearTimeout(timer); });
   }
-  function callAPI(messages) {
+  function callAPI(messages, opts) {
     return rawCall(messages).then(function (r) {
       var model = state.settings.model;
       if (!r.ok) {
@@ -378,6 +413,7 @@
         var e2 = new Error('API 未返回内容(choices 为空)。');
         e2.kind = 'empty'; e2.meta = '模型 ' + model; e2.detail = (r.text || '').slice(0, 300); throw e2;
       }
+      recordUsage(j.usage, !!(opts && opts.silent));
       return content;
     }, function (e) {
       if (e && e.kind) throw e;
@@ -424,11 +460,11 @@
     if (silent && hasItems) { b.syncing = true; } else { b.status = 'loading'; b.syncing = false; }
     b.error = ''; b.errorMeta = ''; b.errorDetail = ''; b.loadError = ''; b.loadErrorDetail = '';
     render();
-    callAPI(buildNewsMessages(state.newsRange)).then(function (content) {
+    callAPI(buildNewsMessages(state.newsRange), { silent: silent }).then(function (content) {
       var p = normalizeNews(extractJSON(content));
       var merged = mergeBucketItems('news', b.items, p.items);
       b.items = merged; b.status = 'ready'; b.syncing = false;
-      b.generated_at = p.generated_at; b.fetched_at = Date.now(); b.newCount = countNew(merged);
+      b.generated_at = p.generated_at; b.fetched_at = Date.now(); b.newCount = countNew(merged); b.tabNew = countNew(merged);
       saveCache(); render();
     }).catch(function (err) {
       b.syncing = false;
@@ -451,7 +487,7 @@
     if (!hasItems) { b.status = 'loading'; }
     b.loadError = ''; b.loadErrorDetail = ''; b.error = ''; b.errorMeta = ''; b.errorDetail = '';
     render();
-    callAPI(buildOpsMessages(mode)).then(function (content) {
+    callAPI(buildOpsMessages(mode), { silent: silent }).then(function (content) {
       var p = normalizeOps(extractJSON(content));
       p.items.forEach(function (it) {
         it.origin = genOrigin;
@@ -463,7 +499,7 @@
       b.items = mergedSame.concat(stampExisting('ops', oldOther));
       b.status = 'ready'; b.generated_at = p.generated_at; b.fetched_at = Date.now(); b.range = 0;
       b.loadingMode = null; b.syncing = false; b.loadError = ''; b.loadErrorDetail = ''; b.loadErrorMode = '';
-      b.newCount = countNew(b.items);
+      b.newCount = countNew(b.items); b.tabNew = countNew(b.items);
       saveCache(); render();
     }).catch(function (err) {
       b.loadingMode = null; b.syncing = false;
@@ -497,12 +533,12 @@
     if (silent && hasItems) { b.syncing = true; } else { b.status = 'loading'; b.syncing = false; }
     b.error = ''; b.errorMeta = ''; b.errorDetail = ''; b.loadError = ''; b.loadErrorDetail = '';
     render();
-    callAPI(buildSumMessages(state.sumRange)).then(function (content) {
+    callAPI(buildSumMessages(state.sumRange), { silent: silent }).then(function (content) {
       var p = normalizeSum(extractJSON(content));
       var merged = mergeBucketItems('sum', b.items, p.items);
       b.items = merged; b.overview = p.overview || b.overview || '';
       b.status = 'ready'; b.syncing = false;
-      b.generated_at = p.generated_at; b.fetched_at = Date.now(); b.newCount = countNew(merged);
+      b.generated_at = p.generated_at; b.fetched_at = Date.now(); b.newCount = countNew(merged); b.tabNew = countNew(merged);
       saveCache(); render();
     }).catch(function (err) {
       b.syncing = false;
@@ -524,14 +560,15 @@
     if (state.settings.demo) { if (!silent) loadDemoTech(); return; }
     if (!configured()) { if (!silent) guardConfig(b); return; }
     var hasItems = !!(b.items && b.items.length);
+    b.range = state.techRange;
     if (silent && hasItems) { b.syncing = true; } else { b.status = 'loading'; b.syncing = false; }
     b.error = ''; b.errorMeta = ''; b.errorDetail = ''; b.loadError = ''; b.loadErrorDetail = '';
     render();
-    callAPI(buildTechMessages()).then(function (content) {
+    callAPI(buildTechMessages(state.techRange), { silent: silent }).then(function (content) {
       var p = normalizeTech(extractJSON(content));
       var merged = mergeBucketItems('tech', b.items, p.items);
       b.items = merged; b.status = 'ready'; b.syncing = false;
-      b.generated_at = p.generated_at; b.fetched_at = Date.now(); b.newCount = countNew(merged);
+      b.generated_at = p.generated_at; b.fetched_at = Date.now(); b.newCount = countNew(merged); b.tabNew = countNew(merged);
       saveCache(); render();
     }).catch(function (err) {
       b.syncing = false;
@@ -542,8 +579,73 @@
   }
   function loadDemoTech() {
     var d = demoData();
-    state.tech = { status: 'ready', items: d.tech, generated_at: fmtDate(new Date()), fetched_at: Date.now(), range: 0, error: '', errorMeta: '', errorDetail: '' };
+    state.tech = { status: 'ready', items: d.tech, generated_at: fmtDate(new Date()), fetched_at: Date.now(), range: state.techRange, error: '', errorMeta: '', errorDetail: '' };
     render();
+  }
+
+  // ---------- 生成二次确认弹窗 ----------
+  // 生成按钮不再直接发请求:点击后弹出确认框,在框内选范围/类型,点「确认生成」才真正发起。
+  var GEN_KINDS = {
+    news: { title: '生成 · AI 大事件', opt: 'range', run: function () { generateNews(); } },
+    sum: { title: '生成 · AI 汇总', opt: 'range', run: function () { generateSum(); } },
+    tech: { title: '生成 · 前沿技术', opt: 'techrange', run: function () { generateTech(); } },
+    ops: { title: '生成 · 商机雷达', opt: 'mode', run: function () { generateOps(); } }
+  };
+  var genSel = { kind: null, range: 3, techRange: 30, mode: 'ai' };
+
+  function genModalHtml() {
+    var def = GEN_KINDS[genSel.kind], out = '';
+    if (def.opt === 'range') {
+      out += '<div class="gen-opt"><span class="gen-opt__label">时间范围(过去 N 天)</span><div class="chips">' +
+        RANGES.map(function (r) {
+          return '<button class="chip' + (r === genSel.range ? ' is-on' : '') + '" type="button" data-genrange="' + r + '">' + r + ' 天</button>';
+        }).join('') + '</div></div>';
+    } else if (def.opt === 'techrange') {
+      out += '<div class="gen-opt"><span class="gen-opt__label">时间范围(过去 N 天)</span><div class="chips">' +
+        TECH_RANGES.map(function (r) {
+          return '<button class="chip' + (r === genSel.techRange ? ' is-on' : '') + '" type="button" data-gentechrange="' + r + '">' + r + ' 天</button>';
+        }).join('') + '</div></div>';
+    } else if (def.opt === 'mode') {
+      out += '<div class="gen-opt"><span class="gen-opt__label">商机类型(分别生成、结果融合)</span><div class="chips">' +
+        OPS_MODE_ORDER.map(function (m) {
+          return '<button class="chip' + (m === genSel.mode ? ' is-on' : '') + '" type="button" data-genmode="' + m + '">' + esc(OPS_MODES[m].label) + '</button>';
+        }).join('') + '</div></div>';
+    }
+    return out;
+  }
+  function genNote() {
+    if (state.settings.demo) return '演示模式:不会调用 API,确认后直接载入内置示例数据。';
+    if (!configured()) return '尚未配置 API:确认后会先打开「设置」让你填写。';
+    var scope;
+    if (genSel.kind === 'news' || genSel.kind === 'sum') scope = '范围 ' + genSel.range + ' 天';
+    else if (genSel.kind === 'tech') scope = '范围 ' + genSel.techRange + ' 天';
+    else if (genSel.kind === 'ops') scope = '类型「' + OPS_MODES[genSel.mode].label + '」';
+    else scope = '';
+    return '将向 ' + (state.settings.model || 'API') + ' 发起 1 次' + (state.settings.enableSearch ? '联网' : '') + '请求(' + scope + '),可能耗时 1–3 分钟并按 token 计费。';
+  }
+  function renderGenModal() {
+    $('genTitle').textContent = GEN_KINDS[genSel.kind].title;
+    $('genBody').innerHTML = genModalHtml();
+    $('genNote').textContent = genNote();
+  }
+  function openGenModal(kind) {
+    if (!GEN_KINDS[kind]) return;
+    genSel.kind = kind;
+    genSel.range = (kind === 'sum' ? state.sumRange : state.newsRange);
+    genSel.techRange = state.techRange;
+    genSel.mode = state.opsMode;
+    renderGenModal();
+    $('genModal').hidden = false;
+  }
+  function closeGenModal() { $('genModal').hidden = true; genSel.kind = null; }
+  function confirmGenModal() {
+    var kind = genSel.kind; if (!kind) return;
+    if (kind === 'news') state.newsRange = genSel.range;
+    else if (kind === 'sum') state.sumRange = genSel.range;
+    else if (kind === 'tech') state.techRange = genSel.techRange;
+    else if (kind === 'ops') state.opsMode = genSel.mode;
+    closeGenModal();
+    GEN_KINDS[kind].run();
   }
 
   // ---------- 设置弹窗 ----------
@@ -651,6 +753,8 @@
   function render() {
     if (!anyLoading()) stopLoadTimer(); else if (!loadTimer) startLoadTimer();
     renderSource();
+    renderUsage();
+    renderTabBadges();
     renderUpdated();
     $('panel-news').hidden = state.view !== 'news';
     $('panel-ops').hidden = state.view !== 'ops';
@@ -660,8 +764,7 @@
     $('panel-ops').classList.toggle('is-active', state.view === 'ops');
     $('panel-sum').classList.toggle('is-active', state.view === 'sum');
     $('panel-tech').classList.toggle('is-active', state.view === 'tech');
-    renderRangeChips();
-    renderSumRangeChips();
+    renderSelLabels();
     renderNewsPanel();
     renderOpsPanel();
     renderSumPanel();
@@ -674,6 +777,30 @@
     if (s.demo) { chip.classList.add('is-demo'); label.textContent = '演示数据'; }
     else if (s.apiKey) { chip.classList.add('is-live'); label.textContent = (s.model || 'API') + (s.enableSearch ? ' · 联网' : ''); }
     else { chip.classList.add('is-off'); label.textContent = '未配置 API'; }
+  }
+  function renderUsage() {
+    var u = state.usage;
+    $('usageSilent').textContent = fmtTok(u.silent);
+    $('usageChip').title = 'token 消耗统计 · 今日静默 ' + u.daySilent + ' / 今日共 ' + u.dayTotal +
+      ' · 累计静默 ' + u.silent + '(' + u.silentCalls + ' 次)/ 累计共 ' + u.total + '(' + u.calls + ' 次)';
+  }
+  // 切到某 tab 即视为已读:清除该板块的 tab 角标(卡片内的 NEW 当日仍保留)
+  function markViewed(view) {
+    var b = state[view];
+    if (!b) return;
+    if (b.tabNew) { b.tabNew = 0; saveCache(); }
+  }
+  function renderTabBadges() {
+    var map = { sum: state.sum, tech: state.tech, ops: state.ops, news: state.news };
+    Object.keys(map).forEach(function (v) {
+      var tab = $('tab-' + v); if (!tab) return;
+      var n = map[v].tabNew || 0;
+      var badge = tab.querySelector('.tab__badge');
+      if (n > 0) {
+        if (!badge) { badge = document.createElement('span'); badge.className = 'tab__badge'; tab.appendChild(badge); }
+        badge.textContent = n; badge.title = n + ' 条新数据';
+      } else if (badge) { badge.parentNode.removeChild(badge); }
+    });
   }
   function anySyncing() {
     return !!(state.news.syncing || state.sum.syncing || state.ops.syncing || (state.tech && state.tech.syncing));
@@ -689,23 +816,19 @@
     if (state.settings.demo) { el.textContent = '⚠ 演示模式:以下为内置示例数据,非真实检索结果。请在「设置」填写千问 API 并关闭演示模式。'; el.style.color = '#fde68a'; return; }
     var parts = [];
     var ts = lastFetchTs();
-    if (ts) parts.push('上次更新 ' + fmtTime(ts));
+    if (ts) parts.push('上次更新 ' + fmtDateTime(ts));
     var n = totalNew();
     if (n) parts.push(n + ' 条今日新增(NEW)');
     if (anySyncing()) { el.style.color = '#7dd3fc'; el.textContent = '⟳ 正在后台静默同步最新信息…' + (parts.length ? ' · ' + parts.join(' · ') : ''); }
     else if (parts.length) { el.style.color = ''; el.textContent = parts.join(' · '); }
-    else { el.style.color = ''; el.textContent = '打开即保留上次历史;每天首次打开会自动后台同步当日最新并标记 NEW。'; }
+    else { el.style.color = ''; el.textContent = '尚未同步数据。'; }
   }
 
-  function renderRangeChips() {
-    $('rangeChips').innerHTML = RANGES.map(function (r) {
-      return '<button class="chip' + (r === state.newsRange ? ' is-on' : '') + '" type="button" data-range="' + r + '">' + r + ' 天</button>';
-    }).join('');
-  }
-  function renderSumRangeChips() {
-    $('sumRangeChips').innerHTML = RANGES.map(function (r) {
-      return '<button class="chip' + (r === state.sumRange ? ' is-on' : '') + '" type="button" data-sumrange="' + r + '">' + r + ' 天</button>';
-    }).join('');
+  function renderSelLabels() {
+    var ns = $('newsSel'); if (ns) ns.innerHTML = '范围 <b>' + state.newsRange + ' 天</b>';
+    var ss = $('sumSel'); if (ss) ss.innerHTML = '范围 <b>' + state.sumRange + ' 天</b>';
+    var ts = $('techSel'); if (ts) ts.innerHTML = '范围 <b>' + state.techRange + ' 天</b>';
+    var os = $('opsSel'); if (os) os.innerHTML = '类型 <b>' + esc(OPS_MODES[state.opsMode].label) + '</b>';
   }
 
   function panelStateHtml(bucket, kind, readyHint) {
@@ -731,7 +854,7 @@
   function setStatus(el, bucket, extra) {
     el.className = 'toolbar__status is-' + bucket.status;
     if (bucket.status === 'ready') {
-      el.textContent = '更新于 ' + fmtTime(bucket.fetched_at) + ' · ' + bucket.items.length + ' 条' + (extra || '') +
+      el.textContent = '更新于 ' + fmtDateTime(bucket.fetched_at) + ' · ' + bucket.items.length + ' 条' + (extra || '') +
         (bucket.syncing ? ' · ⟳ 同步中' : '') + (bucket.newCount ? ' · ' + bucket.newCount + ' NEW' : '') +
         (bucket.loadError ? ' · 同步失败' : '');
     }
@@ -753,11 +876,10 @@
   }
   function renderOpsPanel() {
     var b = state.ops;
-    renderOpsModeChips();
     var btn = $('genOpsBtn');
     var busy = !!b.loadingMode || b.status === 'loading';
     btn.disabled = busy;
-    btn.textContent = b.loadingMode ? '生成中…' : ('生成' + OPS_MODES[state.opsMode].label);
+    btn.textContent = b.loadingMode ? '生成中…' : '生成商机';
     renderOpsStatus();
     var ready = b.status === 'ready';
     $('opsBody').hidden = !ready;
@@ -765,11 +887,6 @@
     st.hidden = ready;
     if (!ready) { st.innerHTML = panelStateHtml(b, 'ops', configured() ? '先在上方选择类型,再点对应的「生成」按钮。两类分开生成、请求更小更易成功。' : '请先在「设置」配置 API,再生成。'); return; }
     renderOpsStats(); renderOpsFilters(); renderOpsNotice(); renderOpsList();
-  }
-  function renderOpsModeChips() {
-    $('opsModeChips').innerHTML = OPS_MODE_ORDER.map(function (m) {
-      return '<button class="chip' + (m === state.opsMode ? ' is-on' : '') + '" type="button" data-opsmode="' + m + '">' + OPS_MODES[m].label + '</button>';
-    }).join('');
   }
   function renderOpsStatus() {
     var b = state.ops, el = $('opsStatus');
@@ -780,7 +897,7 @@
       var loc = b.items.filter(function (o) { return o.origin === '本地机会'; }).length;
       var mkt = b.items.length - pol - loc;
       el.className += ' is-ready';
-      el.textContent = '更新于 ' + fmtTime(b.fetched_at) + ' · 共 ' + b.items.length + ' 条(政策 ' + pol + ' · 本地 ' + loc + ' · 市场 ' + mkt + ')';
+      el.textContent = '更新于 ' + fmtDateTime(b.fetched_at) + ' · 共 ' + b.items.length + ' 条(政策 ' + pol + ' · 本地 ' + loc + ' · 市场 ' + mkt + ')';
       return;
     }
     if (b.status === 'error') { el.className += ' is-error'; el.textContent = '失败'; return; }
@@ -827,7 +944,7 @@
 
   function renderTechPanel() {
     var b = state.tech;
-    setStatus($('techStatus'), b, '');
+    setStatus($('techStatus'), b, b.range ? ' · ' + b.range + '天' : '');
     $('genTechBtn').disabled = b.status === 'loading';
     var ready = b.status === 'ready';
     $('techBody').hidden = !ready;
@@ -1043,16 +1160,32 @@
       renderPickerList($('pickerSearch').value); closePicker();
     });
     $('settingsModal').addEventListener('click', function (e) { if (e.target.getAttribute('data-close')) closeSettings(); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('settingsModal').hidden) closeSettings(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      if (!$('genModal').hidden) closeGenModal();
+      else if (!$('settingsModal').hidden) closeSettings();
+    });
 
-    $('genNewsBtn').addEventListener('click', generateNews);
-    $('genOpsBtn').addEventListener('click', generateOps);
-    $('genSumBtn').addEventListener('click', generateSum);
-    $('genTechBtn').addEventListener('click', generateTech);
+    $('genNewsBtn').addEventListener('click', function () { openGenModal('news'); });
+    $('genOpsBtn').addEventListener('click', function () { openGenModal('ops'); });
+    $('genSumBtn').addEventListener('click', function () { openGenModal('sum'); });
+    $('genTechBtn').addEventListener('click', function () { openGenModal('tech'); });
+    $('genConfirmBtn').addEventListener('click', confirmGenModal);
+    $('genModal').addEventListener('click', function (e) {
+      if (!e.target.closest) return;
+      if (e.target.closest('[data-genclose]')) { closeGenModal(); return; }
+      var gr = e.target.closest('[data-genrange]');
+      if (gr) { genSel.range = parseInt(gr.getAttribute('data-genrange'), 10) || 3; renderGenModal(); return; }
+      var gtr = e.target.closest('[data-gentechrange]');
+      if (gtr) { genSel.techRange = parseInt(gtr.getAttribute('data-gentechrange'), 10) || 30; renderGenModal(); return; }
+      var gm = e.target.closest('[data-genmode]');
+      if (gm) { genSel.mode = gm.getAttribute('data-genmode'); renderGenModal(); }
+    });
 
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (tab) {
       tab.addEventListener('click', function () {
         state.view = tab.getAttribute('data-view');
+        markViewed(state.view);
         Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (t) {
           var on = t === tab; t.classList.toggle('is-active', on); t.setAttribute('aria-selected', on ? 'true' : 'false');
         });
@@ -1063,10 +1196,6 @@
     document.addEventListener('click', function (e) {
       var t = e.target;
       if (!t.closest) return;
-      var range = t.closest('[data-range]');
-      if (range) { state.newsRange = parseInt(range.getAttribute('data-range'), 10) || 3; render(); return; }
-      var srange = t.closest('[data-sumrange]');
-      if (srange) { state.sumRange = parseInt(srange.getAttribute('data-sumrange'), 10) || 3; render(); return; }
       var retry = t.closest('[data-retry]');
       if (retry) {
         var k = retry.getAttribute('data-retry');
@@ -1077,8 +1206,6 @@
         return;
       }
       if (t.closest('[data-open-settings]')) { openSettings(); return; }
-      var opsmode = t.closest('[data-opsmode]');
-      if (opsmode) { var om = opsmode.getAttribute('data-opsmode'); state.opsMode = OPS_MODES[om] ? om : 'ai'; render(); return; }
       var chip = t.closest('.chip[data-group]');
       if (chip) { state.filters[chip.getAttribute('data-group')] = chip.getAttribute('data-val'); render(); }
     });
@@ -1104,6 +1231,7 @@
       if (cache.sum && cache.sum.status === 'ready' && cache.sum.items && cache.sum.items.length) { state.sum = cache.sum; stampExisting('sum', state.sum.items); }
       if (cache.tech && cache.tech.status === 'ready' && cache.tech.items && cache.tech.items.length) { state.tech = cache.tech; stampExisting('tech', state.tech.items); }
     }
+    markViewed(state.view);
     render();
     syncStale();
   }
