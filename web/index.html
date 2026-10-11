@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 窗口 · 全球 AI 情报控制台</title>
+  <meta name="description" content="本地个人工具:3D 科幻控制台,保留历史、静默同步最新 AI 汇总/前沿技术/商机,今日新增标记 NEW。" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <canvas id="bg3d" aria-hidden="true"></canvas>
+  <div class="bg-scan" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--b" aria-hidden="true"></div>
+
+  <div class="shell">
+    <header class="masthead">
+      <div class="masthead__brand">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="30" height="30" fill="none">
+            <path d="M16 2.5 27.5 9v14L16 29.5 4.5 23V9L16 2.5Z" stroke="url(#lg)" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M16 9.5v13M10.5 12.7v6.6M21.5 12.7v6.6" stroke="url(#lg)" stroke-width="1.6" stroke-linecap="round"/>
+            <defs>
+              <linearGradient id="lg" x1="4" y1="3" x2="28" y2="29" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#38bdf8"/><stop offset="1" stop-color="#a78bfa"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="masthead__text">
+          <h1>AI 窗口</h1>
+          <p class="masthead__sub">全球 AI 情报控制台 · 汇总 / 前沿技术 / 商机(保留历史 · 静默同步 · 今日新增标记 NEW)</p>
+        </div>
+      </div>
+
+      <div class="masthead__actions">
+        <div class="source-chip" id="sourceChip" title="数据来源状态">
+          <span class="source-chip__dot" id="sourceDot"></span>
+          <span id="sourceLabel">未配置</span>
+        </div>
+        <button class="btn btn--ghost" id="settingsBtn" type="button" title="设置">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden="true">
+            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.7"/>
+            <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-2.9 1.2v.17a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 2.6 14H2.43a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4 7.6l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6V4.43a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 2.9 1.2l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 21.4 11h.17a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.57 1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+          </svg>
+          <span>设置</span>
+        </button>
+      </div>
+    </header>
+
+    <p class="updated" id="updatedLine">新闻与商机分开生成,单次请求更小、更易成功。先在「设置」填写千问 API。</p>
+
+    <nav class="tabs" role="tablist" aria-label="主导航">
+      <button class="tab is-active" role="tab" id="tab-sum" aria-controls="panel-sum" aria-selected="true" data-view="sum" type="button">
+        <span class="tab__ico" aria-hidden="true">⚡</span> AI 汇总
+      </button>
+      <button class="tab" role="tab" id="tab-tech" aria-controls="panel-tech" aria-selected="false" data-view="tech" type="button">
+        <span class="tab__ico" aria-hidden="true">🔬</span> 前沿技术
+      </button>
+      <button class="tab" role="tab" id="tab-ops" aria-controls="panel-ops" aria-selected="false" data-view="ops" type="button">
+        <span class="tab__ico" aria-hidden="true">💡</span> 商机雷达
+      </button>
+      <button class="tab" role="tab" id="tab-news" aria-controls="panel-news" aria-selected="false" data-view="news" type="button">
+        <span class="tab__ico" aria-hidden="true">📡</span> AI 大事件
+      </button>
+    </nav>
+
+    <main>
+      <!-- 新闻面板 -->
+      <section class="panel" id="panel-news" role="tabpanel" aria-labelledby="tab-news" hidden>
+        <div class="toolbar">
+          <div class="chips" id="rangeChips"></div>
+          <div class="spacer"></div>
+          <span class="toolbar__status" id="newsStatus"></span>
+          <button class="btn btn--primary btn--sm" id="genNewsBtn" type="button">生成新闻</button>
+        </div>
+        <div class="panel-state" id="newsState" hidden></div>
+        <div id="newsBody" hidden>
+          <div class="stats" id="newsStats"></div>
+          <div class="filters">
+            <div class="filter-group"><span class="filter-group__label">分类</span><div class="chips" id="newsCatChips"></div></div>
+            <div class="filter-group"><span class="filter-group__label">地区</span><div class="chips" id="newsRegionChips"></div></div>
+            <div class="filter-group"><span class="filter-group__label">重要度</span><div class="chips" id="newsImpChips"></div></div>
+          </div>
+          <div class="list" id="newsList"></div>
+        </div>
+      </section>
+
+      <!-- 商机面板 -->
+      <section class="panel" id="panel-ops" role="tabpanel" aria-labelledby="tab-ops" hidden>
+        <div class="toolbar">
+          <div class="chips" id="opsModeChips"></div>
+          <div class="spacer"></div>
+          <span class="toolbar__status" id="opsStatus"></span>
+          <button class="btn btn--primary btn--sm" id="genOpsBtn" type="button">生成商机</button>
+        </div>
+        <p class="ops-hint">选择类型后分别生成:「AI 赛道商机」来自近期市场动态;「国家政策支持」解析中国近半年国家级 / 城市级最新 AI 规划;「本地机会」结合你在「设置」里配置的所在地区(默认福建省),检索当地 AI 政策与产业动态。三类分开生成、请求更小更易成功,结果融合显示并用标签区分。</p>
+        <div class="panel-state" id="opsState" hidden></div>
+        <div id="opsBody" hidden>
+          <div class="stats" id="opsStats"></div>
+          <div class="filters">
+            <div class="filter-group"><span class="filter-group__label">时间</span><div class="chips" id="opsTimeChips"></div></div>
+            <div class="filter-group"><span class="filter-group__label">赛道</span><div class="chips" id="opsTrackChips"></div></div>
+            <div class="filter-group"><span class="filter-group__label">来源</span><div class="chips" id="opsOriginChips"></div></div>
+          </div>
+          <div id="opsNotice" hidden></div>
+          <div class="grid" id="opsList"></div>
+        </div>
+      </section>
+
+      <!-- 汇总面板 -->
+      <section class="panel is-active" id="panel-sum" role="tabpanel" aria-labelledby="tab-sum">
+        <div class="toolbar">
+          <div class="chips" id="sumRangeChips"></div>
+          <div class="spacer"></div>
+          <span class="toolbar__status" id="sumStatus"></span>
+          <button class="btn btn--primary btn--sm" id="genSumBtn" type="button">生成汇总</button>
+        </div>
+        <div class="panel-state" id="sumState" hidden></div>
+        <div id="sumBody" hidden>
+          <div class="sum-overview" id="sumOverview"></div>
+          <p class="sum-tip">以下为要点速览;感兴趣的条目点标题/来源可跳转原文深读。</p>
+          <div class="list" id="sumList"></div>
+        </div>
+      </section>
+
+      <!-- 前沿技术面板 -->
+      <section class="panel" id="panel-tech" role="tabpanel" aria-labelledby="tab-tech" hidden>
+        <div class="toolbar">
+          <span class="toolbar__hint">最新出现的 AI 技术 / 名词,用大白话讲清原理与影响</span>
+          <div class="spacer"></div>
+          <span class="toolbar__status" id="techStatus"></span>
+          <button class="btn btn--primary btn--sm" id="genTechBtn" type="button">生成前沿技术</button>
+        </div>
+        <p class="ops-hint">聚焦最近冒出来的新技术、新架构、新名词(如新型注意力机制、推理模型、Agent 框架、多模态方法等),每条用「原理解读卡片」呈现:一句大白话讲清它是什么、为什么重要,并附来源链接可深读。</p>
+        <div class="panel-state" id="techState" hidden></div>
+        <div id="techBody" hidden>
+          <div class="stats" id="techStats"></div>
+          <div class="filters">
+            <div class="filter-group"><span class="filter-group__label">赛道</span><div class="chips" id="techTrackChips"></div></div>
+          </div>
+          <div class="list" id="techList"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span>AI 风向标 · 纯本地个人工具,数据由你配置的大模型 API 实时生成</span>
+      <span class="foot__note" id="footNote"></span>
+    </footer>
+  </div>
+
+  <!-- 设置弹窗 -->
+  <div class="modal" id="settingsModal" hidden>
+    <div class="modal__backdrop" data-close="1"></div>
+    <div class="modal__card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal__head">
+        <h2 id="settingsTitle">设置 · 大模型 API</h2>
+        <button class="icon-btn" id="settingsClose" type="button" aria-label="关闭">✕</button>
+      </div>
+      <div class="modal__body">
+        <label class="field">
+          <span class="field__label">API Base URL</span>
+          <input class="input" id="setBaseUrl" type="text" spellcheck="false" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1" />
+          <span class="field__hint">阿里云百炼(千问)OpenAI 兼容地址。国际站用 dashscope-intl.aliyuncs.com。</span>
+        </label>
+        <label class="field">
+          <span class="field__label">API Key</span>
+          <input class="input" id="setApiKey" type="password" spellcheck="false" placeholder="sk-..." autocomplete="off" />
+          <span class="field__hint">仅保存在你本机浏览器(localStorage),不会上传或写入任何文件。</span>
+        </label>
+        <label class="field">
+          <span class="field__label">模型</span>
+          <div class="model-row">
+            <input class="input" id="setModel" type="text" spellcheck="false" placeholder="如 qwen3.8-flash" />
+            <button class="btn btn--ghost btn--sm" id="openPickerBtn" type="button">选择模型</button>
+          </div>
+          <span class="field__hint">可手填模型 ID,或点「选择模型」从你账号可用列表里挑(支持搜索、会缓存上次拉取结果)。</span>
+        </label>
+        <div class="picker" id="modelPicker" hidden>
+          <div class="picker__bar">
+            <input class="input input--sm" id="pickerSearch" type="text" placeholder="搜索,如 qwen3 / flash / max" />
+            <button class="btn btn--ghost btn--sm" id="pickerFetchBtn" type="button">拉取/刷新</button>
+            <button class="icon-btn" id="pickerClose" type="button" aria-label="收起">✕</button>
+          </div>
+          <div class="picker__list" id="pickerList"></div>
+          <div class="picker__foot" id="pickerFoot"></div>
+        </div>
+        <div class="field field--row">
+          <label class="switch"><input type="checkbox" id="setSearch" /><span class="switch__track"><span class="switch__thumb"></span></span><span class="switch__text">联网搜索(enable_search)</span></label>
+          <span class="field__hint">开启后请求会带 <code>enable_search:true</code>,让千问联网检索最新信息。实时新闻必须开启。</span>
+        </div>
+        <div class="field field--row">
+          <label class="switch"><input type="checkbox" id="setAutoSync" /><span class="switch__track"><span class="switch__thumb"></span></span><span class="switch__text">打开时自动后台同步当日最新</span></label>
+          <span class="field__hint">开启后每天首次打开会静默拉取最新并把新增标记为 <b>NEW</b>;上次历史始终保留。会产生 API 调用(按 token 计费)。</span>
+        </div>
+        <label class="field">
+          <span class="field__label">请求超时(秒)</span>
+          <input class="input" id="setTimeout" type="number" min="30" max="900" step="10" value="300" />
+          <span class="field__hint">联网聚合耗时较长,默认 300 秒。若仍超时可调大(30–900)。</span>
+        </label>
+        <label class="field">
+          <span class="field__label">本地机会地区</span>
+          <input class="input" id="setRegion" type="text" spellcheck="false" placeholder="如 福建省 / 厦门市 / 漳州市" />
+          <span class="field__hint">商机「本地机会」类型按此地区检索当地最新 AI 政策与产业机会。默认福建省。</span>
+        </label>
+        <div class="field field--row">
+          <label class="switch"><input type="checkbox" id="setDemo" /><span class="switch__track"><span class="switch__thumb"></span></span><span class="switch__text">演示模式(不调用 API,用内置示例数据)</span></label>
+        </div>
+        <div class="field field--row">
+          <label class="switch"><input type="checkbox" id="setThree" /><span class="switch__track"><span class="switch__thumb"></span></span><span class="switch__text">3D 控制台背景(WebGL)</span></label>
+          <span class="field__hint">科幻星域背景。软件渲染 / 低帧率会自动降级为静态或关闭;若感觉卡顿可在此关掉。</span>
+        </div>
+        <div class="modal__msg" id="settingsMsg" hidden></div>
+      </div>
+      <div class="modal__foot">
+        <button class="btn btn--ghost" id="testBtn" type="button">测试连接</button>
+        <div class="spacer"></div>
+        <button class="btn btn--ghost" data-close="1" type="button">取消</button>
+        <button class="btn btn--primary" id="saveSettings" type="button">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+  <script type="module" src="./bg3d.js"></script>
+</body>
+</html>
