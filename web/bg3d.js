@@ -16,10 +16,13 @@ import * as THREE from './vendor/three.module.js';
 
   try { if (localStorage.getItem(FLAG_KEY) === 'off') { canvas.remove(); return; } } catch (e) {}
 
-  var renderer, scene, camera, stars, stars2, grid, ring, ring2, ring3, earth, earthWire, glow, raf = 0, running = false;
-  var degraded = false, dead = false;
-  var W = 0, H = 0;
+  var EARTH_R = 1.6;
   var EARTH_POS = new THREE.Vector3(0, 0.3, -2.5);
+
+  var renderer, scene, camera, DOT;
+  var earth, earthWire, net, nodes, packets = [], halo, stars, stars2, grid, ring, ring2, ring3, glow;
+  var raf = 0, running = false, degraded = false, dead = false;
+  var W = 0, H = 0;
 
   function isSoftwareRenderer() {
     try {
@@ -41,20 +44,35 @@ import * as THREE from './vendor/three.module.js';
     g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
     return new THREE.CanvasTexture(c);
   }
+  // 圆形柔边点精灵:星点与节点共用,避免默认方形点被放大成色块
+  function makeDotTexture() {
+    var c = document.createElement('canvas'); c.width = c.height = 32;
+    var g = c.getContext('2d');
+    var grad = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.35, 'rgba(255,255,255,0.7)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad; g.fillRect(0, 0, 32, 32);
+    return new THREE.CanvasTexture(c);
+  }
 
-  function makeStars(count, color, size, opacity) {
+  // 远景星域:半径很大的球壳 + sizeAttenuation:false,保证永远是细碎小点,不会飘成大块
+  function makeStars(count, color, px, opacity) {
     var g = new THREE.BufferGeometry();
     var pos = new Float32Array(count * 3);
     for (var i = 0; i < count; i++) {
-      var r = 6 + Math.random() * 16;
+      var r = 30 + Math.random() * 55;
       var th = Math.random() * Math.PI * 2;
       var ph = Math.acos(2 * Math.random() - 1);
       pos[i * 3] = r * Math.sin(ph) * Math.cos(th);
-      pos[i * 3 + 1] = r * Math.cos(ph) * 0.6;
+      pos[i * 3 + 1] = r * Math.cos(ph);
       pos[i * 3 + 2] = r * Math.sin(ph) * Math.sin(th);
     }
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    return new THREE.Points(g, new THREE.PointsMaterial({ color: color, size: size, sizeAttenuation: true, transparent: true, opacity: opacity, depthWrite: false }));
+    return new THREE.Points(g, new THREE.PointsMaterial({
+      color: color, size: px, sizeAttenuation: false, map: DOT,
+      transparent: true, opacity: opacity, depthWrite: false, blending: THREE.AdditiveBlending
+    }));
   }
 
   function makeRing(inner, outer, color, opacity, tiltX, tiltY) {
@@ -95,14 +113,12 @@ import * as THREE from './vendor/three.module.js';
     var c = document.createElement('canvas'); c.width = w; c.height = h;
     var g = c.getContext('2d');
 
-    // 海洋:深蓝渐变
     var ocean = g.createLinearGradient(0, 0, 0, h);
     ocean.addColorStop(0, '#0a2a52');
     ocean.addColorStop(0.5, '#061a38');
     ocean.addColorStop(1, '#04101f');
     g.fillStyle = ocean; g.fillRect(0, 0, w, h);
 
-    // 经纬网(淡青)
     g.strokeStyle = 'rgba(56,189,248,0.10)'; g.lineWidth = 1;
     for (var lon = -180; lon <= 180; lon += 30) {
       var x = (lon + 180) / 360 * w;
@@ -113,12 +129,11 @@ import * as THREE from './vendor/three.module.js';
       g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke();
     }
 
-    // 大洲:青绿填充 + 亮青海岸线
     var land = g.createLinearGradient(0, 0, 0, h);
-    land.addColorStop(0, '#0e7490');
-    land.addColorStop(0.5, '#15957e');
-    land.addColorStop(1, '#0e7490');
-    g.lineWidth = 1.2;
+    land.addColorStop(0, '#0c3a4a');
+    land.addColorStop(0.5, '#0a2b3a');
+    land.addColorStop(1, '#0c3a4a');
+    g.lineWidth = 1.6;
     for (var i = 0; i < CONTINENTS.length; i++) {
       var poly = CONTINENTS[i];
       g.beginPath();
@@ -129,58 +144,174 @@ import * as THREE from './vendor/three.module.js';
       }
       g.closePath();
       g.fillStyle = land; g.fill();
-      g.strokeStyle = 'rgba(103,232,249,0.75)'; g.stroke();
+      g.strokeStyle = 'rgba(125,240,255,0.95)'; g.stroke();
     }
 
-    // 极冰
-    g.fillStyle = 'rgba(214,238,255,0.85)';
-    g.fillRect(0, 0, w, (90 - 78) / 180 * h);          // 北极带
-    g.fillRect(0, (90 + 70) / 180 * h, w, h);          // 南极带
+    g.fillStyle = 'rgba(180,220,250,0.5)';
+    g.fillRect(0, 0, w, (90 - 78) / 180 * h);
+    g.fillRect(0, (90 + 70) / 180 * h, w, h);
 
     var tex = new THREE.CanvasTexture(c);
     tex.anisotropy = 1;
     return tex;
   }
 
-  function build(starCount) {
+  // ---- 情报网络层:大洲枢纽节点 + 跨大洲链路 + 流动数据包 ----
+  // 节点用真实城市定位,链路强制连接不同大洲,且每个枢纽至少有一条链路,避免"亮着却不传输"的点
+  var HUBS = [
+    { c: 'NA', lat: 37.77, lon: -122.42 },  // 旧金山
+    { c: 'NA', lat: 40.71, lon: -74.0 },    // 纽约
+    { c: 'NA', lat: 43.65, lon: -79.38 },   // 多伦多
+    { c: 'NA', lat: 30.27, lon: -97.74 },   // 奥斯汀
+    { c: 'NA', lat: 19.43, lon: -99.13 },   // 墨西哥城
+    { c: 'SA', lat: -23.55, lon: -46.63 },  // 圣保罗
+    { c: 'SA', lat: -34.6, lon: -58.38 },   // 布宜诺斯艾利斯
+    { c: 'SA', lat: 4.71, lon: -74.07 },    // 波哥大
+    { c: 'EU', lat: 51.5, lon: -0.13 },     // 伦敦
+    { c: 'EU', lat: 48.86, lon: 2.35 },     // 巴黎
+    { c: 'EU', lat: 52.52, lon: 13.4 },     // 柏林
+    { c: 'EU', lat: 59.33, lon: 18.07 },    // 斯德哥尔摩
+    { c: 'EU', lat: 40.42, lon: -3.7 },     // 马德里
+    { c: 'AF', lat: 30.04, lon: 31.24 },    // 开罗
+    { c: 'AF', lat: 6.52, lon: 3.38 },      // 拉各斯
+    { c: 'AF', lat: -1.29, lon: 36.82 },    // 内罗毕
+    { c: 'AF', lat: -26.2, lon: 28.05 },    // 约翰内斯堡
+    { c: 'AF', lat: -33.92, lon: 18.42 },   // 开普敦
+    { c: 'AS', lat: 39.9, lon: 116.4 },     // 北京
+    { c: 'AS', lat: 31.23, lon: 121.47 },   // 上海
+    { c: 'AS', lat: 22.54, lon: 114.06 },   // 深圳
+    { c: 'AS', lat: 35.68, lon: 139.69 },   // 东京
+    { c: 'AS', lat: 1.35, lon: 103.82 },    // 新加坡
+    { c: 'AS', lat: 12.97, lon: 77.59 },    // 班加罗尔
+    { c: 'AS', lat: 19.08, lon: 72.88 },    // 孟买
+    { c: 'AS', lat: 37.57, lon: 126.98 },   // 首尔
+    { c: 'AS', lat: 25.2, lon: 55.27 },     // 迪拜
+    { c: 'AS', lat: -6.2, lon: 106.85 },    // 雅加达
+    { c: 'OC', lat: -33.87, lon: 151.21 },  // 悉尼
+    { c: 'OC', lat: -37.81, lon: 144.96 },  // 墨尔本
+    { c: 'OC', lat: -36.85, lon: 174.76 }   // 奥克兰
+  ];
+
+  function latLonToVec3(lat, lon, r) {
+    var phi = (90 - lat) * Math.PI / 180;
+    var theta = (lon + 180) * Math.PI / 180;
+    return new THREE.Vector3(
+      -r * Math.sin(phi) * Math.cos(theta),
+      r * Math.cos(phi),
+      r * Math.sin(phi) * Math.sin(theta)
+    );
+  }
+  function makeCurve(a, b) {
+    var mid = a.clone().add(b).multiplyScalar(0.5);
+    mid.normalize().multiplyScalar(EARTH_R + 0.22 + a.distanceTo(b) * 0.26);
+    return new THREE.QuadraticBezierCurve3(a.clone(), mid, b.clone());
+  }
+  function buildNetwork(extraArcs) {
+    var grp = new THREE.Group();
+    var pts = HUBS.map(function (h) { return latLonToVec3(h.lat, h.lon, EARTH_R * 1.012); });
+
+    var ng = new THREE.BufferGeometry();
+    var np = new Float32Array(pts.length * 3);
+    for (var i = 0; i < pts.length; i++) { np[i * 3] = pts[i].x; np[i * 3 + 1] = pts[i].y; np[i * 3 + 2] = pts[i].z; }
+    ng.setAttribute('position', new THREE.BufferAttribute(np, 3));
+    nodes = new THREE.Points(ng, new THREE.PointsMaterial({
+      color: 0xa5f3fc, size: 0.075, sizeAttenuation: true, map: DOT,
+      transparent: true, opacity: 0.95, depthWrite: false, blending: THREE.AdditiveBlending
+    }));
+    grp.add(nodes);
+
+    var used = {};
+    function pairKey(a, b) { return a < b ? a + '_' + b : b + '_' + a; }
+    function pickOther(i) {
+      for (var tries = 0; tries < 60; tries++) {
+        var j = (Math.random() * HUBS.length) | 0;
+        if (j !== i && HUBS[j].c !== HUBS[i].c && !used[pairKey(i, j)]) return j;
+      }
+      return -1;
+    }
+    var curves = [];
+    function link(i, j) { used[pairKey(i, j)] = 1; curves.push(makeCurve(pts[i], pts[j])); }
+
+    // 1) 每个枢纽先各连一条跨大洲链路 —— 保证没有"闲置光点"
+    var order = pts.map(function (_, idx) { return idx; }).sort(function () { return Math.random() - 0.5; });
+    order.forEach(function (i) { var j = pickOther(i); if (j >= 0) link(i, j); });
+    // 2) 再补充若干跨大洲链路,让网络更密
+    for (var k = 0; k < extraArcs; k++) {
+      var a = (Math.random() * HUBS.length) | 0, b = pickOther(a);
+      if (b >= 0) link(a, b);
+    }
+
+    // 所有弧线合并进一个 LineSegments,省掉大量 draw call
+    var seg = [];
+    curves.forEach(function (cv) {
+      var ps = cv.getPoints(30);
+      for (var s = 0; s < ps.length - 1; s++) seg.push(ps[s].x, ps[s].y, ps[s].z, ps[s + 1].x, ps[s + 1].y, ps[s + 1].z);
+    });
+    var lg = new THREE.BufferGeometry();
+    lg.setAttribute('position', new THREE.Float32BufferAttribute(seg, 3));
+    grp.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({
+      color: 0x67e8f9, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false
+    })));
+
+    curves.forEach(function (cv) {
+      var pk = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: DOT, color: 0xd9fbff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false
+      }));
+      pk.scale.set(0.085, 0.085, 1);
+      packets.push({ sprite: pk, curve: cv, t: Math.random(), sp: 0.14 + Math.random() * 0.2 });
+      grp.add(pk);
+    });
+    return grp;
+  }
+
+  function build(starCount, extraArcs) {
     scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x05070f, 0.05);
-    camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
+    scene.fog = new THREE.FogExp2(0x05070f, 0.02);
+    camera = new THREE.PerspectiveCamera(60, 1, 0.1, 140);
     camera.position.set(0, 0.7, 6.5);
 
-    // 双色星域:青色主星 + 紫色远景星,营造纵深
-    stars = makeStars(starCount, 0x67e8f9, 0.06, 0.9);
-    stars2 = makeStars(Math.floor(starCount * 0.5), 0xa78bfa, 0.11, 0.55);
+    stars = makeStars(starCount, 0x9fe9ff, 2, 0.85);
+    stars2 = makeStars(Math.floor(starCount * 0.45), 0xb9a4ff, 2.8, 0.5);
     scene.add(stars); scene.add(stars2);
 
-    // 地平网格
     grid = new THREE.GridHelper(44, 26, 0x1d4ed8, 0x112233);
     grid.material.transparent = true;
-    grid.material.opacity = 0.16;
+    grid.material.opacity = 0.14;
     grid.position.y = -2.4;
     scene.add(grid);
 
-    // 地球:程序化贴图球体(无光照 MeshBasic,软件渲染也稳定) + 全息线框壳 + 大气辉光
+    // 地球本体(无光照贴图,软件渲染也稳定)+ 全息线框壳
     earth = new THREE.Group();
-    var surface = new THREE.Mesh(
-      new THREE.SphereGeometry(1.6, 48, 32),
+    earth.add(new THREE.Mesh(
+      new THREE.SphereGeometry(EARTH_R, 48, 32),
       new THREE.MeshBasicMaterial({ map: makeEarthTexture() })
-    );
+    ));
     earthWire = new THREE.Mesh(
-      new THREE.SphereGeometry(1.608, 28, 20),
-      new THREE.MeshBasicMaterial({ color: 0x67e8f9, wireframe: true, transparent: true, opacity: 0.12 })
+      new THREE.SphereGeometry(EARTH_R * 1.006, 28, 20),
+      new THREE.MeshBasicMaterial({ color: 0x67e8f9, wireframe: true, transparent: true, opacity: 0.11, depthWrite: false })
     );
-    earth.add(surface); earth.add(earthWire);
+    earth.add(earthWire);
     earth.position.copy(EARTH_POS);
-    earth.rotation.z = -0.41; // 地轴倾角 ~23.5°
+    earth.rotation.z = -0.41;
     scene.add(earth);
 
-    glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeGlowTexture(), color: 0x6fa8ff, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false }));
-    glow.scale.set(6, 6, 1);
+    // 情报网络挂在地球上,一起自转;弧线/节点被球体遮挡,只显正面
+    net = buildNetwork(extraArcs);
+    earth.add(net);
+
+    // 外层全息壳:缓慢反向自转,增加纵深
+    halo = new THREE.Mesh(
+      new THREE.SphereGeometry(EARTH_R * 1.7, 18, 12),
+      new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true, transparent: true, opacity: 0.06, depthWrite: false })
+    );
+    halo.position.copy(EARTH_POS);
+    scene.add(halo);
+
+    glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeGlowTexture(), color: 0x6fa8ff, transparent: true, opacity: 0.62, blending: THREE.AdditiveBlending, depthWrite: false }));
+    glow.scale.set(6.4, 6.4, 1);
     glow.position.copy(EARTH_POS);
     scene.add(glow);
 
-    // 三层 HUD 环:不同半径 / 倾角,环绕地球
     ring = makeRing(2.3, 2.36, 0xa78bfa, 0.3, Math.PI / 2.4);
     ring2 = makeRing(3.0, 3.05, 0x38bdf8, 0.22, Math.PI / 2.1, 0.4);
     ring3 = makeRing(2.0, 2.04, 0x67e8f9, 0.28, Math.PI / 1.7, -0.5);
@@ -194,20 +325,32 @@ import * as THREE from './vendor/three.module.js';
     camera.aspect = W / H; camera.updateProjectionMatrix();
   }
 
-  var t0 = 0;
+  var t0 = 0, last = 0;
   function frame(now) {
     if (!running) return;
     raf = requestAnimationFrame(frame);
     var t = (now - t0) / 1000;
-    stars.rotation.y = t * 0.02;
-    stars2.rotation.y = -t * 0.013;
-    earth.rotation.y = t * 0.10; // 自转
+    var dt = Math.min(0.05, (now - last) / 1000) || 0.016;
+    last = now;
+
+    stars.rotation.y = t * 0.012;
+    stars2.rotation.y = -t * 0.008;
+    earth.rotation.y = t * 0.085;
+    halo.rotation.y = -t * 0.05;
+    halo.rotation.x = Math.sin(t * 0.07) * 0.15;
     ring.rotation.z = t * 0.05;
     ring2.rotation.z = -t * 0.07;
     ring3.rotation.z = t * 0.09;
-    glow.material.opacity = 0.6 + Math.sin(t * 0.8) * 0.12;
-    camera.position.x = Math.sin(t * 0.08) * 0.6;
-    camera.position.y = 0.7 + Math.sin(t * 0.05) * 0.15;
+    for (var i = 0; i < packets.length; i++) {
+      var p = packets[i];
+      p.t += dt * p.sp;
+      if (p.t > 1) p.t -= 1;
+      p.sprite.position.copy(p.curve.getPoint(p.t));
+      p.sprite.material.opacity = 0.35 + Math.sin(p.t * Math.PI) * 0.6;
+    }
+    glow.material.opacity = 0.55 + Math.sin(t * 0.8) * 0.1;
+    camera.position.x = Math.sin(t * 0.08) * 0.5;
+    camera.position.y = 0.7 + Math.sin(t * 0.05) * 0.12;
     camera.lookAt(EARTH_POS);
     renderer.render(scene, camera);
     watchdog(now);
@@ -218,10 +361,10 @@ import * as THREE from './vendor/three.module.js';
     if (watched) return;
     if (!watchStart) { watchStart = now; return; }
     frames++;
-    var dt = now - watchStart;
-    if (dt >= 2500) {
+    var dur = now - watchStart;
+    if (dur >= 2500) {
       watched = true;
-      var fps = frames / (dt / 1000);
+      var fps = frames / (dur / 1000);
       if (fps < 12) kill();
       else if (fps < 24 && !degraded) degrade();
     }
@@ -233,6 +376,7 @@ import * as THREE from './vendor/three.module.js';
     [stars, stars2].forEach(function (s) {
       if (s) s.geometry.setDrawRange(0, Math.floor(s.geometry.attributes.position.count / 2));
     });
+    for (var i = 0; i < packets.length; i++) packets[i].sprite.position.copy(packets[i].curve.getPoint(0.5));
     camera.position.set(0, 0.7, 6.5);
     camera.lookAt(EARTH_POS);
     renderer.render(scene, camera);
@@ -245,7 +389,8 @@ import * as THREE from './vendor/three.module.js';
 
   function start() {
     if (running || dead || degraded) return;
-    running = true; t0 = performance.now();
+    running = true;
+    var n = performance.now(); t0 = n; last = n;
     raf = requestAnimationFrame(frame);
   }
   function stop() {
@@ -258,9 +403,10 @@ import * as THREE from './vendor/three.module.js';
     renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false, alpha: true, powerPreference: 'default' });
     renderer.setPixelRatio(1);
     renderer.setClearColor(0x000000, 0);
+    DOT = makeDotTexture();
 
     var soft = isSoftwareRenderer();
-    build(soft ? 500 : 1100);
+    build(soft ? 420 : 1000, soft ? 5 : 16);
     resize();
     if (soft) { degrade(); return; }
 

@@ -136,7 +136,9 @@
     return (h >>> 0).toString(36);
   }
   function itemId(kind, it) {
-    return kind + '_' + hashStr((it.title || '') + '|' + (it.url || '') + '|' + (it.date || it.policy || it.term || ''));
+    // 汇总项的 date 是后加的:排除在 id 之外,同一条新闻再抓回来仍是同一个 id,不会变成重复的新条目
+    var extra = kind === 'sum' ? '' : (it.date || it.policy || it.term || '');
+    return kind + '_' + hashStr((it.title || '') + '|' + (it.url || '') + '|' + extra);
   }
   function ageDays(firstSeen) {
     if (!firstSeen) return 0;
@@ -193,7 +195,7 @@
 
   // ---------- 提示词(分块、缩量) ----------
   function newsSchema() {
-    return '{"generated_at":"YYYY-MM-DD","news":[{"title":"简体中文标题,不超过36字","summary":"40到80字摘要","category":"从[模型发布,融资并购,政策监管,产品应用,研究突破,行业动态]选一个","importance":"重大 或 一般","region":"从[全球,中国,美国,欧洲,其他]选一个","date":"YYYY-MM-DD","source":"来源媒体或机构名","url":"原始链接,没有则空字符串","impact":"一句话影响,20到40字"}]}';
+    return '{"generated_at":"YYYY-MM-DD","news":[{"title":"简体中文标题,不超过36字","summary":"40到80字精炼摘要,一句话说清发生了什么","detail":"150到260字详情,讲清来龙去脉:背景、涉及主体、关键数字或条款、时间线、接下来可能怎样","category":"从[模型发布,融资并购,政策监管,产品应用,研究突破,行业动态]选一个","importance":"重大 或 一般","region":"从[全球,中国,美国,欧洲,其他]选一个","date":"YYYY-MM-DD","source":"来源媒体或机构名","url":"原始链接,没有则空字符串","impact":"一句话影响,20到40字"}]}';
   }
   function buildNewsMessages(range) {
     var today = new Date();
@@ -203,7 +205,8 @@
     var sys = '你是「AI 风向标」的情报分析引擎。你会联网检索最新信息,客观汇总,不编造。你只输出一个 JSON 对象,不要输出任何解释、前后缀或 Markdown 代码块。';
     var user = '今天是 ' + dstr + '。请联网检索 ' + start + ' 至 ' + dstr + '(最近 ' + range + ' 天)全球范围 AI 领域发生的大小事。\n' +
       '严格按以下 JSON 结构输出:\n' + newsSchema() + '\n' +
-      '要求:news 给出 ' + cc[0] + ' 到 ' + cc[1] + ' 条,混合"重大"与"一般",地区尽量分散,date 必须落在最近 ' + range + ' 天内,真实可核查,优先附 url 与 source。全部简体中文。只输出 JSON。';
+      '要求:news 给出 ' + cc[0] + ' 到 ' + cc[1] + ' 条,混合"重大"与"一般",地区尽量分散,date 必须落在最近 ' + range + ' 天内,真实可核查,优先附 url 与 source。' +
+      '每条的 detail 必须真正补充信息(背景、数字、主体、时间线),不能只是把 summary 换个说法重复一遍;让只读到 summary 的人点进详情能看懂到底发生了什么。全部简体中文。只输出 JSON。';
     return [{ role: 'system', content: sys }, { role: 'user', content: user }];
   }
   function buildOpsMessages(mode) {
@@ -215,13 +218,14 @@
     var dstr = fmtDate(new Date());
     var sys = '你是「AI 风向标」的市场商机分析引擎,面向想发现 AI 商机的个人与小微企业。你会联网了解最近一周全球与中国的 AI 市场动态,并提炼可落地的 AI 赛道商机。你只输出一个 JSON 对象,不要输出任何解释、前后缀或 Markdown 代码块。';
     var schema = '{"generated_at":"' + dstr + '","opportunities":[{' +
-      '"title":"商机标题,不超过26字","description":"40到70字,说明是什么商机、解决什么需求",' +
+      '"title":"商机标题,不超过26字","description":"40到70字精炼说明:是什么商机、解决什么需求",' +
+      '"detail":"120到220字详情,讲清为什么现在是机会、依据哪些近期动态、具体怎么切入、需要什么资源或能力、主要风险与不确定性",' +
       '"track":"从[' + OPS_TRACK_ENUM + ']选一个","timeframe":"本周 或 本月","potential":"高 或 中",' +
       '"difficulty":"高/中/低 选一个","audience":"适合谁做,不超过16字","action":"第一步行动建议,20到40字",' +
-      '"url":"参考来源链接,没有则空字符串"}]}';
+      '"source":"依据的来源媒体/机构名,没有则空字符串","url":"参考来源链接,没有则空字符串"}]}';
     var user = '今天是 ' + dstr + '。请结合最近一周全球与中国 AI 市场动态,提炼个人或小微企业能上手的 AI 赛道商机。\n' +
       '严格按以下 JSON 结构输出:\n' + schema + '\n' +
-      '要求:opportunities 给出 5 到 7 条,覆盖不同 track 赛道,具体可执行、避免空泛。全部简体中文。只输出 JSON。';
+      '要求:opportunities 给出 5 到 7 条,覆盖不同 track 赛道,具体可执行、避免空泛;detail 必须给出可判断的真信息,不能重复 description。全部简体中文。只输出 JSON。';
     return [{ role: 'system', content: sys }, { role: 'user', content: user }];
   }
   function buildPolicyOpsMessages() {
@@ -230,10 +234,11 @@
     var start = fmtDate(new Date(today.getTime() - 183 * 86400000));
     var sys = '你是「AI 风向标」的政策商机分析引擎。你会联网检索中国最新的国家级与城市级 AI 相关规划/政策,把它们解析成个人或小微企业能切入的具体商机。政策文件、发布时间与链接必须真实可核查,严禁编造。你只输出一个 JSON 对象,不要输出任何解释、前后缀或 Markdown 代码块。';
     var schema = '{"generated_at":"' + dstr + '","opportunities":[{' +
-      '"title":"商机标题,不超过26字","description":"40到70字,说明政策带来什么商机、解决什么需求",' +
+      '"title":"商机标题,不超过26字","description":"40到70字精炼说明:政策带来什么商机、解决什么需求",' +
+      '"detail":"120到220字详情,讲清政策原文的关键条款或目标与时间表、由此释放出的具体需求、个人或小团队可承接的切入点、需要什么资质或资源、主要不确定性",' +
       '"track":"从[' + OPS_TRACK_ENUM + ']选一个","level":"从[国家级,省级,市级]选一个",' +
       '"region":"全国 或对应省市名","policy":"规划/政策全称+发布时间,如《XX行动计划》(2025-XX)",' +
-      '"url":"政策原文或权威来源链接,没有则空字符串","timeframe":"本周 或 本月","potential":"高 或 中",' +
+      '"source":"发布机构名,如工信部/某市人民政府","url":"政策原文或权威来源链接,没有则空字符串","timeframe":"本周 或 本月","potential":"高 或 中",' +
       '"difficulty":"高/中/低 选一个","audience":"适合谁做,不超过16字","action":"第一步行动建议,20到40字"}]}';
     var user = '今天是 ' + dstr + '。请联网检索中国 ' + start + ' 至今(近半年)最新的国家级与城市级 AI 相关规划/政策,把每条政策解析成对应的落地商机。\n' +
       '严格按以下 JSON 结构输出:\n' + schema + '\n' +
@@ -252,10 +257,11 @@
     var region = (state.settings.region || '').trim() || '福建省';
     var sys = '你是「AI 风向标」的本地商机分析引擎。你会联网检索中国' + region + '最近的人工智能相关政策、产业布局、园区/基金/场景开放与本地企业动态,把它们解析成个人或小微企业能在' + region + '本地切入的具体商机。政策文件、发布时间与链接必须真实可核查,严禁编造。你只输出一个 JSON 对象,不要输出任何解释、前后缀或 Markdown 代码块。';
     var schema = '{"generated_at":"' + dstr + '","opportunities":[{' +
-      '"title":"商机标题,不超过26字","description":"40到70字,说明' + region + '本地这个机会是什么、解决什么需求",' +
+      '"title":"商机标题,不超过26字","description":"40到70字精炼说明:' + region + '本地这个机会是什么、解决什么需求",' +
+      '"detail":"120到220字详情,讲清' + region + '本地的具体依据(哪个地市/哪份文件或哪个园区、基金、场景清单)、当地产业与资源优势、可承接的切入点、需要什么资源或本地关系、主要风险",' +
       '"track":"从[' + OPS_TRACK_ENUM + ']选一个","level":"从[国家级,省级,市级]选一个,没有明确层级则留空字符串",' +
       '"region":"' + region + '内的具体地市/区县,或整个' + region + '","policy":"所依据的本地规划/政策/事件全称+发布时间,没有则空字符串",' +
-      '"url":"官方或权威来源链接,没有则空字符串","timeframe":"本周 或 本月","potential":"高 或 中",' +
+      '"source":"发布或报道该信息的本地机构名,没有则空字符串","url":"官方或权威来源链接,没有则空字符串","timeframe":"本周 或 本月","potential":"高 或 中",' +
       '"difficulty":"高/中/低 选一个","audience":"适合谁做,不超过16字","action":"第一步行动建议,20到40字"}]}';
     var user = '今天是 ' + dstr + '。请联网检索中国' + region + ' ' + start + ' 至今(近半年)最新的 AI 相关规划/政策/产业动态(如' + region + '及下辖地市的人工智能行动计划、算力/数据要素政策、场景开放清单、产业基金、园区招商等),把每条解析成' + region + '本地个人或小微企业能落地的商机。\n' +
       '严格按以下 JSON 结构输出:\n' + schema + '\n' +
@@ -273,8 +279,8 @@
     var sys = '你是「AI 风向标」的汇总编辑。你会联网检索最新信息,用简洁中文写导读与要点,不编造。你只输出一个 JSON 对象,不要输出任何解释、前后缀或 Markdown 代码块。';
     var user = '今天是 ' + dstr + '。请联网检索 ' + start + ' 至 ' + dstr + '(最近 ' + range + ' 天)全球 AI 大小事,写一份"快速汇总",供不想逐条细读的人 30 秒看完。\n' +
       '严格按以下 JSON 结构输出:\n' +
-      '{"generated_at":"' + dstr + '","overview":"80到140字的整体导读,概括这几天 AI 领域的主线与氛围","highlights":[{"title":"要点标题,不超过24字","takeaway":"一句话要点,20到45字,说明为什么值得关注","tag":"主题标签,如 模型/融资/监管/产品/研究","source":"来源名","url":"原始链接,没有则空字符串"}]}\n' +
-      '要求:highlights 给出 5 到 8 条,按重要性排序、覆盖不同主题;每条尽量附真实 url 以便点击深读。全部简体中文。只输出 JSON。';
+      '{"generated_at":"' + dstr + '","overview":"80到140字的整体导读,概括这几天 AI 领域的主线与氛围","highlights":[{"title":"要点标题,不超过24字","takeaway":"一句话精炼要点,20到45字,说明发生了什么、为什么值得关注","detail":"120到220字详情,讲清这条要点的来龙去脉:背景、涉及主体、关键数字或条款、时间线、后续影响","tag":"主题标签,如 模型/融资/监管/产品/研究","date":"该事件日期 YYYY-MM-DD","source":"来源名","url":"原始链接,没有则空字符串"}]}\n' +
+      '要求:highlights 给出 5 到 8 条,覆盖不同主题;每条尽量附真实 url 与 source 以便点击深读;detail 必须真正补充信息,不能只是复述 takeaway;date 填事件真实日期,输出按 date 从新到旧排列。全部简体中文。只输出 JSON。';
     return [{ role: 'system', content: sys }, { role: 'user', content: user }];
   }
   function normalizeSum(obj) {
@@ -284,8 +290,8 @@
       overview: obj.overview || '',
       items: hl.map(function (h) {
         return {
-          title: h.title || '未命名要点', takeaway: h.takeaway || '', tag: h.tag || '综合',
-          source: h.source || '', url: h.url || ''
+          title: h.title || '未命名要点', takeaway: h.takeaway || '', detail: h.detail || '', tag: h.tag || '综合',
+          date: h.date || '', source: h.source || '', url: h.url || ''
         };
       })
     };
@@ -303,6 +309,7 @@
       '"en":"英文原名或缩写,没有则空字符串",' +
       '"principle":"60到120字,用大白话讲清它是什么、大致怎么工作的,尽量少用行话,必要术语随手解释",' +
       '"why":"30到60字,说明它为什么值得关注、能带来什么改变",' +
+      '"detail":"150到260字详情,再往深一层:它要解决的具体问题、与已有方案相比强在哪、关键做法或架构思路、目前的局限与代价、谁已经在用或落地到什么程度",' +
       '"track":"从[' + OPS_TRACK_ENUM + ']选一个",' +
       '"stage":"从[研究突破,早期产品,规模落地]选一个",' +
       '"source":"来源媒体/机构/论文名","url":"原始链接,没有则空字符串","date":"YYYY-MM-DD"}]}';
@@ -319,6 +326,7 @@
         var track = (typeof t.track === 'string' && t.track.trim()) ? t.track.trim() : '通用应用/工具';
         return {
           title: t.term || '未命名技术', en: t.en || '', principle: t.principle || '', why: t.why || '',
+          detail: t.detail || '',
           track: track, stage: ['研究突破', '早期产品', '规模落地'].indexOf(t.stage) >= 0 ? t.stage : '早期产品',
           source: t.source || '', url: t.url || '', date: t.date || ''
         };
@@ -339,7 +347,7 @@
       generated_at: obj.generated_at || fmtDate(new Date()),
       items: arr.map(function (n) {
         return {
-          title: n.title || '未命名事件', summary: n.summary || '', category: n.category || '行业动态',
+          title: n.title || '未命名事件', summary: n.summary || '', detail: n.detail || '', category: n.category || '行业动态',
           importance: n.importance === '重大' ? '重大' : '一般', region: n.region || '全球',
           date: n.date || '', source: n.source || '', url: n.url || '', impact: n.impact || ''
         };
@@ -354,11 +362,12 @@
         var origin = o.origin === '政策规划' ? '政策规划' : (o.origin === '本地机会' ? '本地机会' : '市场商机');
         var track = (typeof o.track === 'string' && o.track.trim()) ? o.track.trim() : '通用应用/工具';
         return {
-          title: o.title || '未命名商机', description: o.description || '',
+          title: o.title || '未命名商机', description: o.description || '', detail: o.detail || '',
           track: track, origin: origin,
           level: OPS_LEVELS.indexOf(o.level) >= 0 ? o.level : '',
           region: o.region || '',
           policy: o.policy || '',
+          source: o.source || '',
           url: o.url || '',
           timeframe: o.timeframe === '本月' ? '本月' : '本周', potential: o.potential === '高' ? '高' : '中',
           difficulty: ['高', '中', '低'].indexOf(o.difficulty) >= 0 ? o.difficulty : '中',
@@ -513,12 +522,12 @@
   }
   function loadDemoNews() {
     var d = demoData();
-    state.news = { status: 'ready', items: d.news, generated_at: fmtDate(new Date()), fetched_at: Date.now(), range: state.newsRange, error: '', errorMeta: '', errorDetail: '' };
+    state.news = { status: 'ready', items: stampExisting('news', d.news), generated_at: fmtDate(new Date()), fetched_at: Date.now(), range: state.newsRange, error: '', errorMeta: '', errorDetail: '' };
     render();
   }
   function loadDemoOps() {
     var d = demoData();
-    state.ops = { status: 'ready', items: d.opportunities, generated_at: fmtDate(new Date()), fetched_at: Date.now(), range: 0, loadingMode: null, loadError: '', error: '', errorMeta: '', errorDetail: '' };
+    state.ops = { status: 'ready', items: stampExisting('ops', d.opportunities), generated_at: fmtDate(new Date()), fetched_at: Date.now(), range: 0, loadingMode: null, loadError: '', error: '', errorMeta: '', errorDetail: '' };
     render();
   }
   function generateSum(opts) {
@@ -549,7 +558,7 @@
   }
   function loadDemoSum() {
     var d = demoData();
-    state.sum = { status: 'ready', items: d.highlights, overview: d.overview, generated_at: fmtDate(new Date()), fetched_at: Date.now(), range: state.sumRange, error: '', errorMeta: '', errorDetail: '' };
+    state.sum = { status: 'ready', items: stampExisting('sum', d.highlights), overview: d.overview, generated_at: fmtDate(new Date()), fetched_at: Date.now(), range: state.sumRange, error: '', errorMeta: '', errorDetail: '' };
     render();
   }
   function generateTech(opts) {
@@ -579,7 +588,7 @@
   }
   function loadDemoTech() {
     var d = demoData();
-    state.tech = { status: 'ready', items: d.tech, generated_at: fmtDate(new Date()), fetched_at: Date.now(), range: state.techRange, error: '', errorMeta: '', errorDetail: '' };
+    state.tech = { status: 'ready', items: stampExisting('tech', d.tech), generated_at: fmtDate(new Date()), fetched_at: Date.now(), range: state.techRange, error: '', errorMeta: '', errorDetail: '' };
     render();
   }
 
@@ -931,14 +940,11 @@
     if (!items.length) { $('sumList').innerHTML = emptyHtml('本次汇总没有返回要点。'); return; }
     $('sumList').innerHTML = items.map(function (h) {
       var title = h.url ? '<a href="' + esc(h.url) + '" target="_blank" rel="noopener noreferrer">' + esc(h.title) + '</a>' : esc(h.title);
-      return '<article class="card sum-item">' +
+      return '<article class="card sum-item" data-detail="sum:' + h.id + '">' +
         '<div class="card__top">' + newBadge(h) + '<span class="tag tag--cat">' + esc(h.tag) + '</span></div>' +
         '<h3 class="card__title">' + title + '</h3>' +
         (h.takeaway ? '<p class="card__sum">' + esc(h.takeaway) + '</p>' : '') +
-        '<div class="card__foot">' +
-          (h.source ? '<span class="card__src">来源:' + esc(h.source) + '</span>' : '') +
-          (h.url ? '<a class="card__src" href="' + esc(h.url) + '" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a>' : '') +
-        '</div></article>';
+        cardFoot(h) + '</article>';
     }).join('');
   }
 
@@ -980,7 +986,7 @@
     $('techList').innerHTML = list.map(function (t) {
       var stageCls = t.stage === '研究突破' ? 'tag--major' : (t.stage === '规模落地' ? 'tag--cat' : 'tag--minor');
       var term = t.url ? '<a href="' + esc(t.url) + '" target="_blank" rel="noopener noreferrer">' + esc(t.title) + '</a>' : esc(t.title);
-      return '<article class="card tech-item">' +
+      return '<article class="card tech-item" data-detail="tech:' + t.id + '">' +
         '<div class="card__top">' + newBadge(t) +
           '<span class="tag tag--region">' + esc(t.track) + '</span>' +
           '<span class="tag ' + stageCls + '">' + esc(t.stage) + '</span>' +
@@ -989,10 +995,7 @@
         '<h3 class="card__title">' + term + (t.en ? ' <span class="tech-en">' + esc(t.en) + '</span>' : '') + '</h3>' +
         (t.principle ? '<p class="card__sum">' + esc(t.principle) + '</p>' : '') +
         (t.why ? '<p class="card__impact"><b>为什么重要:</b>' + esc(t.why) + '</p>' : '') +
-        '<div class="card__foot">' +
-          (t.source ? '<span class="card__src">来源:' + esc(t.source) + '</span>' : '') +
-          (t.url ? '<a class="card__src" href="' + esc(t.url) + '" target="_blank" rel="noopener noreferrer">深读原文 ↗</a>' : '') +
-        '</div></article>';
+        cardFoot(t) + '</article>';
     }).join('');
   }
 
@@ -1030,7 +1033,7 @@
     $('newsList').innerHTML = list.map(function (n) {
       var major = n.importance === '重大';
       var title = n.url ? '<a href="' + esc(n.url) + '" target="_blank" rel="noopener noreferrer">' + esc(n.title) + '</a>' : esc(n.title);
-      return '<article class="card' + (major ? ' is-major' : '') + '">' +
+      return '<article class="card' + (major ? ' is-major' : '') + '" data-detail="news:' + n.id + '">' +
         '<div class="card__top">' + newBadge(n) + '<span class="tag tag--cat">' + esc(n.category) + '</span>' +
         '<span class="tag ' + (major ? 'tag--major">重大' : 'tag--minor">一般') + '</span>' +
         '<span class="tag tag--region">' + esc(n.region) + '</span>' +
@@ -1038,7 +1041,7 @@
         '<h3 class="card__title">' + title + '</h3>' +
         (n.summary ? '<p class="card__sum">' + esc(n.summary) + '</p>' : '') +
         (n.impact ? '<p class="card__impact"><b>影响 · </b>' + esc(n.impact) + '</p>' : '') +
-        (n.source ? '<div class="card__foot"><span class="card__src">来源:' + esc(n.source) + '</span></div>' : '') +
+        cardFoot(n) +
         '</article>';
     }).join('');
   }
@@ -1083,12 +1086,11 @@
         basisBlock = '<div class="op__block op__policy"><b>' + (isLocal ? '本地依据' : '政策依据') + '</b>' +
           (o.policy ? esc(o.policy) : '') +
           (meta.length ? '<span class="op__policy-tag">' + meta.join(' · ') + '</span>' : '') +
-          (o.url ? ' <a href="' + esc(o.url) + '" target="_blank" rel="noopener noreferrer">原文 ↗</a>' : '') +
           '</div>';
       }
       var pillCls = isPolicy ? 'pill--policy' : (isLocal ? 'pill--local' : 'pill--market');
       var opCls = isPolicy ? ' op--policy' : (isLocal ? ' op--local' : '');
-      return '<article class="op' + opCls + '">' +
+      return '<article class="op' + opCls + '" data-detail="ops:' + o.id + '">' +
         '<div class="op__head">' + newBadge(o) +
           '<span class="pill ' + pillCls + '">' + esc(o.origin) + '</span>' +
           '<span class="pill pill--track">' + esc(o.track) + '</span>' +
@@ -1101,11 +1103,88 @@
         (o.audience ? '<span class="pill pill--low">适合 · ' + esc(o.audience) + '</span>' : '') + '</div>' +
         basisBlock +
         (o.action ? '<div class="op__block op__action"><b>行动建议</b>' + esc(o.action) + '</div>' : '') +
+        cardFoot(o) +
         '</article>';
     }).join('');
   }
   function emptyHtml(t) { return '<div class="state"><div class="state__inner"><p class="state__desc">' + esc(t) + '</p></div></div>'; }
   function newBadge(it) { return (it && it.isNew) ? '<span class="badge-new" title="今日新增">NEW</span>' : ''; }
+
+  // ---------- 消息详情 ----------
+  var KIND_NAME = { news: 'AI 大事件', sum: 'AI 汇总', tech: '前沿技术', ops: '商机雷达' };
+
+  function cardFoot(it) {
+    return '<div class="card__foot">' +
+      (it.source ? '<span class="card__src">来源:' + esc(it.source) + '</span>' : '') +
+      (it.url ? '<a class="card__src" href="' + esc(it.url) + '" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a>' : '') +
+      '<span class="card__more">详情 ›</span></div>';
+  }
+  function findItem(kind, id) {
+    var items = (state[kind] && state[kind].items) || [];
+    for (var i = 0; i < items.length; i++) if (items[i].id === id) return items[i];
+    return null;
+  }
+  function dtBlock(label, text, mod) {
+    if (!text) return '';
+    return '<div class="dt__block' + (mod ? ' dt__block--' + mod : '') + '">' +
+      '<span class="dt__label">' + label + '</span><p class="dt__text">' + esc(text) + '</p></div>';
+  }
+  function dtTags(kind, it) {
+    var t = [];
+    if (kind === 'news') {
+      t.push('<span class="tag tag--cat">' + esc(it.category) + '</span>');
+      t.push('<span class="tag ' + (it.importance === '重大' ? 'tag--major">重大' : 'tag--minor">一般') + '</span>');
+      t.push('<span class="tag tag--region">' + esc(it.region) + '</span>');
+    } else if (kind === 'sum') {
+      t.push('<span class="tag tag--cat">' + esc(it.tag) + '</span>');
+    } else if (kind === 'tech') {
+      t.push('<span class="tag tag--region">' + esc(it.track) + '</span>');
+      t.push('<span class="tag ' + (it.stage === '研究突破' ? 'tag--major' : (it.stage === '规模落地' ? 'tag--cat' : 'tag--minor')) + '">' + esc(it.stage) + '</span>');
+    } else {
+      t.push('<span class="pill ' + (it.origin === '政策规划' ? 'pill--policy' : (it.origin === '本地机会' ? 'pill--local' : 'pill--market')) + '">' + esc(it.origin) + '</span>');
+      t.push('<span class="pill pill--track">' + esc(it.track) + '</span>');
+      t.push('<span class="pill pill--time">' + esc(it.timeframe) + '</span>');
+      t.push('<span class="pill ' + (it.potential === '高' ? 'pill--high' : 'pill--mid') + '">潜力 · ' + esc(it.potential) + '</span>');
+      t.push('<span class="pill pill--low">门槛 · ' + esc(it.difficulty) + '</span>');
+    }
+    if (it.date) t.push('<span class="tag tag--date">' + esc(it.date) + '</span>');
+    return '<div class="dt__tags">' + t.join('') + '</div>';
+  }
+  function dtBody(kind, it) {
+    var h = dtTags(kind, it);
+    if (kind === 'news') h += dtBlock('精炼', it.summary) + dtBlock('详情', it.detail) + dtBlock('影响', it.impact, 'acc');
+    else if (kind === 'sum') h += dtBlock('要点', it.takeaway) + dtBlock('详情', it.detail);
+    else if (kind === 'tech') h += dtBlock('一句话原理', it.principle) + dtBlock('为什么重要', it.why) + dtBlock('深入解读', it.detail);
+    else {
+      h += dtBlock('精炼', it.description) + dtBlock('详情', it.detail);
+      var meta = [it.level, it.region].filter(Boolean).map(esc).join(' · ');
+      if ((it.origin === '政策规划' || it.origin === '本地机会') && (it.policy || meta)) {
+        h += '<div class="dt__block dt__block--warn"><span class="dt__label">' + (it.origin === '本地机会' ? '本地依据' : '政策依据') + '</span>' +
+          '<p class="dt__text">' + esc(it.policy || '') + (meta ? '<br><span class="op__policy-tag">' + meta + '</span>' : '') + '</p></div>';
+      }
+      h += dtBlock('行动建议', it.action, 'acc');
+      if (it.audience) h += dtBlock('适合谁', it.audience);
+    }
+    if (!it.detail) h += '<p class="dt__none">旧数据没有详情,重新生成后就会有。</p>';
+    h += '<div class="dt__src"><span class="dt__label">原文出处</span>' +
+      '<span>' + (it.source ? esc(it.source) : '未标注') + '</span>' +
+      (it.url ? '<a class="dt__link" href="' + esc(it.url) + '" target="_blank" rel="noopener noreferrer">查看原文 ↗</a>' : '<span class="dt__none">无原文链接</span>') +
+      '</div>';
+    return h;
+  }
+  function openDetail(kind, id) {
+    var it = findItem(kind, id);
+    if (!it) return;
+    $('detailTitle').textContent = it.title || '详情';
+    $('detailKind').textContent = KIND_NAME[kind] || '';
+    $('detailBody').innerHTML = dtBody(kind, it);
+    var a = $('detailLink');
+    if (it.url) { a.hidden = false; a.href = it.url; } else { a.hidden = true; a.removeAttribute('href'); }
+    $('detailModal').hidden = false;
+    var card = $('detailModal').querySelector('.modal__card');
+    if (card) card.scrollTop = 0;
+  }
+  function closeDetail() { $('detailModal').hidden = true; }
 
   // ---------- 演示数据 ----------
   function demoData() {
@@ -1114,31 +1193,31 @@
     return {
       overview: '这是演示导读。真实使用时,这里会用 80–140 字概括所选天数内全球 AI 领域的主线与氛围,让你 30 秒抓住重点,不必逐条细读。',
       highlights: [
-        { title: '示例:开源模型推理成本大幅下降', takeaway: '成本下降会加速中小团队接入 AI,值得跟进工具链机会。', tag: '模型', source: '示例来源', url: '' },
-        { title: '示例:多模态旗舰模型开放 API', takeaway: '内容创作与电商导购场景迎来新能力,可快速做原型验证。', tag: '产品', source: '示例来源', url: '' },
-        { title: '示例:生成式 AI 监管新规落地', takeaway: '合规成为产品上线前置条件,催生合规咨询需求。', tag: '监管', source: '示例来源', url: '' },
-        { title: '示例:AI 编程智能体能力升级', takeaway: '独立开发者效率提升,利好一人公司模式。', tag: '研究', source: '示例来源', url: '' }
+        { title: '示例:开源模型推理成本大幅下降', takeaway: '成本下降会加速中小团队接入 AI,值得跟进工具链机会。', detail: '这是演示详情。真实使用时,这里会写清这条要点的来龙去脉:哪家机构、降价幅度与口径、对比基准、影响到哪些环节的从业者,以及后续值得观察的动向。', tag: '模型', date: dAgo(0), source: '示例来源', url: '' },
+        { title: '示例:多模态旗舰模型开放 API', takeaway: '内容创作与电商导购场景迎来新能力,可快速做原型验证。', detail: '这是演示详情。会说明开放了哪些能力(图文理解、视频输入等)、定价与限流、与上一代相比的提升,以及哪些场景可以马上拿来做原型。', tag: '产品', date: dAgo(1), source: '示例来源', url: '' },
+        { title: '示例:生成式 AI 监管新规落地', takeaway: '合规成为产品上线前置条件,催生合规咨询需求。', detail: '这是演示详情。会列出新规约束的对象、备案与标识要求、生效时间与过渡期,以及不合规的实际后果,便于判断自己是否受影响。', tag: '监管', date: dAgo(2), source: '示例来源', url: '' },
+        { title: '示例:AI 编程智能体能力升级', takeaway: '独立开发者效率提升,利好一人公司模式。', detail: '这是演示详情。会讲清升级后的智能体能自主完成哪些流程、在真实仓库基准上的表现、仍容易出错的地方,以及订阅价格变化。', tag: '研究', date: dAgo(2), source: '示例来源', url: '' }
       ],
       news: [
-        { title: '示例:某开源大模型发布新版本,推理成本下降', summary: '这是演示数据。真实使用时显示过去所选天数内全球 AI 事件摘要。', category: '模型发布', importance: '重大', region: '美国', date: dAgo(0), source: '示例来源', url: '', impact: '推理成本下降加速 AI 应用落地。' },
-        { title: '示例:国内厂商推出多模态旗舰模型', summary: '这是演示数据。摘要说明模型能力与开放程度。', category: '模型发布', importance: '重大', region: '中国', date: dAgo(1), source: '示例来源', url: '', impact: '多模态为内容、电商场景带来机会。' },
-        { title: '示例:AI 初创完成新一轮融资', summary: '这是演示数据。给出轮次、金额与投资方。', category: '融资并购', importance: '一般', region: '欧洲', date: dAgo(1), source: '示例来源', url: '', impact: '资本流向指示被看好的赛道。' },
-        { title: '示例:某地出台生成式 AI 监管新规', summary: '这是演示数据。概述监管范围与生效时间。', category: '政策监管', importance: '重大', region: '中国', date: dAgo(2), source: '示例来源', url: '', impact: '合规要求影响产品上线节奏。' },
-        { title: '示例:AI 编程助手更新智能体能力', summary: '这是演示数据。说明新功能与开发者反馈。', category: '产品应用', importance: '一般', region: '美国', date: dAgo(2), source: '示例来源', url: '', impact: '开发效率工具演进利好小团队。' }
+        { title: '示例:某开源大模型发布新版本,推理成本下降', summary: '这是演示数据。真实使用时显示过去所选天数内全球 AI 事件摘要。', detail: '这是演示详情。真实使用时会写清事件来龙去脉:发布方与版本号、上下文长度与 benchmark 表现、每百万 token 的价格从多少降到多少、开源协议是否变化、社区与云厂商的跟进动作,以及对做应用的人意味着什么。', category: '模型发布', importance: '重大', region: '美国', date: dAgo(0), source: '示例来源', url: '', impact: '推理成本下降加速 AI 应用落地。' },
+        { title: '示例:国内厂商推出多模态旗舰模型', summary: '这是演示数据。摘要说明模型能力与开放程度。', detail: '这是演示详情。会说明模型支持哪些模态、参数与推理规模、API 是否已开放、内测还是公测、在中文任务上的实测表现,以及厂商给出的算力成本与落地场景。', category: '模型发布', importance: '重大', region: '中国', date: dAgo(1), source: '示例来源', url: '', impact: '多模态为内容、电商场景带来机会。' },
+        { title: '示例:AI 初创完成新一轮融资', summary: '这是演示数据。给出轮次、金额与投资方。', detail: '这是演示详情。会给出融资金额与轮次、领投与跟投机构、估值变化、公司主营方向与已有客户,以及资金用途和下一阶段的商业化目标。', category: '融资并购', importance: '一般', region: '欧洲', date: dAgo(1), source: '示例来源', url: '', impact: '资本流向指示被看好的赛道。' },
+        { title: '示例:某地出台生成式 AI 监管新规', summary: '这是演示数据。概述监管范围与生效时间。', detail: '这是演示详情。会说明新规由哪个部门发布、约束哪些主体与服务形态、备案与安全评估要求、内容标识义务、施行时间点与处罚方式,以及存量产品需要多快完成整改。', category: '政策监管', importance: '重大', region: '中国', date: dAgo(2), source: '示例来源', url: '', impact: '合规要求影响产品上线节奏。' },
+        { title: '示例:AI 编程助手更新智能体能力', summary: '这是演示数据。说明新功能与开发者反馈。', detail: '这是演示详情。会说明更新的能力边界(能否自主跑通测试、多文件改动、长任务保持上下文)、在真实代码库上的表现、价格与额度调整,以及开发者的实际评价与踩坑点。', category: '产品应用', importance: '一般', region: '美国', date: dAgo(2), source: '示例来源', url: '', impact: '开发效率工具演进利好小团队。' }
       ],
       opportunities: [
-        { title: '示例:面向中小商家的 AI 导购内容生成', description: '这是演示数据。说明用什么 AI 能力、解决什么痛点。', track: 'AI+内容/文创', origin: '市场商机', level: '', region: '', policy: '', url: '', timeframe: '本周', potential: '高', difficulty: '中', audience: '电商从业者', action: '选一个品类做最小可用工具,找 3 个商家试用。' },
-        { title: '示例:一体化算力网下的算力调度代理服务', description: '这是演示数据。围绕全国一体化算力网政策,为中小团队提供算力撮合与成本优化。', track: '智能算力/AI芯片', origin: '政策规划', level: '国家级', region: '全国', policy: '《全国一体化算力网建设行动计划》(示例)', url: '', timeframe: '本月', potential: '高', difficulty: '高', audience: '有算力资源者', action: '梳理区域闲置算力,做一个撮合信息小程序验证需求。' },
-        { title: '示例:垂直行业知识库问答助手', description: '这是演示数据。描述细分行业与差异化。', track: '企业服务', origin: '市场商机', level: '', region: '', policy: '', url: '', timeframe: '本月', potential: '中', difficulty: '中', audience: '有行业资源者', action: '锁定熟悉行业,整理高频问题清单。' },
-        { title: '示例:城市"人工智能+"行动催生的政务大模型集成', description: '这是演示数据。解析某市最新 AI 行动计划,面向政务场景做垂直模型集成与运维。', track: 'AI+政务/城市治理', origin: '政策规划', level: '市级', region: '杭州市', policy: '《杭州市人工智能产业高质量发展行动计划》(示例)', url: '', timeframe: '本月', potential: '中', difficulty: '高', audience: '有政企渠道者', action: '研究当地行动清单,对接一个街道级试点场景。' },
-        { title: '示例:AI 短视频脚本与分镜工具', description: '这是演示数据。说明输入输出与目标用户。', track: 'AI+内容/文创', origin: '市场商机', level: '', region: '', policy: '', url: '', timeframe: '本周', potential: '高', difficulty: '低', audience: '自媒体', action: '做只解决"脚本→分镜"的小工具验证需求。' },
-        { title: '示例:本地鞋服产业集群的 AI 质检与打版', description: '这是演示数据。结合福建本地鞋服/纺织产业集群,用视觉模型做质检与自动打版,替代人工。', track: '智能制造', origin: '本地机会', level: '市级', region: '泉州市', policy: '《泉州市人工智能产业发展若干措施》(示例)', url: '', timeframe: '本月', potential: '高', difficulty: '中', audience: '有制造业渠道者', action: '走访 2 家本地鞋服厂,拍样本图做质检小模型验证。' }
+        { title: '示例:面向中小商家的 AI 导购内容生成', description: '这是演示数据。说明用什么 AI 能力、解决什么痛点。', detail: '这是演示详情。会讲清为什么现在是机会:多模态模型成本下降让图文视频批量生成可行;目标客户是哪些中小商家、他们现在花多少钱做内容、用什么方式切入(按条计费还是包月)、需要什么渠道或供应链资源,以及内容同质化与平台审核的主要风险。', track: 'AI+内容/文创', origin: '市场商机', level: '', region: '', policy: '', source: '示例来源', url: '', timeframe: '本周', potential: '高', difficulty: '中', audience: '电商从业者', action: '选一个品类做最小可用工具,找 3 个商家试用。' },
+        { title: '示例:一体化算力网下的算力调度代理服务', description: '这是演示数据。围绕全国一体化算力网政策,为中小团队提供算力撮合与成本优化。', detail: '这是演示详情。会列出政策依据的具体条款与时间表、释放出的需求(闲置算力入市、跨区域调度、成本结算),个人或小团队可承接的切入点(区域算力信息撮合、比价与代运维),需要的资质、机房关系或渠道资源,以及回款周期与巨头挤压的风险。', track: '智能算力/AI芯片', origin: '政策规划', level: '国家级', region: '全国', policy: '《全国一体化算力网建设行动计划》(示例)', source: '示例来源', url: '', timeframe: '本月', potential: '高', difficulty: '高', audience: '有算力资源者', action: '梳理区域闲置算力,做一个撮合信息小程序验证需求。' },
+        { title: '示例:垂直行业知识库问答助手', description: '这是演示数据。描述细分行业与差异化。', detail: '这是演示详情。会说明选哪个细分行业、这个行业高频且付费意愿强的问题是什么、通用大模型为什么答不好(缺私域数据、术语与流程差异),切入点做成交付项目还是订阅工具,需要的行业资源与数据获取门槛,以及交付后维护成本偏高的风险。', track: '企业服务', origin: '市场商机', level: '', region: '', policy: '', source: '示例来源', url: '', timeframe: '本月', potential: '中', difficulty: '中', audience: '有行业资源者', action: '锁定熟悉行业,整理高频问题清单。' },
+        { title: '示例:城市"人工智能+"行动催生的政务大模型集成', description: '这是演示数据。解析某市最新 AI 行动计划,面向政务场景做垂直模型集成与运维。', detail: '这是演示详情。会指出该市行动计划里明确要求落地的事项与时间节点、预算来源、哪些场景由本地供应商承接,小团队可通过哪种合作方式进入(分包、试点、数据集整理),需要的资质与本地关系,以及招投标周期长、账期慢、模型效果验收标准不确定等风险。', track: 'AI+政务/城市治理', origin: '政策规划', level: '市级', region: '杭州市', policy: '《杭州市人工智能产业高质量发展行动计划》(示例)', source: '示例来源', url: '', timeframe: '本月', potential: '中', difficulty: '高', audience: '有政企渠道者', action: '研究当地行动清单,对接一个街道级试点场景。' },
+        { title: '示例:AI 短视频脚本与分镜工具', description: '这是演示数据。说明输入输出与目标用户。', detail: '这是演示详情。会讲清目标用户是谁(带货号、本地商家、剪辑外包)、现在做一条视频的时间成本、工具输入什么输出什么(选题→脚本→分镜→提示词),为什么模型升级后这一步可行,获客方式与主要风险(免费竞品多、留存靠产出效果)。', track: 'AI+内容/文创', origin: '市场商机', level: '', region: '', policy: '', source: '示例来源', url: '', timeframe: '本周', potential: '高', difficulty: '低', audience: '自媒体', action: '做只解决"脚本→分镜"的小工具验证需求。' },
+        { title: '示例:本地鞋服产业集群的 AI 质检与打版', description: '这是演示数据。结合福建本地鞋服/纺织产业集群,用视觉模型做质检与自动打版,替代人工。', detail: '这是演示详情。会指出本地的具体依据:哪个地市出台了产业数字化措施、有哪些园区或产业集群清单、可用的补助或基金方向;当地产业与资源优势(打样频次高、返单快);可承接的切入点(先做单一工序的视觉质检、按产线收费),需要的本地关系与硬件配合,以及工厂配合度低、数据采集周期长的风险。', track: '智能制造', origin: '本地机会', level: '市级', region: '泉州市', policy: '《泉州市人工智能产业发展若干措施》(示例)', source: '示例来源', url: '', timeframe: '本月', potential: '高', difficulty: '中', audience: '有制造业渠道者', action: '走访 2 家本地鞋服厂,拍样本图做质检小模型验证。' }
       ],
       tech: [
-        { title: '示例:稀疏注意力机制', en: 'Sparse Attention', principle: '这是演示数据。真实使用时会用大白话解释:让模型在处理长文本时不再"字字都看",而是有重点地挑选关键位置计算,从而大幅降低算力开销。', why: '长上下文成本下降,长文档、长视频理解更便宜可用。', track: '大模型/基础模型', stage: '研究突破', source: '示例来源', url: '', date: dAgo(0) },
-        { title: '示例:推理时扩展', en: 'Test-time Scaling', principle: '这是演示数据。指模型在回答前多花算力"想一想"(生成并筛选多条思路),用更多推理时间换更高准确率,而不是只靠把模型训得更大。', why: '不换模型也能显著提升难题表现,影响 API 定价与用法。', track: '大模型/基础模型', stage: '早期产品', source: '示例来源', url: '', date: dAgo(1) },
-        { title: '示例:多智能体协作框架', en: 'Multi-Agent Framework', principle: '这是演示数据。把一个大任务拆给多个各有分工的 AI"智能体",让它们像小团队一样分工、互相检查结果,再汇总产出。', why: '让 AI 能自动完成更长的流程,是一人公司自动化的关键。', track: '通用应用/工具', stage: '早期产品', source: '示例来源', url: '', date: dAgo(2) },
-        { title: '示例:端侧小模型', en: 'On-device SLM', principle: '这是演示数据。指参数量更小、经过蒸馏或量化、能直接跑在手机/电脑本地而不必联网调用云端的模型。', why: '隐私更好、离线可用、调用零边际成本,利好端侧应用。', track: '智能算力/AI芯片', stage: '规模落地', source: '示例来源', url: '', date: dAgo(3) }
+        { title: '示例:稀疏注意力机制', en: 'Sparse Attention', principle: '这是演示数据。真实使用时会用大白话解释:让模型在处理长文本时不再"字字都看",而是有重点地挑选关键位置计算,从而大幅降低算力开销。', why: '长上下文成本下降,长文档、长视频理解更便宜可用。', detail: '这是演示详情。会往深一层讲:它要解决的是注意力随序列长度平方增长的成本问题;关键做法是怎么挑选"该看的位置"(动态选块、层级稀疏、可学习路由);相比窗口注意力或线性注意力强在哪;目前的局限(实现复杂、短文本无收益、部分任务精度回退);以及哪些模型或推理框架已经用上。', track: '大模型/基础模型', stage: '研究突破', source: '示例来源', url: '', date: dAgo(0) },
+        { title: '示例:推理时扩展', en: 'Test-time Scaling', principle: '这是演示数据。指模型在回答前多花算力"想一想"(生成并筛选多条思路),用更多推理时间换更高准确率,而不是只靠把模型训得更大。', why: '不换模型也能显著提升难题表现,影响 API 定价与用法。', detail: '这是演示详情。会说明具体做法(采样多条推理链后用奖励模型或自我一致性筛选、搜索式推理、过程监督),在数学与代码基准上相比单纯扩规模的增益,代价是延迟与 token 消耗数倍上升、简单任务反而变慢变差,以及目前哪些产品已经按"思考档位"计费。', track: '大模型/基础模型', stage: '早期产品', source: '示例来源', url: '', date: dAgo(1) },
+        { title: '示例:多智能体协作框架', en: 'Multi-Agent Framework', principle: '这是演示数据。把一个大任务拆给多个各有分工的 AI"智能体",让它们像小团队一样分工、互相检查结果,再汇总产出。', why: '让 AI 能自动完成更长的流程,是一人公司自动化的关键。', detail: '这是演示详情。会讲清常见编排方式(规划者+执行者+审阅者、图式状态机、共享消息总线),与单智能体加工具调用相比强在哪(可并行、可交叉校验、上下文可控),目前的主要局限(错误累积、成本不可预测、调试困难),以及已经被用在哪些场景(代码库改造、调研、客服工单)。', track: '通用应用/工具', stage: '早期产品', source: '示例来源', url: '', date: dAgo(2) },
+        { title: '示例:端侧小模型', en: 'On-device SLM', principle: '这是演示数据。指参数量更小、经过蒸馏或量化、能直接跑在手机/电脑本地而不必联网调用云端的模型。', why: '隐私更好、离线可用、调用零边际成本,利好端侧应用。', detail: '这是演示详情。会说明典型规模与量化方式、在哪些手机/PC 芯片上能跑到什么速度、与云端旗舰模型的能力差距集中在哪(复杂推理、长上下文、多模态),适用与不适用的场景,以及当前落地的代表产品与生态限制。', track: '智能算力/AI芯片', stage: '规模落地', source: '示例来源', url: '', date: dAgo(3) }
       ]
     };
   }
@@ -1162,8 +1241,12 @@
     $('settingsModal').addEventListener('click', function (e) { if (e.target.getAttribute('data-close')) closeSettings(); });
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') return;
-      if (!$('genModal').hidden) closeGenModal();
+      if (!$('detailModal').hidden) closeDetail();
+      else if (!$('genModal').hidden) closeGenModal();
       else if (!$('settingsModal').hidden) closeSettings();
+    });
+    $('detailModal').addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('[data-detailclose]')) closeDetail();
     });
 
     $('genNewsBtn').addEventListener('click', function () { openGenModal('news'); });
@@ -1196,6 +1279,12 @@
     document.addEventListener('click', function (e) {
       var t = e.target;
       if (!t.closest) return;
+      var card = t.closest('[data-detail]');
+      if (card && !t.closest('a')) {
+        var v = card.getAttribute('data-detail'), i = v.indexOf(':');
+        openDetail(v.slice(0, i), v.slice(i + 1));
+        return;
+      }
       var retry = t.closest('[data-retry]');
       if (retry) {
         var k = retry.getAttribute('data-retry');

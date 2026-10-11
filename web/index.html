@@ -243,6 +243,24 @@
     </div>
   </div>
 
+  <!-- 消息详情弹窗 -->
+  <div class="modal" id="detailModal" hidden>
+    <div class="modal__backdrop" data-detailclose="1"></div>
+    <div class="modal__card modal__card--detail" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <div class="modal__head">
+        <h2 id="detailTitle">详情</h2>
+        <button class="icon-btn" data-detailclose="1" type="button" aria-label="关闭">✕</button>
+      </div>
+      <div class="modal__body" id="detailBody"></div>
+      <div class="modal__foot">
+        <span class="dt__kind" id="detailKind"></span>
+        <div class="spacer"></div>
+        <a class="btn btn--ghost" id="detailLink" hidden href="#" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a>
+        <button class="btn btn--primary" data-detailclose="1" type="button">关闭</button>
+      </div>
+    </div>
+  </div>
+
   <script src="./app.js"></script>
   <script type="module" src="./bg3d.js"></script>
 </body>
