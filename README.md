@@ -5,7 +5,7 @@
 ## 特点
 
 - 纯静态前端（HTML / CSS / JS / 本地 vendored three.js），无后端、无数据库。
-- 浏览器直接调用千问 / DashScope 的 OpenAI 兼容接口，开启 `enable_search` 联网检索。
+- 浏览器直接调用大模型 API：内置千问(阿里云百炼)、DeepSeek、OpenAI、Claude(Anthropic) 与自定义 OpenAI 兼容网关五档预设，切换即自动填地址与默认模型；千问档支持 `enable_search` 联网检索。
 - **API Key 只保存在你自己浏览器的 localStorage**，不进入代码、不上传任何服务器。
 - **历史保留 + NEW 标记**：每次拉取与缓存按稳定 id 合并，未见过的条目标 NEW 并置顶，历史保留 21 天。
 - **静默同步**：每天首次打开自动后台拉取（可在设置关闭），不阻塞已缓存内容的展示。
@@ -38,9 +38,11 @@ node server.mjs
 ## 首次使用
 
 1. 打开右上角「设置」。
-2. 填入你的 DashScope API Key（默认 Base URL 为 `https://dashscope.aliyuncs.com/compatible-mode/v1`）。
+2. 选服务商（千问 / DeepSeek / OpenAI / Claude / 自定义），地址与默认模型会自动填；再填对应服务商的 API Key。
 3. 选择模型（可点「拉取模型」获取可用列表）。
 4. 保存后即可生成内容。
+
+> 网络提示：千问与 DeepSeek 国内可直连；OpenAI 的 `api.openai.com` 在国内通常连不上、Anthropic 对部分地区返回 403，这两档需可出海的网络环境。Key 始终只存本机浏览器。
 
 ## 目录结构
 

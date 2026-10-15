@@ -12,6 +12,7 @@
   var USAGE_KEY = 'ai-fxb-usage-v1';
 
   var DEFAULTS = {
+    provider: 'qwen',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     apiKey: '',
     model: 'qwen-plus',
@@ -21,6 +22,67 @@
     region: '福建省',
     demo: false
   };
+
+  // 服务商预设:换 Key 来源不用改代码。Key 只存本机 localStorage。
+  // format=openai 走 /chat/completions + Bearer;format=anthropic 走 /messages + x-api-key(需带浏览器直连头)。
+  // reach 是实测结论:deepseek/qwen 从国内网络预检通过;openai 直连超时、anthropic 返回 403 地区限制,这两家需可出海的网络。
+  var PROVIDERS = {
+    qwen: {
+      label: '千问 · 阿里云百炼',
+      baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      model: 'qwen-plus',
+      format: 'openai',
+      search: true,
+      keyHint: 'Key 在 bailian.console.aliyun.com → API-KEY 管理创建,sk- 开头。',
+      reach: '国内网络可直连。'
+    },
+    deepseek: {
+      label: 'DeepSeek',
+      baseUrl: 'https://api.deepseek.com/v1',
+      model: 'deepseek-chat',
+      format: 'openai',
+      search: false,
+      keyHint: 'Key 在 platform.deepseek.com → API Keys 创建,sk- 开头。',
+      reach: '国内网络可直连(跨域预检已实测通过)。'
+    },
+    openai: {
+      label: 'OpenAI · GPT',
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-4o-mini',
+      format: 'openai',
+      search: false,
+      keyHint: 'Key 在 platform.openai.com → API keys 创建,sk- 开头。',
+      reach: '注意:国内网络通常连不上 api.openai.com(实测超时),需可出海的网络环境。'
+    },
+    anthropic: {
+      label: 'Claude · Anthropic',
+      baseUrl: 'https://api.anthropic.com/v1',
+      model: 'claude-sonnet-4-5',
+      format: 'anthropic',
+      search: false,
+      keyHint: 'Key 在 console.anthropic.com → Settings → API Keys 创建,sk-ant- 开头。',
+      reach: '注意:Anthropic 对部分地区直接返回 403(实测),需受支持的网络环境。'
+    },
+    custom: {
+      label: '自定义(OpenAI 兼容)',
+      baseUrl: '',
+      model: '',
+      format: 'openai',
+      search: false,
+      keyHint: '任何 OpenAI 兼容网关(one-api / new-api / vLLM / Ollama 等)填它的 /v1 地址与对应 Key。',
+      reach: ''
+    }
+  };
+  function providerOf(settings) {
+    var s = settings || state.settings;
+    var p = PROVIDERS[s.provider];
+    if (p) return p;
+    var bu = (s.baseUrl || '').replace(/\/+$/, '');
+    for (var k in PROVIDERS) {
+      if (PROVIDERS[k].baseUrl && bu && bu === PROVIDERS[k].baseUrl.replace(/\/+$/, '')) return PROVIDERS[k];
+    }
+    return PROVIDERS.custom;
+  }
 
   var RANGES = [1, 3, 5, 7];
   var TECH_RANGES = [30, 60, 90];
@@ -76,11 +138,23 @@
   }
   function fmtDateTime(ts) { return fmtDate(new Date(ts)) + ' ' + fmtTime(ts); }
   function loadSettings() {
+    var s, hasProvider = false;
     try {
       var raw = localStorage.getItem(STORE_KEY);
-      if (!raw) { var s = Object.assign({}, DEFAULTS); s.demo = true; s._first = true; return s; }
-      return Object.assign({}, DEFAULTS, JSON.parse(raw));
-    } catch (e) { return Object.assign({}, DEFAULTS); }
+      if (!raw) { s = Object.assign({}, DEFAULTS); s.demo = true; s._first = true; return s; }
+      var parsed = JSON.parse(raw) || {};
+      // 旧存档没有 provider 字段:不能信合并后的默认值,要按已保存的 Base URL 反推
+      hasProvider = typeof parsed.provider === 'string' && !!PROVIDERS[parsed.provider];
+      s = Object.assign({}, DEFAULTS, parsed);
+    } catch (e) { s = Object.assign({}, DEFAULTS); }
+    if (!hasProvider) {
+      var bu = (s.baseUrl || '').replace(/\/+$/, '');
+      s.provider = 'custom';
+      for (var k in PROVIDERS) {
+        if (PROVIDERS[k].baseUrl && bu && bu === PROVIDERS[k].baseUrl.replace(/\/+$/, '')) { s.provider = k; break; }
+      }
+    }
+    return s;
   }
   function persistSettings() {
     var s = Object.assign({}, state.settings); delete s._first;
@@ -120,7 +194,6 @@
     if (silent) { u.silent += t; u.silentCalls += 1; u.daySilent += t; }
     saveUsage();
   }
-  function fmtTok(n) { return n >= 1000 ? (Math.round(n / 100) / 10) + 'k' : String(n); }
   function configured() {
     var s = state.settings;
     return !s.demo && !!s.apiKey && !!s.baseUrl && !!s.model;
@@ -378,17 +451,35 @@
   }
 
   // ---------- API ----------
-  function apiUrl() { return state.settings.baseUrl.replace(/\/+$/, '') + '/chat/completions'; }
+  function apiUrl() {
+    var base = state.settings.baseUrl.replace(/\/+$/, '');
+    return providerOf().format === 'anthropic' ? base + '/messages' : base + '/chat/completions';
+  }
   function rawCall(messages, opts) {
     var s = state.settings;
-    var body = { model: s.model, messages: messages, temperature: 0.4, stream: false };
-    if (s.enableSearch && !(opts && opts.noSearch)) body.enable_search = true;
+    var prov = providerOf();
+    var headers = { 'Content-Type': 'application/json' };
+    var body;
+    if (prov.format === 'anthropic') {
+      // Anthropic 不走 Bearer:用 x-api-key,且浏览器直连必须显式声明,否则被 CORS 拦
+      headers['x-api-key'] = s.apiKey;
+      headers['anthropic-version'] = '2023-06-01';
+      headers['anthropic-dangerous-direct-browser-access'] = 'true';
+      var sys = [], chat = [];
+      messages.forEach(function (m) { (m.role === 'system' ? sys : chat).push(m); });
+      body = { model: s.model, max_tokens: 16000, temperature: 0.4, messages: chat };
+      if (sys.length) body.system = sys.map(function (m) { return m.content; }).join('\n\n');
+    } else {
+      headers['Authorization'] = 'Bearer ' + s.apiKey;
+      body = { model: s.model, messages: messages, temperature: 0.4, stream: false };
+      if (prov.search && s.enableSearch && !(opts && opts.noSearch)) body.enable_search = true;
+    }
     var ctrl = new AbortController();
     var limitMs = (opts && opts.timeout) || ((s.timeoutSec || 300) * 1000);
     var timer = setTimeout(function () { ctrl.abort(); }, limitMs);
     return fetch(apiUrl(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.apiKey },
+      headers: headers,
       body: JSON.stringify(body),
       signal: ctrl.signal
     }).then(function (res) {
@@ -398,13 +489,18 @@
   function callAPI(messages, opts) {
     return rawCall(messages).then(function (r) {
       var model = state.settings.model;
+      var prov = providerOf();
       if (!r.ok) {
         var raw = r.text || '';
         var provider = '';
         try { var j0 = JSON.parse(raw); provider = (j0.error && j0.error.message) || j0.message || ''; } catch (e) { provider = raw.slice(0, 300); }
         var low = (raw + ' ' + provider).toLowerCase();
         var msg;
-        if (r.status === 401 || r.status === 403) msg = 'API Key 无效或无权限。请在「设置」里检查 Key 是否正确、是否过期。';
+        if (r.status === 401 || r.status === 403) {
+          msg = 'API Key 无效或无权限。请在「设置」里检查 Key 是否正确、是否过期。';
+          if (prov === PROVIDERS.anthropic && r.status === 403) msg += ' Anthropic 对当前网络地区可能直接拒绝(403),需受支持的网络环境。';
+          if (prov === PROVIDERS.openai) msg += ' 另确认当前网络能直连 api.openai.com。';
+        }
         else if (r.status === 429) msg = '触发限流或额度不足。请检查账户余额,或稍后重试。';
         else if (r.status === 404 || /model[^.]{0,40}(not found|does not exist|not exist)|invalid.{0,20}model|model.{0,20}invalid|unknown model/.test(low)) msg = '模型不存在或未开通:「' + model + '」。请点「选择模型」从可用列表里选准确 ID。';
         else if (/enable_search|search_options|does not support.{0,20}search/.test(low)) msg = '当前模型不支持联网搜索(enable_search)。请在「设置」关闭「联网搜索」或换模型。';
@@ -417,7 +513,12 @@
         var e1 = new Error('返回内容不是合法 JSON,无法解析。可能是模型没有按要求只输出 JSON。');
         e1.kind = 'parse'; e1.meta = '模型 ' + model; e1.detail = (r.text || '').slice(0, 300); throw e1;
       }
-      var content = j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+      var content;
+      if (prov.format === 'anthropic') {
+        content = (j.content || []).map(function (c) { return c.text || ''; }).join('');
+      } else {
+        content = j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+      }
       if (!content) {
         var e2 = new Error('API 未返回内容(choices 为空)。');
         e2.kind = 'empty'; e2.meta = '模型 ' + model; e2.detail = (r.text || '').slice(0, 300); throw e2;
@@ -426,7 +527,9 @@
       return content;
     }, function (e) {
       if (e && e.kind) throw e;
+      var prov = providerOf();
       var hint = '无法连接到 API。可能是网络问题,或该接口不允许浏览器跨域(CORS)。';
+      if (prov.reach) hint += ' ' + prov.reach;
       if (location.protocol === 'file:') hint += ' 你正以 file:// 打开,请改用本地服务器:运行 node server.mjs 后打开 http://127.0.0.1:5178。';
       if (e && e.name === 'AbortError') hint = '请求超过 ' + (state.settings.timeoutSec || 300) + ' 秒未完成,已中止。可:调小时间维度/条数、调大「请求超时」、或换更快模型。';
       var err = new Error(hint); err.kind = 'network'; err.meta = '模型 ' + state.settings.model + ' · 网络/跨域'; err.detail = (e && e.message) || '';
@@ -658,7 +761,29 @@
   }
 
   // ---------- 设置弹窗 ----------
+  function syncProviderUI() {
+    var prov = PROVIDERS[$('setProvider').value] || PROVIDERS.custom;
+    $('setProviderHint').textContent = prov.keyHint + (prov.reach ? ' ' + prov.reach : '');
+    $('setSearch').disabled = !prov.search;
+    $('setSearchHint').textContent = prov.search
+      ? '开启后请求会带 enable_search:true,让千问联网检索最新信息。实时新闻必须开启。'
+      : '该服务商不支持 enable_search 参数(千问专属),开关已禁用;联网能力取决于所选模型本身。';
+    $('setBaseUrlHint').textContent = $('setProvider').value === 'custom'
+      ? '填 OpenAI 兼容网关的地址(以 /v1 结尾)。应用会自动拼 /chat/completions 与 /models。'
+      : prov.label + ' 的地址(切换服务商时自动填,可改)。应用会自动拼 /chat/completions(Claude 为 /messages)与 /models。';
+  }
+  function applyProviderPreset() {
+    var id = $('setProvider').value;
+    var prov = PROVIDERS[id];
+    if (prov && id !== 'custom') {
+      $('setBaseUrl').value = prov.baseUrl;
+      if (prov.model) $('setModel').value = prov.model;
+    }
+    syncProviderUI();
+  }
   function openSettings() {
+    $('setProvider').value = PROVIDERS[state.settings.provider] ? state.settings.provider : 'custom';
+    syncProviderUI();
     $('setBaseUrl').value = state.settings.baseUrl;
     $('setApiKey').value = state.settings.apiKey;
     $('setModel').value = state.settings.model;
@@ -674,7 +799,9 @@
   }
   function closeSettings() { $('settingsModal').hidden = true; }
   function readSettingsForm() {
-    state.settings.baseUrl = $('setBaseUrl').value.trim() || DEFAULTS.baseUrl;
+    state.settings.provider = PROVIDERS[$('setProvider').value] ? $('setProvider').value : 'custom';
+    var preset = PROVIDERS[state.settings.provider];
+    state.settings.baseUrl = $('setBaseUrl').value.trim() || (preset && preset.baseUrl) || DEFAULTS.baseUrl;
     state.settings.apiKey = $('setApiKey').value.trim();
     state.settings.model = $('setModel').value.trim() || DEFAULTS.model;
     state.settings.enableSearch = $('setSearch').checked;
@@ -705,7 +832,13 @@
           showMsg(msgEl, 'err', m);
         }
       })
-      .catch(function () { showMsg(msgEl, 'err', '无法连接:网络错误或该接口不允许浏览器跨域(CORS)。请用本地服务器打开。'); });
+      .catch(function () {
+        var prov = providerOf();
+        var m = '无法连接:网络不通,或该接口不允许浏览器跨域(CORS),或服务商会拒绝预检请求。';
+        if (prov.reach) m += ' ' + prov.reach;
+        if (location.protocol === 'file:') m += ' 你正以 file:// 打开,请改用本地服务器:运行 node server.mjs 后打开 http://127.0.0.1:5178。';
+        showMsg(msgEl, 'err', m);
+      });
   }
 
   // ---------- 模型选择器 ----------
@@ -728,7 +861,11 @@
     readSettingsForm();
     if (!state.settings.apiKey) { showMsg(msgEl, 'err', '请先填写 API Key,才能拉取模型列表。'); return; }
     $('pickerFoot').textContent = '正在拉取…';
-    fetch(state.settings.baseUrl.replace(/\/+$/, '') + '/models', { headers: { 'Authorization': 'Bearer ' + state.settings.apiKey } })
+    var prov = providerOf();
+    var mh = prov.format === 'anthropic'
+      ? { 'x-api-key': state.settings.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }
+      : { 'Authorization': 'Bearer ' + state.settings.apiKey };
+    fetch(state.settings.baseUrl.replace(/\/+$/, '') + '/models', { headers: mh })
       .then(function (r) { return r.text().then(function (t) { return { ok: r.ok, status: r.status, text: t }; }); })
       .then(function (r) {
         if (!r.ok) { showMsg(msgEl, 'err', '拉取模型失败(HTTP ' + r.status + '):' + r.text.slice(0, 160)); return; }
@@ -739,7 +876,12 @@
         renderPickerList($('pickerSearch').value);
         showMsg(msgEl, 'ok', '已载入 ' + ids.length + ' 个可用模型(已缓存)。点击选择或搜索过滤。');
       })
-      .catch(function () { showMsg(msgEl, 'err', '无法连接模型接口:网络或跨域(CORS)问题。请用本地服务器打开页面。'); });
+      .catch(function () {
+        var prov = providerOf();
+        var m = '无法连接模型接口:网络不通或跨域(CORS)/预检被拒。';
+        if (prov.reach) m += ' ' + prov.reach;
+        showMsg(msgEl, 'err', m);
+      });
   }
 
   // ---------- 渲染 ----------
@@ -789,9 +931,8 @@
   }
   function renderUsage() {
     var u = state.usage;
-    $('usageSilent').textContent = fmtTok(u.silent);
-    $('usageChip').title = 'token 消耗统计 · 今日静默 ' + u.daySilent + ' / 今日共 ' + u.dayTotal +
-      ' · 累计静默 ' + u.silent + '(' + u.silentCalls + ' 次)/ 累计共 ' + u.total + '(' + u.calls + ' 次)';
+    $('usageTotal').textContent = String(u.total);
+    $('usageChip').title = '累计消耗 ' + u.total + ' token(' + u.calls + ' 次调用)· 其中静默同步 ' + u.silent + '(' + u.silentCalls + ' 次)· 今日共 ' + u.dayTotal + ' / 今日静默 ' + u.daySilent;
   }
   // 切到某 tab 即视为已读:清除该板块的 tab 角标(卡片内的 NEW 当日仍保留)
   function markViewed(view) {
@@ -1228,6 +1369,7 @@
     $('settingsClose').addEventListener('click', closeSettings);
     $('saveSettings').addEventListener('click', saveSettings);
     $('testBtn').addEventListener('click', testConnection);
+    $('setProvider').addEventListener('change', applyProviderPreset);
     $('openPickerBtn').addEventListener('click', openPicker);
     $('pickerClose').addEventListener('click', closePicker);
     $('pickerFetchBtn').addEventListener('click', fetchModels);

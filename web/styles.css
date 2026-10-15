@@ -245,6 +245,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .field__hint{font-size:11.5px;color:var(--txt-3);line-height:1.5}
 .input{font-family:inherit;font-size:13.5px;color:var(--txt);background:rgba(0,0,0,.3);border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;outline:none;transition:.15s;width:100%}
 .input:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(56,189,248,.15)}
+select.input option{color:#0f172a;background:#f1f5f9}
 .model-row{display:flex;gap:8px;align-items:stretch}
 .model-row .input{flex:1}
 .btn--sm{padding:8px 12px;font-size:12.5px;flex-shrink:0}
@@ -380,3 +381,7 @@ main{perspective:1200px}
   .tab:not(.is-active):hover{color:var(--txt-3)}
   .icon-btn:hover{background:transparent;color:var(--txt-2)}
 }
+
+/* Netlify 免费档会在页面注入右下角 "Powered by Netlify" 角标(div.nl-wrap,内含 #nl-badge/#nl-card,带内联 fixed 定位)。
+   前端隐藏:!important 压过内联样式;不影响任何功能。 */
+.nl-wrap, #nl-badge, #nl-card, div[data-nl-ready] { display: none !important; }

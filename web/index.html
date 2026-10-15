@@ -40,7 +40,7 @@
           <span id="sourceLabel">未配置</span>
         </div>
         <div class="source-chip" id="usageChip" title="API token 消耗统计">
-          <span>静默 <b id="usageSilent">0</b> tok</span>
+          <span>token:<b id="usageTotal">0</b></span>
         </div>
         <button class="btn btn--ghost" id="settingsBtn" type="button" title="设置">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden="true">
@@ -163,9 +163,20 @@
       </div>
       <div class="modal__body">
         <label class="field">
+          <span class="field__label">服务商</span>
+          <select class="input" id="setProvider">
+            <option value="qwen">千问 · 阿里云百炼</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="openai">OpenAI · GPT</option>
+            <option value="anthropic">Claude · Anthropic</option>
+            <option value="custom">自定义(OpenAI 兼容)</option>
+          </select>
+          <span class="field__hint" id="setProviderHint"></span>
+        </label>
+        <label class="field">
           <span class="field__label">API Base URL</span>
           <input class="input" id="setBaseUrl" type="text" spellcheck="false" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1" />
-          <span class="field__hint">阿里云百炼(千问)OpenAI 兼容地址。国际站用 dashscope-intl.aliyuncs.com。</span>
+          <span class="field__hint" id="setBaseUrlHint"></span>
         </label>
         <label class="field">
           <span class="field__label">API Key</span>
@@ -191,7 +202,7 @@
         </div>
         <div class="field field--row">
           <label class="switch"><input type="checkbox" id="setSearch" /><span class="switch__track"><span class="switch__thumb"></span></span><span class="switch__text">联网搜索(enable_search)</span></label>
-          <span class="field__hint">开启后请求会带 <code>enable_search:true</code>,让千问联网检索最新信息。实时新闻必须开启。</span>
+          <span class="field__hint" id="setSearchHint"></span>
         </div>
         <div class="field field--row">
           <label class="switch"><input type="checkbox" id="setAutoSync" /><span class="switch__track"><span class="switch__thumb"></span></span><span class="switch__text">打开时自动后台同步当日最新</span></label>
