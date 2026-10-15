@@ -5,8 +5,9 @@
 ## 特点
 
 - 纯静态前端（HTML / CSS / JS / 本地 vendored three.js），无后端、无数据库。
-- 浏览器直接调用大模型 API：内置千问(阿里云百炼)、DeepSeek、OpenAI、Claude(Anthropic) 与自定义 OpenAI 兼容网关五档预设，切换即自动填地址与默认模型；千问档支持 `enable_search` 联网检索。
-- **API Key 只保存在你自己浏览器的 localStorage**，不进入代码、不上传任何服务器。
+- **公开快照模式**：站长每天定时用自己的 Key 生成一次数据快照（GitHub Actions → `web/data/snapshot.json` → Netlify 自动部署），任何访客打开 https://ai-fxb.netlify.app 无需配置即可查看，页面显示「数据截至」时间；访客自己的 Key 永不参与。
+- 浏览器直接调用大模型 API（可选，自选 Key 才启用）：内置千问(阿里云百炼)、DeepSeek、OpenAI、Claude(Anthropic) 与自定义 OpenAI 兼容网关五档预设，切换即自动填地址与默认模型；千问档支持 `enable_search` 联网检索。
+- **API Key 只保存在你自己浏览器的 localStorage**，不进入代码、不上传任何服务器；站长的 Key 只存在 GitHub Actions Secret 里。
 - **历史保留 + NEW 标记**：每次拉取与缓存按稳定 id 合并，未见过的条目标 NEW 并置顶，历史保留 21 天。
 - **静默同步**：每天首次打开自动后台拉取（可在设置关闭），不阻塞已缓存内容的展示。
 - 四大板块：AI 汇总、前沿技术（原理解读卡片）、商机雷达（AI 赛道 / 国家政策 / 本地机会三类融合、按赛道标签区分）、AI 大事件。
@@ -37,12 +38,26 @@ node server.mjs
 
 ## 首次使用
 
+**只是看内容**:直接打开 https://ai-fxb.netlify.app 即可,默认显示站长每日更新的公开快照,无需任何配置。
+
+**想用自己的 Key 实时生成**(可选):
+
 1. 打开右上角「设置」。
 2. 选服务商（千问 / DeepSeek / OpenAI / Claude / 自定义），地址与默认模型会自动填；再填对应服务商的 API Key。
 3. 选择模型（可点「拉取模型」获取可用列表）。
-4. 保存后即可生成内容。
+4. 保存后即可生成内容,此后你的设备不再读取公开快照,改为你自己的数据与静默同步。
 
 > 网络提示：千问与 DeepSeek 国内可直连；OpenAI 的 `api.openai.com` 在国内通常连不上、Anthropic 对部分地区返回 403，这两档需可出海的网络环境。Key 始终只存本机浏览器。
+
+## 每日快照(站长侧)
+
+- `tools/generate-snapshot.mjs`:用环境变量里的 Key 跑一轮四个看板生成,与旧快照合并(保留历史 21 天、标 NEW、最新在前)后写 `web/data/snapshot.json`。单项失败保留旧数据继续,不会把快照打空。
+- `.github/workflows/update-snapshot.yml`:每天北京时间 07:30 自动运行上述脚本,有变化才 commit+push,推送触发 Netlify 重新部署。也可在 Actions 页面手动触发。
+- 前置条件:仓库 Settings → Secrets and variables → Actions 里添加 `DASHSCOPE_API_KEY`(百炼 API Key)。Key 只存在 Secret 里,不进入仓库任何文件。
+- 本地手动跑一次:
+  ```bash
+  AIFXB_API_KEY=sk-xxx node tools/generate-snapshot.mjs
+  ```
 
 ## 目录结构
 
@@ -50,10 +65,16 @@ node server.mjs
 ai-fxb/
 ├─ server.mjs        # 本地静态服务器（默认监听 0.0.0.0:5178，可用 HOST/PORT 环境变量改）
 ├─ 启动.bat          # Windows 双击启动器
+├─ tools/
+│  └─ generate-snapshot.mjs   # 每日快照生成脚本（GitHub Actions 调用）
+├─ .github/workflows/
+│  └─ update-snapshot.yml     # 每日定时生成快照并提交
 ├─ web/
 │  ├─ index.html
 │  ├─ styles.css
-│  └─ app.js
+│  ├─ core.js        # 共享核心:提示词/归一化/合并规则（浏览器与快照脚本共用）
+│  ├─ app.js
+│  └─ data/snapshot.json      # 公开快照（由 Actions 生成,不手工编辑）
 └─ README.md
 ```
 

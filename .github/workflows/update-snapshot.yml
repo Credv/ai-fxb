@@ -1,0 +1,43 @@
+# 每日自动生成公开快照并提交,推送后 Netlify 自动重新部署。
+# API Key 只存在仓库 Secret(DASHSCOPE_API_KEY)里,绝不进入仓库文件或前端产物。
+name: update-snapshot
+
+on:
+  schedule:
+    - cron: '30 23 * * *'   # UTC 23:30 = 北京时间每天 07:30
+  workflow_dispatch: {}     # 也支持在 Actions 页面手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generate snapshot
+        env:
+          AIFXB_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          AIFXB_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+          AIFXB_MODEL: qwen-plus
+          AIFXB_REGION: 福建省
+          AIFXB_TIMEOUT_SEC: '300'
+        run: node tools/generate-snapshot.mjs
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/data/snapshot.json
+          if git diff --cached --quiet; then
+            echo "snapshot unchanged, nothing to commit"
+          else
+            git commit -m "data: update public snapshot $(date -u +'%Y-%m-%d %H:%M') UTC"
+            git push
+          fi
