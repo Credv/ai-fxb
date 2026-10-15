@@ -12,6 +12,8 @@
 
   var STORE_KEY = 'ai-fxb-settings-v1';
   var CACHE_KEY = 'ai-fxb-cache-v4';
+  // 管理入口:URL 带 admit=true 才显示设置按钮与模型/token 芯片;普通访客只看公开快照,不见配置入口
+  var ADMIT = /[?&]admit=true/.test(location.search);
   var MODELS_KEY = 'ai-fxb-models-v1';
   var USAGE_KEY = 'ai-fxb-usage-v1';
 
@@ -322,11 +324,14 @@
     if (state.settings.demo) return false;
     if (!configured()) {
       bucket.status = 'error';
-      bucket.error = state.snapshot
-        ? '当前浏览的是站长每日更新的公开快照;如需自己实时生成,请在「设置」配置你自己的 API Key。'
-        : '还没有配置大模型 API。请先在「设置」里填写 Base URL、API Key 和模型。';
+      bucket.error = !ADMIT
+        ? '访客模式:当前展示站长每日更新的公开快照,不提供实时生成。'
+        : (state.snapshot
+          ? '当前浏览的是站长每日更新的公开快照;如需自己实时生成,请在「设置」配置你自己的 API Key。'
+          : '还没有配置大模型 API。请先在「设置」里填写 Base URL、API Key 和模型。');
       bucket.errorMeta = ''; bucket.errorDetail = '';
-      render(); openSettings();
+      render();
+      if (ADMIT) openSettings();
       return true;
     }
     return false;
@@ -825,7 +830,7 @@
     // idle
     return '<div class="state"><div class="state__inner"><p class="state__title">尚未生成</p>' +
       '<p class="state__desc">' + esc(readyHint) + '</p>' +
-      (configured() || state.settings.demo ? '' : '<button class="btn btn--ghost state__action" data-open-settings="1">打开设置</button>') +
+      (configured() || state.settings.demo || !ADMIT ? '' : '<button class="btn btn--ghost state__action" data-open-settings="1">打开设置</button>') +
       '</div></div>';
   }
 
@@ -1347,7 +1352,7 @@
         else { var sm = retry.getAttribute('data-setmode'); if (OPS_MODES[sm]) state.opsMode = sm; generateOps(); }
         return;
       }
-      if (t.closest('[data-open-settings]')) { openSettings(); return; }
+      if (t.closest('[data-open-settings]')) { if (ADMIT) openSettings(); return; }
       var chip = t.closest('.chip[data-group]');
       if (chip) { state.filters[chip.getAttribute('data-group')] = chip.getAttribute('data-val'); render(); }
     });
@@ -1422,6 +1427,11 @@
 
   // ---------- 启动 ----------
   function init() {
+    if (!ADMIT) {
+      ['settingsBtn', 'usageChip', 'sourceChip'].forEach(function (id) {
+        var el = $(id); if (el) el.style.display = 'none';
+      });
+    }
     bind();
     var cache = loadCache();
     if (cache) {
