@@ -20,6 +20,8 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
+/* overflow-x 放在 html 上:放 body 会让下面的吸顶 tabs 失效 */
+html{overflow-x:hidden}
 body{
   background:var(--bg);
   color:var(--txt);
@@ -27,8 +29,10 @@ body{
   line-height:1.6;
   -webkit-font-smoothing:antialiased;
   min-height:100vh;
+  min-height:100svh;
+  -webkit-text-size-adjust:100%;
+  -webkit-tap-highlight-color:transparent;
   position:relative;
-  overflow-x:hidden;
 }
 code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.86em;background:rgba(255,255,255,.07);padding:.1em .4em;border-radius:5px}
 
@@ -37,6 +41,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   position:fixed;inset:0;z-index:0;pointer-events:none;
   background-image:linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);
   background-size:46px 46px;
+  -webkit-mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 40%,transparent 100%);
   mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 40%,transparent 100%);
 }
 .bg-glow{position:fixed;z-index:0;pointer-events:none;filter:blur(90px);opacity:.5;border-radius:50%}
@@ -48,6 +53,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 /* 扫描线:极淡,营造 CRT/全息控制台质感 */
 .bg-scan{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.35;
   background:repeating-linear-gradient(180deg,rgba(120,200,255,.045) 0 1px,transparent 1px 3px);
+  -webkit-mask-image:radial-gradient(ellipse 100% 80% at 50% 30%,#000 30%,transparent 100%);
   mask-image:radial-gradient(ellipse 100% 80% at 50% 30%,#000 30%,transparent 100%)}
 
 .shell{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:28px 22px 60px}
@@ -136,7 +142,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .tag--date{color:var(--txt-3)}
 .badge-new{display:inline-flex;align-items:center;font-size:10px;font-weight:800;letter-spacing:.6px;padding:2px 7px;border-radius:5px;color:#04121f;background:linear-gradient(135deg,#34d399,#38bdf8);box-shadow:0 0 12px -2px rgba(52,211,153,.7);animation:newPulse 2.4s ease-in-out infinite}
 @keyframes newPulse{0%,100%{opacity:1}50%{opacity:.62}}
-.card__title{margin:0 0 6px;font-size:16.5px;font-weight:680;line-height:1.45;color:#f2f6ff}
+.card__title{margin:0 0 6px;font-size:16.5px;font-weight:680;line-height:1.45;color:#f2f6ff;overflow-wrap:anywhere}
 .card__title a{color:inherit;text-decoration:none}
 .card__title a:hover{text-decoration:underline;color:#bae6fd}
 .tech-en{font-size:12.5px;font-weight:600;color:var(--txt-3);letter-spacing:.3px}
@@ -151,7 +157,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .op{background:linear-gradient(160deg,rgba(124,58,237,.09),rgba(56,189,248,.05));border:1px solid var(--line);border-radius:var(--radius);padding:17px 18px;display:flex;flex-direction:column;gap:10px;transition:.16s}
 .op:hover{border-color:rgba(167,139,250,.45);transform:translateY(-2px);box-shadow:var(--shadow)}
 .op__head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.op__title{margin:0;font-size:16px;font-weight:700;color:#f4f1ff;line-height:1.4}
+.op__title{margin:0;font-size:16px;font-weight:700;color:#f4f1ff;line-height:1.4;overflow-wrap:anywhere}
 .op__desc{margin:0;font-size:13.4px;color:var(--txt-2)}
 .op__meta{display:flex;gap:7px;flex-wrap:wrap}
 .pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid var(--line)}
@@ -204,7 +210,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px}
 .modal[hidden]{display:none}
 .modal__backdrop{position:absolute;inset:0;background:rgba(3,6,15,.72);backdrop-filter:blur(4px)}
-.modal__card{position:relative;width:100%;max-width:520px;max-height:90vh;overflow:auto;background:linear-gradient(180deg,#0d1424,#0a0f1c);border:1px solid var(--line-2);border-radius:18px;box-shadow:0 30px 80px -20px rgba(0,0,0,.9)}
+.modal__card{position:relative;width:100%;max-width:520px;max-height:90vh;max-height:90dvh;overflow:auto;background:linear-gradient(180deg,#0d1424,#0a0f1c);border:1px solid var(--line-2);border-radius:18px;box-shadow:0 30px 80px -20px rgba(0,0,0,.9)}
 .modal__head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line)}
 .modal__head h2{margin:0;font-size:16.5px;font-weight:700}
 .modal__body{padding:18px 20px;display:flex;flex-direction:column;gap:16px}
@@ -228,8 +234,6 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .dt__link:hover{text-decoration:underline}
 .dt__kind{font-size:11.5px;color:var(--txt-3)}
 .btn[hidden]{display:none}
-.modal__card--detail{max-width:660px}
-#detailTitle{line-height:1.45;overflow-wrap:anywhere;padding-right:14px}
 .toolbar__sel{font-size:12.5px;color:var(--txt-3);background:var(--panel);border:1px solid var(--line);padding:5px 12px;border-radius:999px}
 .toolbar__sel b{color:var(--txt-2);font-weight:600}
 .gen-opt__label{display:block;font-size:12.5px;color:var(--txt-3);margin-bottom:9px}
@@ -296,12 +300,83 @@ main{perspective:1200px}
   .badge-new{animation:none}
 }
 
+/* ===== 移动端(手机竖屏 / 窄窗) ===== */
 @media(max-width:640px){
-  .shell{padding:20px 15px 48px}
-  .masthead{gap:12px}
-  .masthead__actions{width:100%}
-  .masthead__actions .btn{flex:1;justify-content:center}
-  .source-chip{order:-1;width:100%;justify-content:center}
+  .shell{padding:14px 13px calc(34px + env(safe-area-inset-bottom))}
+
+  /* 顶部:标题一行,状态胶囊两列,设置按钮独占一行好按 */
+  .masthead{gap:10px}
+  .logo{width:40px;height:40px;border-radius:12px}
+  .masthead__text h1{font-size:20px}
+  .masthead__sub{font-size:11.5px}
+  .masthead__actions{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .masthead__actions .source-chip{width:100%;min-width:0;justify-content:center;padding:6px 8px}
+  .masthead__actions .btn{grid-column:1/-1;justify-content:center;padding:11px 15px}
+  .updated{margin:12px 2px 14px;font-size:12px}
+
+  /* 主导航:四等分 + 吸顶,长列表里也能随时切看板 */
+  .tabs{position:sticky;top:0;z-index:6;display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+    margin:0 -13px 16px;padding:0 13px;background:rgba(7,11,22,.88);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  .tab{justify-content:center;gap:4px;padding:11px 2px;font-size:12.5px}
+  .tab__ico{font-size:13px}
+  .tab__badge{top:5px;right:5px}
+
+  /* 工具栏:范围/状态一行,生成按钮整行 */
+  .toolbar{gap:8px;margin-bottom:14px}
+  .toolbar .spacer{display:none}
+  .toolbar__status{margin-left:auto;text-align:right}
+  .toolbar>.btn{flex-basis:100%;justify-content:center;padding:12px 14px;font-size:14px}
+
+  /* 筛选:改成横向滑动的一排,避免十几个赛道 chip 撑满屏幕 */
+  .filters{gap:11px;margin-bottom:16px}
+  .filter-group{display:block}
+  .filter-group__label{display:block;min-width:0;margin-bottom:6px;font-size:11.5px}
+  .filters .chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:5px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .filters .chips::-webkit-scrollbar{display:none}
+  .filters .chip{flex:0 0 auto;padding:8px 13px;font-size:13px}
+
+  /* 统计:两列 */
+  .stats{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+  .stat{padding:12px 13px}
+  .stat__n{font-size:22px}
+
+  /* 卡片 */
+  .list{gap:10px}
+  .grid{gap:10px}
+  .card,.op{padding:14px 15px}
   .card__title{font-size:15.5px}
-  .grid{grid-template-columns:1fr}
+  .op__title{font-size:15px}
+  .card__foot{gap:8px}
+  .ops-hint{font-size:11.5px;margin-bottom:12px}
+  .ops-error{flex-wrap:wrap}
+  .state{padding:40px 12px}
+  .foot{margin-top:28px;padding-top:14px}
+
+  /* 弹窗:底部抽屉,标题与操作条吸边,小屏也能单手操作 */
+  .modal{padding:0;place-items:end center}
+  .modal__card{max-width:none;max-height:92vh;max-height:92dvh;border-radius:20px 20px 0 0;border-left:none;border-right:none;border-bottom:none}
+  .modal__head{position:sticky;top:0;z-index:2;background:#0d1424;padding:14px 16px}
+  .modal__head h2{font-size:15.5px}
+  .modal__body{padding:14px 16px;gap:12px}
+  .modal__foot{position:sticky;bottom:0;z-index:2;flex-wrap:wrap;background:#0b1120;padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+  .modal__foot .spacer{display:none}
+  .modal__foot .btn{flex:1;min-width:0;justify-content:center}
+  .gen-note{width:100%;max-width:none;order:-1}
+  .modal .chip{padding:9px 15px;font-size:13.5px}
+  .icon-btn{padding:8px 12px;font-size:18px}
+  .dt__text{font-size:14.5px}
+  .input{font-size:16px}
+  .picker__item{padding:10px}
+}
+
+/* 触屏没有真正的 hover:去掉悬停位移/高亮,否则点完一张卡会一直"亮着" */
+@media(hover:none){
+  .card:hover{border-color:var(--line);background:var(--panel);transform:none}
+  .op:hover,.op--policy:hover,.op--local:hover{border-color:var(--line);transform:none;box-shadow:none}
+  .btn:hover,.chip:hover,.tab:hover,.icon-btn:hover{transform:none}
+  .btn:hover{border-color:var(--line-2)}
+  .chip:not(.is-on):hover{border-color:var(--line);color:var(--txt-2)}
+  .tab:not(.is-active):hover{color:var(--txt-3)}
+  .icon-btn:hover{background:transparent;color:var(--txt-2)}
 }

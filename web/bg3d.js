@@ -6,6 +6,7 @@
  * 与 app.js 解耦:仅负责 canvas 背景,并提供 window.__bg3d.setEnabled(bool) 供手动开关。
  */
 import * as THREE from './vendor/three.module.js';
+import { CONTINENTS, landHubs } from './earth-data.js';
 
 (function () {
   'use strict';
@@ -84,30 +85,7 @@ import * as THREE from './vendor/three.module.js';
     return mesh;
   }
 
-  // ---- 程序化地球贴图(等距圆柱投影 512x256) ----
-  var CONTINENTS = [
-    // 北美洲
-    [[-168,65],[-160,70],[-140,70],[-125,70],[-110,68],[-95,70],[-85,65],[-80,60],[-75,55],[-65,50],[-55,50],[-65,45],[-70,42],[-75,35],[-80,30],[-82,25],[-90,28],[-97,26],[-105,22],[-110,24],[-115,30],[-122,35],[-125,42],[-124,48],[-130,55],[-140,60],[-150,60],[-165,62]],
-    // 格陵兰
-    [[-45,60],[-30,68],[-25,75],[-35,82],[-55,82],[-60,75],[-52,68]],
-    // 南美洲
-    [[-80,8],[-72,10],[-60,8],[-50,2],[-45,-5],[-38,-8],[-40,-18],[-48,-25],[-55,-32],[-62,-40],[-65,-48],[-70,-54],[-72,-45],[-72,-35],[-70,-20],[-75,-12],[-80,-5],[-78,2]],
-    // 非洲
-    [[-15,30],[0,35],[12,33],[25,32],[34,30],[38,20],[43,12],[50,12],[45,4],[42,-4],[40,-15],[35,-22],[30,-30],[25,-34],[18,-34],[12,-25],[10,-15],[8,-2],[2,5],[-5,5],[-10,6],[-15,12],[-17,20],[-12,25]],
-    // 欧亚大陆(含中/南/东南亚)
-    [[-10,36],[-8,43],[-2,48],[2,51],[5,53],[8,55],[10,58],[14,60],[20,62],[26,66],[32,68],[40,68],[50,70],[60,72],[70,72],[80,74],[95,76],[110,74],[125,72],[140,70],[155,68],[170,66],[180,66],[180,62],[170,60],[162,58],[155,55],[145,50],[140,45],[135,42],[130,40],[126,38],[122,32],[120,28],[115,22],[110,18],[105,12],[103,8],[100,10],[98,14],[95,18],[92,22],[88,24],[82,20],[78,12],[74,18],[70,24],[66,26],[62,28],[58,30],[52,28],[48,30],[44,34],[40,38],[35,36],[30,34],[25,36],[20,40],[15,40],[12,44],[8,44],[3,43],[-3,40],[-6,37]],
-    // 不列颠群岛
-    [[-5,50],[-3,54],[-4,58],[-2,57],[0,53],[1,51]],
-    // 日本列岛
-    [[130,32],[135,34],[140,36],[142,40],[145,44],[141,42],[138,37],[134,34]],
-    // 马达加斯加
-    [[44,-16],[48,-14],[50,-18],[48,-25],[45,-24],[43,-20]],
-    // 印尼(苏门答腊/爪哇)
-    [[95,5],[105,-2],[115,-5],[120,-8],[110,-8],[100,-2],[96,2]],
-    // 澳大利亚
-    [[114,-22],[122,-18],[130,-12],[137,-12],[142,-11],[145,-15],[150,-22],[153,-28],[150,-35],[145,-38],[138,-35],[132,-32],[125,-32],[118,-34],[114,-30],[113,-25]]
-  ];
-
+  // ---- 程序化地球贴图(等距圆柱投影 512x256),轮廓数据见 earth-data.js ----
   function makeEarthTexture() {
     var w = 512, h = 256;
     var c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -158,39 +136,16 @@ import * as THREE from './vendor/three.module.js';
 
   // ---- 情报网络层:大洲枢纽节点 + 跨大洲链路 + 流动数据包 ----
   // 节点用真实城市定位,链路强制连接不同大洲,且每个枢纽至少有一条链路,避免"亮着却不传输"的点
-  var HUBS = [
-    { c: 'NA', lat: 37.77, lon: -122.42 },  // 旧金山
-    { c: 'NA', lat: 40.71, lon: -74.0 },    // 纽约
-    { c: 'NA', lat: 43.65, lon: -79.38 },   // 多伦多
-    { c: 'NA', lat: 30.27, lon: -97.74 },   // 奥斯汀
-    { c: 'NA', lat: 19.43, lon: -99.13 },   // 墨西哥城
-    { c: 'SA', lat: -23.55, lon: -46.63 },  // 圣保罗
-    { c: 'SA', lat: -34.6, lon: -58.38 },   // 布宜诺斯艾利斯
-    { c: 'SA', lat: 4.71, lon: -74.07 },    // 波哥大
-    { c: 'EU', lat: 51.5, lon: -0.13 },     // 伦敦
-    { c: 'EU', lat: 48.86, lon: 2.35 },     // 巴黎
-    { c: 'EU', lat: 52.52, lon: 13.4 },     // 柏林
-    { c: 'EU', lat: 59.33, lon: 18.07 },    // 斯德哥尔摩
-    { c: 'EU', lat: 40.42, lon: -3.7 },     // 马德里
-    { c: 'AF', lat: 30.04, lon: 31.24 },    // 开罗
-    { c: 'AF', lat: 6.52, lon: 3.38 },      // 拉各斯
-    { c: 'AF', lat: -1.29, lon: 36.82 },    // 内罗毕
-    { c: 'AF', lat: -26.2, lon: 28.05 },    // 约翰内斯堡
-    { c: 'AF', lat: -33.92, lon: 18.42 },   // 开普敦
-    { c: 'AS', lat: 39.9, lon: 116.4 },     // 北京
-    { c: 'AS', lat: 31.23, lon: 121.47 },   // 上海
-    { c: 'AS', lat: 22.54, lon: 114.06 },   // 深圳
-    { c: 'AS', lat: 35.68, lon: 139.69 },   // 东京
-    { c: 'AS', lat: 1.35, lon: 103.82 },    // 新加坡
-    { c: 'AS', lat: 12.97, lon: 77.59 },    // 班加罗尔
-    { c: 'AS', lat: 19.08, lon: 72.88 },    // 孟买
-    { c: 'AS', lat: 37.57, lon: 126.98 },   // 首尔
-    { c: 'AS', lat: 25.2, lon: 55.27 },     // 迪拜
-    { c: 'AS', lat: -6.2, lon: 106.85 },    // 雅加达
-    { c: 'OC', lat: -33.87, lon: 151.21 },  // 悉尼
-    { c: 'OC', lat: -37.81, lon: 144.96 },  // 墨尔本
-    { c: 'OC', lat: -36.85, lon: 174.76 }   // 奥克兰
-  ];
+  // landHubs() 已保证每个落点都在大洲轮廓内(与贴图同一份数据),不会有点悬在海面上
+  var HUBS = landHubs();
+  HUBS.forEach(function (h, i) {
+    if (h.snapped) console.warn('[bg3d] 枢纽 #' + i + '(' + h.c + ')不在陆地上,已吸附到最近陆地,偏移 ' + h.dist.toFixed(1) + '°');
+    if (h.failed) console.warn('[bg3d] 枢纽 #' + i + '(' + h.c + ')附近找不到陆地');
+  });
+
+  // 节点与弧线都贴在 SURF 上:高于球面与 1.006 的全息线框壳。point/sprite 的片元深度取中心深度,
+  // 中心离球面 0.048 > 点精灵半径 0.0375,所以正面半球的节点整颗可见,不会半埋或像从地里发光
+  var SURF = EARTH_R * 1.03;
 
   function latLonToVec3(lat, lon, r) {
     var phi = (90 - lat) * Math.PI / 180;
@@ -201,14 +156,34 @@ import * as THREE from './vendor/three.module.js';
       r * Math.sin(phi) * Math.sin(theta)
     );
   }
-  function makeCurve(a, b) {
-    var mid = a.clone().add(b).multiplyScalar(0.5);
-    mid.normalize().multiplyScalar(EARTH_R + 0.22 + a.distanceTo(b) * 0.26);
-    return new THREE.QuadraticBezierCurve3(a.clone(), mid, b.clone());
+  // 弧线沿两点所在的大圆做球面插值,半径 = SURF + sin(pi*t)*lift;sin 在 [0,1] 非负,
+  // 所以整条弧线恒在球面之外。只抬高控制点的二次贝塞尔做不到:长弦的中段会落进球体,看着像断线/在地球内部通信
+  function makeArc(a, b) {
+    var u = a.clone().normalize(), v = b.clone().normalize();
+    var ang = Math.acos(THREE.MathUtils.clamp(u.dot(v), -1, 1));
+    var axis = new THREE.Vector3().crossVectors(u, v);
+    if (axis.lengthSq() < 1e-4) {           // 近似对跖:叉积退化,取任一与 u 垂直的轴
+      var ref = Math.abs(u.x) < 0.5 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+      axis.crossVectors(u, ref).normalize();
+    } else axis.normalize();
+    var lift = 0.05 + ang * 0.22, q = new THREE.Quaternion();
+    function at(t) {
+      q.setFromAxisAngle(axis, ang * t);
+      return u.clone().applyQuaternion(q).multiplyScalar(SURF + Math.sin(Math.PI * t) * lift);
+    }
+    return {
+      segs: Math.min(48, Math.max(14, Math.round(ang / 0.055))),
+      getPoint: at,
+      getPoints: function (n) {
+        var out = [];
+        for (var i = 0; i <= n; i++) out.push(at(i / n));
+        return out;
+      }
+    };
   }
   function buildNetwork(extraArcs) {
     var grp = new THREE.Group();
-    var pts = HUBS.map(function (h) { return latLonToVec3(h.lat, h.lon, EARTH_R * 1.012); });
+    var pts = HUBS.map(function (h) { return latLonToVec3(h.lat, h.lon, SURF); });
 
     var ng = new THREE.BufferGeometry();
     var np = new Float32Array(pts.length * 3);
@@ -221,16 +196,21 @@ import * as THREE from './vendor/three.module.js';
     grp.add(nodes);
 
     var used = {};
+    var dirs = pts.map(function (p) { return p.clone().normalize(); });
     function pairKey(a, b) { return a < b ? a + '_' + b : b + '_' + a; }
+    // 仍要求跨大洲,但在候选里挑球面距离最近的:近似对跖的超长弧大半程在地球背面,看着像断掉
     function pickOther(i) {
-      for (var tries = 0; tries < 60; tries++) {
+      var best = -1, bestAng = Infinity;
+      for (var tries = 0; tries < 12; tries++) {
         var j = (Math.random() * HUBS.length) | 0;
-        if (j !== i && HUBS[j].c !== HUBS[i].c && !used[pairKey(i, j)]) return j;
+        if (j === i || HUBS[j].c === HUBS[i].c || used[pairKey(i, j)]) continue;
+        var ang = Math.acos(THREE.MathUtils.clamp(dirs[i].dot(dirs[j]), -1, 1));
+        if (ang < bestAng) { bestAng = ang; best = j; }
       }
-      return -1;
+      return best;
     }
     var curves = [];
-    function link(i, j) { used[pairKey(i, j)] = 1; curves.push(makeCurve(pts[i], pts[j])); }
+    function link(i, j) { used[pairKey(i, j)] = 1; curves.push(makeArc(pts[i], pts[j])); }
 
     // 1) 每个枢纽先各连一条跨大洲链路 —— 保证没有"闲置光点"
     var order = pts.map(function (_, idx) { return idx; }).sort(function () { return Math.random() - 0.5; });
@@ -244,7 +224,7 @@ import * as THREE from './vendor/three.module.js';
     // 所有弧线合并进一个 LineSegments,省掉大量 draw call
     var seg = [];
     curves.forEach(function (cv) {
-      var ps = cv.getPoints(30);
+      var ps = cv.getPoints(cv.segs);
       for (var s = 0; s < ps.length - 1; s++) seg.push(ps[s].x, ps[s].y, ps[s].z, ps[s + 1].x, ps[s + 1].y, ps[s + 1].z);
     });
     var lg = new THREE.BufferGeometry();
@@ -405,10 +385,12 @@ import * as THREE from './vendor/three.module.js';
     renderer.setClearColor(0x000000, 0);
     DOT = makeDotTexture();
 
-    var soft = isSoftwareRenderer();
-    build(soft ? 420 : 1000, soft ? 5 : 16);
+    // 手机/平板 GPU 弱:按低配构建(星点与数据链路减半),帧率看门狗仍然兜底
+    var coarse = !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
+    var light = coarse || window.innerWidth < 700 || isSoftwareRenderer();
+    build(light ? 380 : 1000, light ? 6 : 16);
     resize();
-    if (soft) { degrade(); return; }
+    if (isSoftwareRenderer()) { degrade(); return; }
 
     start();
 
