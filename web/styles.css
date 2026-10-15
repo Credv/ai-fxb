@@ -89,13 +89,21 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .updated{margin:16px 2px 20px;font-size:12.5px;color:var(--txt-3)}
 
 /* Tabs */
-.tabs{display:flex;gap:8px;border-bottom:1px solid var(--line);margin-bottom:22px}
-.tab{font-family:inherit;font-size:14.5px;font-weight:600;color:var(--txt-3);background:none;border:none;padding:11px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s;display:inline-flex;align-items:center;gap:7px}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:22px;position:relative}
+.tab{font-family:inherit;font-size:14px;font-weight:650;letter-spacing:.4px;color:var(--txt-3);background:none;border:none;padding:11px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s;display:inline-flex;align-items:center;gap:7px;position:relative}
 .tab:hover{color:var(--txt-2)}
-.tab.is-active{color:var(--txt);border-bottom-color:var(--acc)}
-.tab{position:relative}
+.tab.is-active{color:#eaf6ff;border-bottom-color:transparent}
 .tab__badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:linear-gradient(135deg,#34d399,#38bdf8);color:#04121f;font-size:10px;font-weight:800;line-height:16px;text-align:center;box-shadow:0 0 10px -1px rgba(52,211,153,.8)}
-.tab__ico{font-size:15px}
+.tab__ico{font-size:12.5px;color:var(--acc-2);opacity:.8;line-height:1}
+.tab.is-active .tab__ico{color:var(--acc);opacity:1;text-shadow:0 0 10px rgba(56,189,248,.85)}
+/* 选中态 HUD:斜切底衬 + 底部扫描线,替代普通下划线 */
+.tab.is-active::before{content:"";position:absolute;left:6px;right:6px;top:5px;bottom:3px;z-index:-1;
+  background:linear-gradient(180deg,rgba(56,189,248,.16),rgba(56,189,248,.02));
+  border:1px solid rgba(56,189,248,.3);
+  clip-path:polygon(9px 0,100% 0,calc(100% - 9px) 100%,0 100%)}
+.tab.is-active::after{content:"";position:absolute;left:14px;right:14px;bottom:-1px;height:2px;
+  background:linear-gradient(90deg,transparent,var(--acc),transparent);
+  box-shadow:0 0 12px rgba(56,189,248,.9)}
 
 /* 统计 */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
@@ -319,15 +327,18 @@ main{perspective:1200px}
   .tabs{position:sticky;top:0;z-index:6;display:grid;grid-template-columns:repeat(4,1fr);gap:0;
     margin:0 -13px 16px;padding:0 13px;background:rgba(7,11,22,.88);
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-  .tab{justify-content:center;gap:4px;padding:11px 2px;font-size:12.5px}
-  .tab__ico{font-size:13px}
-  .tab__badge{top:5px;right:5px}
+  .tab{justify-content:center;gap:5px;padding:10px 2px 12px;font-size:12px;letter-spacing:.2px}
+  .tab__ico{font-size:11.5px}
+  .tab.is-active::before{left:3px;right:3px;top:6px;bottom:4px}
+  .tab.is-active::after{left:16%;right:16%}
+  .tab__badge{top:4px;right:4px}
 
-  /* 工具栏:范围/状态一行,生成按钮整行 */
+  /* 工具栏:状态与生成按钮同一行;按钮紧凑化 + 斜切角,不再整行大块 */
   .toolbar{gap:8px;margin-bottom:14px}
   .toolbar .spacer{display:none}
-  .toolbar__status{margin-left:auto;text-align:right}
-  .toolbar>.btn{flex-basis:100%;justify-content:center;padding:12px 14px;font-size:14px}
+  .toolbar__status{margin-left:0;text-align:right;font-size:11.5px}
+  .toolbar>.btn{flex-basis:auto;margin-left:auto;justify-content:center;padding:8px 14px;font-size:12.5px;
+    clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
 
   /* 筛选:改成横向滑动的一排,避免十几个赛道 chip 撑满屏幕 */
   .filters{gap:11px;margin-bottom:16px}
