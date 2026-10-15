@@ -83,6 +83,26 @@ async function chat(label, messages) {
 function loadOld() {
   try { return JSON.parse(readFileSync(SNAP_FILE, 'utf8')); } catch (e) { return null; }
 }
+
+// 调用 + 解析 + 归一化;结果为 0 条视为失败(打印原始返回片段便于排查),自动重试一次
+async function genBoard(label, messages, normalize) {
+  let lastErr = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const raw = await chat(label, messages);
+    let p;
+    try {
+      p = normalize(core.extractJSON(raw));
+    } catch (e) {
+      lastErr = new Error(label + ':返回内容无法解析为 JSON · ' + raw.slice(0, 300));
+      console.error('[snapshot] ' + lastErr.message + '(第 ' + attempt + ' 次)');
+      continue;
+    }
+    if (p.items && p.items.length) return p;
+    lastErr = new Error(label + ':模型返回了 0 条数据(原始返回前 300 字:' + raw.slice(0, 300) + ')');
+    console.error('[snapshot] ' + label + ' 返回 0 条(第 ' + attempt + ' 次),原始返回前 300 字:' + raw.slice(0, 300));
+  }
+  throw lastErr;
+}
 const old = loadOld();
 function oldBucket(k) {
   return (old && old[k] && Array.isArray(old[k].items)) ? old[k] : null;
@@ -110,21 +130,21 @@ if (!CFG.apiKey) {
 
 // ---- 四个看板:sum(3天)/ tech(30天)/ news(3天)/ ops(ai+policy+local) ----
 const sumRes = await runJob('sum', async () => {
-  const p = core.normalizeSum(core.extractJSON(await chat('sum', core.buildSumMessages(3))));
+  const p = await genBoard('sum', core.buildSumMessages(3), core.normalizeSum);
   const ob = oldBucket('sum');
   const items = core.mergeBucketItems('sum', ob ? ob.items : [], p.items);
   return { status: 'ready', items, overview: p.overview || (ob && ob.overview) || '', generated_at: p.generated_at, fetched_at: now, range: 3 };
 });
 
 const techRes = await runJob('tech', async () => {
-  const p = core.normalizeTech(core.extractJSON(await chat('tech', core.buildTechMessages(30))));
+  const p = await genBoard('tech', core.buildTechMessages(30), core.normalizeTech);
   const ob = oldBucket('tech');
   const items = core.mergeBucketItems('tech', ob ? ob.items : [], p.items);
   return { status: 'ready', items, generated_at: p.generated_at, fetched_at: now, range: 30 };
 });
 
 const newsRes = await runJob('news', async () => {
-  const p = core.normalizeNews(core.extractJSON(await chat('news', core.buildNewsMessages(3))));
+  const p = await genBoard('news', core.buildNewsMessages(3), core.normalizeNews);
   const ob = oldBucket('news');
   const items = core.mergeBucketItems('news', ob ? ob.items : [], p.items);
   return { status: 'ready', items, generated_at: p.generated_at, fetched_at: now, range: 3 };
@@ -140,7 +160,7 @@ let opsItems = (oldBucket('ops') && oldBucket('ops').items) || [];
 let opsUpdated = false;
 for (const j of OPS_JOBS) {
   const r = await runJob('ops-' + j.mode, async () => {
-    const p = core.normalizeOps(core.extractJSON(await chat('ops-' + j.mode, j.build())));
+    const p = await genBoard('ops-' + j.mode, j.build(), core.normalizeOps);
     p.items.forEach((it) => {
       it.origin = j.origin;
       if (j.mode === 'ai') { it.level = ''; it.region = ''; it.policy = ''; }
