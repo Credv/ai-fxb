@@ -4,7 +4,7 @@ name: update-snapshot
 
 on:
   schedule:
-    - cron: '30 23 * * *'   # UTC 23:30 = 北京时间每天 07:30
+    - cron: '0 11,23 * * *'   # UTC 11:00/23:00 = 北京时间每天 19:00 / 次日 07:00
   workflow_dispatch: {}     # 也支持在 Actions 页面手动触发
 
 permissions:

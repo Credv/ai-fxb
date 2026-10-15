@@ -52,7 +52,7 @@ node server.mjs
 ## 每日快照(站长侧)
 
 - `tools/generate-snapshot.mjs`:用环境变量里的 Key 跑一轮四个看板生成,与旧快照合并(保留历史 21 天、标 NEW、最新在前)后写 `web/data/snapshot.json`。单项失败保留旧数据继续,不会把快照打空。
-- `.github/workflows/update-snapshot.yml`:每天北京时间 07:30 自动运行上述脚本,有变化才 commit+push,推送触发 Netlify 重新部署。也可在 Actions 页面手动触发。
+- `.github/workflows/update-snapshot.yml`:每天北京时间 07:00 与 19:00 自动运行上述脚本,有变化才 commit+push,推送触发 Netlify 重新部署。也可在 Actions 页面手动触发。
 - 前置条件:仓库 Settings → Secrets and variables → Actions 里添加 `DASHSCOPE_API_KEY`(百炼 API Key)。Key 只存在 Secret 里,不进入仓库任何文件。
 - 本地手动跑一次:
   ```bash
