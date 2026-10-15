@@ -382,6 +382,11 @@ main{perspective:1200px}
   .icon-btn:hover{background:transparent;color:var(--txt-2)}
 }
 
-/* Netlify 免费档会在页面注入右下角 "Powered by Netlify" 角标(div.nl-wrap,内含 #nl-badge/#nl-card,带内联 fixed 定位)。
-   前端隐藏:!important 压过内联样式;不影响任何功能。 */
-.nl-wrap, #nl-badge, #nl-card, div[data-nl-ready] { display: none !important; }
+/* Netlify 免费档注入的右下角角标:hud 脚本会运行时插入 iframe#nl-badge-frame 及 .nl-wrap/#nl-badge/#nl-card(带内联 fixed 定位)。
+   全局隐藏:id 以 nl- 开头的一律压掉,!important 压过内联样式;本应用自身没有任何 nl-* 元素,不会误伤。 */
+.nl-wrap, [id^='nl-'], div[data-nl-ready], iframe[src*='netlify.com'] {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+}
