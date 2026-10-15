@@ -1,5 +1,5 @@
 /* 每日快照生成脚本(Node,GitHub Actions 定时调用)
- * 用站长自己的 API Key(环境变量注入,绝不写入仓库)跑一轮四个看板的生成,
+ * 用站长自己的 API Key(环境变量注入,绝不写入仓库)跑一轮五个看板的生成,
  * 与旧 web/data/snapshot.json 合并(保留历史、标记 NEW、最新在前),写回快照文件。
  * 提交推送后 Netlify 自动重新部署,访客无需任何 Key 即可查看。
  *
@@ -128,7 +128,7 @@ if (!CFG.apiKey) {
   process.exit(1);
 }
 
-// ---- 四个看板:sum(3天)/ tech(30天)/ news(3天)/ ops(ai+policy+local) ----
+// ---- 五个看板:sum(3天)/ tech(30天)/ news(3天)/ rank(整榜替换)/ ops(ai+policy+local) ----
 const sumRes = await runJob('sum', async () => {
   const p = await genBoard('sum', core.buildSumMessages(3), core.normalizeSum);
   const ob = oldBucket('sum');
@@ -148,6 +148,13 @@ const newsRes = await runJob('news', async () => {
   const ob = oldBucket('news');
   const items = core.mergeBucketItems('news', ob ? ob.items : [], p.items);
   return { status: 'ready', items, generated_at: p.generated_at, fetched_at: now, range: 3 };
+});
+
+// 排行:整榜替换(榜单反映"当下",掉榜的模型不应继续保留)
+const rankRes = await runJob('rank', async () => {
+  const p = await genBoard('rank', core.buildRankMessages(), core.normalizeRank);
+  const items = core.stampExisting('rank', p.items);
+  return { status: 'ready', items, overview: p.overview || '', generated_at: p.generated_at, fetched_at: now, range: 0 };
 });
 
 // ops:三种类型分别生成、按 origin 分组合并(与前端 generateOps 相同规则)
@@ -185,10 +192,11 @@ const snap = {
   sum: sumRes || oldBucket('sum') || { status: 'idle', items: [] },
   tech: techRes || oldBucket('tech') || { status: 'idle', items: [] },
   news: newsRes || oldBucket('news') || { status: 'idle', items: [] },
+  rank: rankRes || oldBucket('rank') || { status: 'idle', items: [] },
   ops: opsRes || oldBucket('ops') || { status: 'idle', items: [] }
 };
 
-const produced = [sumRes, techRes, newsRes, opsUpdated ? opsRes : null].filter(Boolean).length;
+const produced = [sumRes, techRes, newsRes, rankRes, opsUpdated ? opsRes : null].filter(Boolean).length;
 if (!produced && !old) {
   console.error('[snapshot] 全部生成失败且没有旧快照可保留,不写文件。失败项:' + failures.join(', '));
   process.exit(1);
@@ -197,8 +205,8 @@ if (!produced && !old) {
 mkdirSync(dirname(SNAP_FILE), { recursive: true });
 writeFileSync(SNAP_FILE, JSON.stringify(snap), 'utf8');
 console.log('[snapshot] 已写入 ' + SNAP_FILE);
-console.log('[snapshot] 本次成功 ' + produced + '/4 个看板' + (failures.length ? ',失败:' + failures.join(', ') : '') +
+console.log('[snapshot] 本次成功 ' + produced + '/5 个看板' + (failures.length ? ',失败:' + failures.join(', ') : '') +
   ' · 共 ' + totalCalls + ' 次调用,' + totalTokens + ' tokens');
 console.log('[snapshot] 条目数:sum=' + snap.sum.items.length + ' tech=' + snap.tech.items.length +
-  ' news=' + snap.news.items.length + ' ops=' + snap.ops.items.length);
+  ' news=' + snap.news.items.length + ' rank=' + snap.rank.items.length + ' ops=' + snap.ops.items.length);
 if (failures.length && !old) process.exit(1);

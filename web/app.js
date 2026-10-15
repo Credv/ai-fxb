@@ -97,6 +97,7 @@
   var OPS_ORIGINS = ['全部', '政策规划', '市场商机', '本地机会'];
   // 赛道固定枚举:与 core 提示词共用一份
   var OPS_TRACKS = core.OPS_TRACKS;
+  var RANK_TRACKS = core.RANK_TRACKS;
   var OPS_MODES = {
     ai: { label: 'AI 赛道商机', origin: '市场商机' },
     policy: { label: '国家政策支持', origin: '政策规划' },
@@ -120,10 +121,11 @@
     ops: blankBucket(),
     sum: blankBucket(),
     tech: blankBucket(),
+    rank: blankBucket(),
     usage: loadUsage(),
     snapshot: null,      // 公开快照元信息 { ts, model, at }:未配置 Key 的访客看站长每日生成的数据
     snapshotError: '',
-    filters: { newsCat: '全部', newsRegion: '全部', newsImp: '全部', opsTime: '全部', opsTrack: '全部', opsOrigin: '全部', techTrack: '全部' }
+    filters: { newsCat: '全部', newsRegion: '全部', newsImp: '全部', opsTime: '全部', opsTrack: '全部', opsOrigin: '全部', techTrack: '全部', rankTrack: '全部' }
   };
 
   // ---------- 工具 ----------
@@ -168,7 +170,7 @@
   }
   function saveCache() {
     try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ news: state.news, ops: state.ops, sum: state.sum, tech: state.tech, snap: state.snapshot }));
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ news: state.news, ops: state.ops, sum: state.sum, tech: state.tech, rank: state.rank, snap: state.snapshot }));
     } catch (e) {}
   }
   function loadModelsCache() {
@@ -213,11 +215,13 @@
   var buildNewsMessages = core.buildNewsMessages;
   var buildSumMessages = core.buildSumMessages;
   var buildTechMessages = core.buildTechMessages;
+  var buildRankMessages = core.buildRankMessages;
   var extractJSON = core.extractJSON;
   var normalizeNews = core.normalizeNews;
   var normalizeSum = core.normalizeSum;
   var normalizeTech = core.normalizeTech;
   var normalizeOps = core.normalizeOps;
+  var normalizeRank = core.normalizeRank;
   function buildOpsMessages(mode) { return core.buildOpsMessages(mode, state.settings.region); }
 
   // ---------- API ----------
@@ -466,6 +470,39 @@
     state.tech = { status: 'ready', items: stampExisting('tech', d.tech), generated_at: fmtDate(new Date()), fetched_at: Date.now(), range: state.techRange, error: '', errorMeta: '', errorDetail: '' };
     render();
   }
+  function generateRank(opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
+    var b = state.rank;
+    if (b.status === 'loading' || b.syncing) return;
+    if (state.settings.demo) { if (!silent) loadDemoRank(); return; }
+    if (!configured()) { if (!silent) guardConfig(b); return; }
+    var hasItems = !!(b.items && b.items.length);
+    if (silent && hasItems) { b.syncing = true; } else { b.status = 'loading'; b.syncing = false; }
+    b.error = ''; b.errorMeta = ''; b.errorDetail = ''; b.loadError = ''; b.loadErrorDetail = '';
+    render();
+    callAPI(buildRankMessages(), { silent: silent }).then(function (content) {
+      var p = normalizeRank(extractJSON(content));
+      var prevIds = {};
+      (b.items || []).forEach(function (it) { if (it && it.id) prevIds[it.id] = 1; });
+      var items = stampExisting('rank', p.items);
+      items.forEach(function (it) { it.isNew = !prevIds[it.id]; });
+      b.items = items; b.overview = p.overview || '';
+      b.status = 'ready'; b.syncing = false;
+      b.generated_at = p.generated_at; b.fetched_at = Date.now(); b.newCount = countNew(items); b.tabNew = countNew(items);
+      saveCache(); render();
+    }).catch(function (err) {
+      b.syncing = false;
+      if (hasItems) { b.loadError = (err && err.message) || String(err); b.loadErrorDetail = (err && err.detail) || ''; }
+      else failBucket(b, err);
+      render();
+    });
+  }
+  function loadDemoRank() {
+    var d = demoData();
+    state.rank = { status: 'ready', items: stampExisting('rank', d.ranks), overview: d.rankOverview, generated_at: fmtDate(new Date()), fetched_at: Date.now(), range: 0, error: '', errorMeta: '', errorDetail: '' };
+    render();
+  }
 
   // ---------- 生成二次确认弹窗 ----------
   // 生成按钮不再直接发请求:点击后弹出确认框,在框内选范围/类型,点「确认生成」才真正发起。
@@ -473,13 +510,16 @@
     news: { title: '生成 · AI 大事件', opt: 'range', run: function () { generateNews(); } },
     sum: { title: '生成 · AI 汇总', opt: 'range', run: function () { generateSum(); } },
     tech: { title: '生成 · 前沿技术', opt: 'techrange', run: function () { generateTech(); } },
+    rank: { title: '生成 · 模型排行', opt: 'none', run: function () { generateRank(); } },
     ops: { title: '生成 · 商机雷达', opt: 'mode', run: function () { generateOps(); } }
   };
   var genSel = { kind: null, range: 3, techRange: 30, mode: 'ai' };
 
   function genModalHtml() {
     var def = GEN_KINDS[genSel.kind], out = '';
-    if (def.opt === 'range') {
+    if (def.opt === 'none') {
+      out += '<div class="gen-opt"><span class="gen-opt__label">生成范围</span><p class="gen-note">综合总榜 + 6 个细分赛道榜(逻辑推理 / 代码编程 / 视频生成 / 图像生成 / 语音多模态 / 游戏与Agent),一次请求完成。</p></div>';
+    } else if (def.opt === 'range') {
       out += '<div class="gen-opt"><span class="gen-opt__label">时间范围(过去 N 天)</span><div class="chips">' +
         RANGES.map(function (r) {
           return '<button class="chip' + (r === genSel.range ? ' is-on' : '') + '" type="button" data-genrange="' + r + '">' + r + ' 天</button>';
@@ -503,6 +543,7 @@
     var scope;
     if (genSel.kind === 'news' || genSel.kind === 'sum') scope = '范围 ' + genSel.range + ' 天';
     else if (genSel.kind === 'tech') scope = '范围 ' + genSel.techRange + ' 天';
+    else if (genSel.kind === 'rank') scope = '综合总榜 + 6 个细分赛道榜';
     else if (genSel.kind === 'ops') scope = '类型「' + OPS_MODES[genSel.mode].label + '」';
     else scope = '';
     return '将向 ' + (state.settings.model || 'API') + ' 发起 1 次' + (state.settings.enableSearch ? '联网' : '') + '请求(' + scope + '),可能耗时 1–3 分钟并按 token 计费。';
@@ -586,7 +627,7 @@
   function saveSettings() {
     readSettingsForm(); delete state.settings._first; persistSettings(); closeSettings();
     if (window.__bg3d) window.__bg3d.setEnabled($('setThree').checked);
-    if (state.settings.demo) { loadDemoNews(); loadDemoOps(); loadDemoSum(); loadDemoTech(); }
+    if (state.settings.demo) { loadDemoNews(); loadDemoOps(); loadDemoSum(); loadDemoTech(); loadDemoRank(); }
     else render();
   }
   function showMsg(el, kind, text) { el.hidden = false; el.className = 'modal__msg is-' + kind; el.textContent = text; }
@@ -683,15 +724,18 @@
     $('panel-ops').hidden = state.view !== 'ops';
     $('panel-sum').hidden = state.view !== 'sum';
     $('panel-tech').hidden = state.view !== 'tech';
+    $('panel-rank').hidden = state.view !== 'rank';
     $('panel-news').classList.toggle('is-active', state.view === 'news');
     $('panel-ops').classList.toggle('is-active', state.view === 'ops');
     $('panel-sum').classList.toggle('is-active', state.view === 'sum');
     $('panel-tech').classList.toggle('is-active', state.view === 'tech');
+    $('panel-rank').classList.toggle('is-active', state.view === 'rank');
     renderSelLabels();
     renderNewsPanel();
     renderOpsPanel();
     renderSumPanel();
     renderTechPanel();
+    renderRankPanel();
   }
 
   function renderSource() {
@@ -714,7 +758,7 @@
     if (b.tabNew) { b.tabNew = 0; saveCache(); }
   }
   function renderTabBadges() {
-    var map = { sum: state.sum, tech: state.tech, ops: state.ops, news: state.news };
+    var map = { sum: state.sum, tech: state.tech, rank: state.rank, ops: state.ops, news: state.news };
     Object.keys(map).forEach(function (v) {
       var tab = $('tab-' + v); if (!tab) return;
       var n = map[v].tabNew || 0;
@@ -726,13 +770,13 @@
     });
   }
   function anySyncing() {
-    return !!(state.news.syncing || state.sum.syncing || state.ops.syncing || (state.tech && state.tech.syncing));
+    return !!(state.news.syncing || state.sum.syncing || state.ops.syncing || state.rank.syncing || (state.tech && state.tech.syncing));
   }
   function totalNew() {
-    return countNew(state.news.items) + countNew(state.sum.items) + countNew(state.ops.items) + (state.tech ? countNew(state.tech.items) : 0);
+    return countNew(state.news.items) + countNew(state.sum.items) + countNew(state.ops.items) + countNew(state.rank.items) + (state.tech ? countNew(state.tech.items) : 0);
   }
   function lastFetchTs() {
-    return Math.max(state.news.fetched_at || 0, state.sum.fetched_at || 0, state.ops.fetched_at || 0, (state.tech && state.tech.fetched_at) || 0);
+    return Math.max(state.news.fetched_at || 0, state.sum.fetched_at || 0, state.ops.fetched_at || 0, state.rank.fetched_at || 0, (state.tech && state.tech.fetched_at) || 0);
   }
   function renderUpdated() {
     var el = $('updatedLine');
@@ -761,6 +805,7 @@
     var ns = $('newsSel'); if (ns) ns.innerHTML = '范围 <b>' + state.newsRange + ' 天</b>';
     var ss = $('sumSel'); if (ss) ss.innerHTML = '范围 <b>' + state.sumRange + ' 天</b>';
     var ts = $('techSel'); if (ts) ts.innerHTML = '范围 <b>' + state.techRange + ' 天</b>';
+    var rs = $('rankSel'); if (rs) rs.innerHTML = '综合总榜 <b>+ 6 细分赛道</b>';
     var os = $('opsSel'); if (os) os.innerHTML = '类型 <b>' + esc(OPS_MODES[state.opsMode].label) + '</b>';
   }
 
@@ -923,6 +968,73 @@
     }).join('');
   }
 
+  // ---------- 模型排行 ----------
+  function renderRankPanel() {
+    var b = state.rank;
+    setStatus($('rankStatus'), b, '');
+    $('genRankBtn').disabled = b.status === 'loading';
+    var ready = b.status === 'ready';
+    $('rankBody').hidden = !ready;
+    var st = $('rankState');
+    st.hidden = ready;
+    if (!ready) { st.innerHTML = panelStateHtml(b, 'rank', configured() ? '点右上「生成排行」,看当下做什么任务该选哪个模型。' : '请先在「设置」配置 API,再生成。'); return; }
+    var ov = $('rankOverview');
+    ov.hidden = !b.overview;
+    ov.innerHTML = b.overview ? '<b>总评</b>' + esc(b.overview) : '';
+    renderRankStats(); renderRankFilters(); renderRankList();
+  }
+  function renderRankStats() {
+    var items = state.rank.items;
+    var tracks = {}; items.forEach(function (it) { tracks[it.track] = 1; });
+    var tops = items.filter(function (it) { return it.rank === 1; }).length;
+    var stats = [
+      { n: items.length, l: '上榜条目' }, { n: Object.keys(tracks).length, l: '覆盖榜单' },
+      { n: tops, l: '榜首模型' }, { n: esc(state.rank.generated_at), l: '数据日期', small: true }
+    ];
+    $('rankStats').innerHTML = stats.map(function (s) {
+      return '<div class="stat"><div class="stat__n"' + (s.small ? ' style="font-size:18px"' : '') + '>' + s.n + '</div><div class="stat__l">' + s.l + '</div></div>';
+    }).join('');
+  }
+  function renderRankFilters() {
+    var present = {}; state.rank.items.forEach(function (it) { present[it.track] = 1; });
+    var tracks = ['全部'].concat(RANK_TRACKS.filter(function (t) { return present[t]; }));
+    $('rankTrackChips').innerHTML = chipHtml(tracks, state.filters.rankTrack, 'rankTrack');
+  }
+  function renderRankList() {
+    var f = state.filters;
+    var items = state.rank.items.filter(function (it) {
+      return f.rankTrack === '全部' || it.track === f.rankTrack;
+    });
+    if (!items.length) { $('rankList').innerHTML = emptyHtml('没有匹配榜单的数据。'); return; }
+    var groups = [];
+    RANK_TRACKS.forEach(function (tr) {
+      var g = items.filter(function (it) { return it.track === tr; });
+      if (g.length) groups.push({ track: tr, items: g });
+    });
+    items.forEach(function (it) {
+      if (RANK_TRACKS.indexOf(it.track) < 0 && !groups.some(function (g) { return g.track === it.track; })) {
+        groups.push({ track: it.track, items: items.filter(function (x) { return x.track === it.track; }) });
+      }
+    });
+    $('rankList').innerHTML = groups.map(function (g) {
+      return '<div class="rank-group"><h3 class="rank-group__title">' + esc(g.track) + '</h3><div class="list">' +
+        g.items.map(rankCard).join('') + '</div></div>';
+    }).join('');
+  }
+  function rankCard(it) {
+    var title = it.url ? '<a href="' + esc(it.url) + '" target="_blank" rel="noopener noreferrer">' + esc(it.title) + '</a>' : esc(it.title);
+    return '<article class="card rank-item' + (it.rank === 1 ? ' is-top' : '') + '" data-detail="rank:' + it.id + '">' +
+      '<div class="card__top">' + newBadge(it) +
+        '<span class="rank-no">#' + (it.rank || '-') + '</span>' +
+        (it.vendor ? '<span class="tag tag--minor">' + esc(it.vendor) + '</span>' : '') +
+        (it.score ? '<span class="pill pill--high rank-score">' + esc(it.score) + '</span>' : '') +
+        (it.date ? '<span class="tag tag--date">' + esc(it.date) + '</span>' : '') +
+      '</div>' +
+      '<h3 class="card__title">' + title + '</h3>' +
+      (it.note ? '<p class="card__sum">' + esc(it.note) + '</p>' : '') +
+      cardFoot(it) + '</article>';
+  }
+
   function chipHtml(list, active, group) {
     return list.map(function (v) {
       return '<button class="chip' + (v === active ? ' is-on' : '') + '" type="button" data-group="' + group + '" data-val="' + esc(v) + '">' + esc(v) + '</button>';
@@ -1035,7 +1147,7 @@
   function newBadge(it) { return (it && it.isNew) ? '<span class="badge-new" title="今日新增">NEW</span>' : ''; }
 
   // ---------- 消息详情 ----------
-  var KIND_NAME = { news: 'AI 大事件', sum: 'AI 汇总', tech: '前沿技术', ops: '商机雷达' };
+  var KIND_NAME = { news: 'AI 大事件', sum: 'AI 汇总', tech: '前沿技术', rank: '模型排行', ops: '商机雷达' };
 
   function cardFoot(it) {
     return '<div class="card__foot">' +
@@ -1064,6 +1176,11 @@
     } else if (kind === 'tech') {
       t.push('<span class="tag tag--region">' + esc(it.track) + '</span>');
       t.push('<span class="tag ' + (it.stage === '研究突破' ? 'tag--major' : (it.stage === '规模落地' ? 'tag--cat' : 'tag--minor')) + '">' + esc(it.stage) + '</span>');
+    } else if (kind === 'rank') {
+      t.push('<span class="tag tag--region">' + esc(it.track) + '</span>');
+      t.push('<span class="rank-no">#' + (it.rank || '-') + '</span>');
+      if (it.vendor) t.push('<span class="tag tag--minor">' + esc(it.vendor) + '</span>');
+      if (it.score) t.push('<span class="pill pill--high">' + esc(it.score) + '</span>');
     } else {
       t.push('<span class="pill ' + (it.origin === '政策规划' ? 'pill--policy' : (it.origin === '本地机会' ? 'pill--local' : 'pill--market')) + '">' + esc(it.origin) + '</span>');
       t.push('<span class="pill pill--track">' + esc(it.track) + '</span>');
@@ -1079,6 +1196,7 @@
     if (kind === 'news') h += dtBlock('精炼', it.summary) + dtBlock('详情', it.detail) + dtBlock('影响', it.impact, 'acc');
     else if (kind === 'sum') h += dtBlock('要点', it.takeaway) + dtBlock('详情', it.detail);
     else if (kind === 'tech') h += dtBlock('一句话原理', it.principle) + dtBlock('为什么重要', it.why) + dtBlock('深入解读', it.detail);
+    else if (kind === 'rank') h += dtBlock('点评', it.note) + dtBlock('排名依据与边界', it.detail, 'acc');
     else {
       h += dtBlock('精炼', it.description) + dtBlock('详情', it.detail);
       var meta = [it.level, it.region].filter(Boolean).map(esc).join(' · ');
@@ -1142,6 +1260,14 @@
         { title: '示例:推理时扩展', en: 'Test-time Scaling', principle: '这是演示数据。指模型在回答前多花算力"想一想"(生成并筛选多条思路),用更多推理时间换更高准确率,而不是只靠把模型训得更大。', why: '不换模型也能显著提升难题表现,影响 API 定价与用法。', detail: '这是演示详情。会说明具体做法(采样多条推理链后用奖励模型或自我一致性筛选、搜索式推理、过程监督),在数学与代码基准上相比单纯扩规模的增益,代价是延迟与 token 消耗数倍上升、简单任务反而变慢变差,以及目前哪些产品已经按"思考档位"计费。', track: '大模型/基础模型', stage: '早期产品', source: '示例来源', url: '', date: dAgo(1) },
         { title: '示例:多智能体协作框架', en: 'Multi-Agent Framework', principle: '这是演示数据。把一个大任务拆给多个各有分工的 AI"智能体",让它们像小团队一样分工、互相检查结果,再汇总产出。', why: '让 AI 能自动完成更长的流程,是一人公司自动化的关键。', detail: '这是演示详情。会讲清常见编排方式(规划者+执行者+审阅者、图式状态机、共享消息总线),与单智能体加工具调用相比强在哪(可并行、可交叉校验、上下文可控),目前的主要局限(错误累积、成本不可预测、调试困难),以及已经被用在哪些场景(代码库改造、调研、客服工单)。', track: '通用应用/工具', stage: '早期产品', source: '示例来源', url: '', date: dAgo(2) },
         { title: '示例:端侧小模型', en: 'On-device SLM', principle: '这是演示数据。指参数量更小、经过蒸馏或量化、能直接跑在手机/电脑本地而不必联网调用云端的模型。', why: '隐私更好、离线可用、调用零边际成本,利好端侧应用。', detail: '这是演示详情。会说明典型规模与量化方式、在哪些手机/PC 芯片上能跑到什么速度、与云端旗舰模型的能力差距集中在哪(复杂推理、长上下文、多模态),适用与不适用的场景,以及当前落地的代表产品与生态限制。', track: '智能算力/AI芯片', stage: '规模落地', source: '示例来源', url: '', date: dAgo(3) }
+      ],
+      rankOverview: '这是演示总评。真实使用时,这里会用 60–100 字概括当前各大榜单的竞争格局:谁在综合榜领跑、哪些细分赛道刚换榜首、值得注意的新模型。',
+      ranks: [
+        { title: '示例:某旗舰推理模型 V2', vendor: '示例厂商A', rank: 1, track: '综合总榜', score: '1452 ± 9', note: '综合对话与指令遵循最稳,日常通用首选。', detail: '这是演示详情。会说明该名次来自哪个综合竞技场榜单、样本量与统计区间、相比第二名强在哪些维度(长文理解、多轮一致性)、价格档位与延迟表现,以及它在哪些细分任务上反而不如更便宜的模型。', source: '示例榜单', url: '', date: '2026-10' },
+        { title: '示例:开源全能模型 72B', vendor: '示例厂商B', rank: 2, track: '综合总榜', score: '1431 ± 10', note: '开源里最能打,可自部署控成本。', detail: '这是演示详情。会说明它的开源协议与商用限制、自部署所需显存与推理成本、与闭源旗舰的差距集中在哪(复杂推理、工具调用稳定性),以及哪些团队适合用它替代闭源 API。', source: '示例榜单', url: '', date: '2026-10' },
+        { title: '示例:深度思考模型 R1', vendor: '示例厂商C', rank: 1, track: '逻辑推理', score: 'GPQA 88.1%', note: '数学与科学推理基准第一,难题慢思考。', detail: '这是演示详情。会说明它在 GPQA / AIME 等基准的具体分数与口径、推理耗时与 token 成本、在简单问题上是否反而不如快模型,以及适合的使用方式(难题单独路由给它)。', source: '示例基准', url: '', date: '2026-09' },
+        { title: '示例:视频生成模型 S2', vendor: '示例厂商D', rank: 1, track: '视频生成', score: 'VBench 86.4', note: '运动连贯性与指令跟随当前最强。', detail: '这是演示详情。会说明它在 VBench 等视频评测的分项表现(运动幅度、时序一致、画面质量)、可生成的时长与分辨率、商用价格,以及人物一致性等仍容易翻车的场景。', source: '示例评测', url: '', date: '2026-09' },
+        { title: '示例:编程智能体 C3', vendor: '示例厂商E', rank: 1, track: '代码编程', score: 'SWE-bench 74.2%', note: '真实仓库修 bug 通过率最高,工程向首选。', detail: '这是演示详情。会说明 SWE-bench Verified 的通过率与对比基线、在长任务(多文件重构)上的稳定性、订阅价格与额度,以及它在非 Python 语言上的表现差异。', source: '示例基准', url: '', date: '2026-10' }
       ]
     };
   }
@@ -1178,6 +1304,7 @@
     $('genOpsBtn').addEventListener('click', function () { openGenModal('ops'); });
     $('genSumBtn').addEventListener('click', function () { openGenModal('sum'); });
     $('genTechBtn').addEventListener('click', function () { openGenModal('tech'); });
+    $('genRankBtn').addEventListener('click', function () { openGenModal('rank'); });
     $('genConfirmBtn').addEventListener('click', confirmGenModal);
     $('genModal').addEventListener('click', function (e) {
       if (!e.target.closest) return;
@@ -1216,6 +1343,7 @@
         if (k === 'news') generateNews();
         else if (k === 'sum') generateSum();
         else if (k === 'tech') generateTech();
+        else if (k === 'rank') generateRank();
         else { var sm = retry.getAttribute('data-setmode'); if (OPS_MODES[sm]) state.opsMode = sm; generateOps(); }
         return;
       }
@@ -1230,13 +1358,14 @@
     // 汇总优先,其次前沿技术、新闻、商机(当前模式);仅当"今天还没同步过"才调用,避免重复消耗 token
     if (isStale(state.sum)) generateSum({ silent: true });
     if (state.tech && isStale(state.tech)) generateTech({ silent: true });
+    if (isStale(state.rank)) generateRank({ silent: true });
     if (isStale(state.news)) generateNews({ silent: true });
     if (isStale(state.ops)) generateOps({ silent: true });
   }
 
   // ---------- 公开快照:未配置 Key 的访客看站长每日生成的数据 ----------
   function hasAnyItems() {
-    var ks = ['news', 'ops', 'sum', 'tech'];
+    var ks = ['news', 'ops', 'sum', 'tech', 'rank'];
     for (var i = 0; i < ks.length; i++) {
       var b = state[ks[i]];
       if (b && b.items && b.items.length) return true;
@@ -1244,7 +1373,7 @@
     return false;
   }
   function adoptSnapshot(snap) {
-    ['sum', 'tech', 'news', 'ops'].forEach(function (k) {
+    ['sum', 'tech', 'news', 'rank', 'ops'].forEach(function (k) {
       var b = snap[k];
       if (!b || !Array.isArray(b.items)) return;
       var prev = (state[k] && state[k].items) || [];
@@ -1283,7 +1412,7 @@
         if (state.settings._first) {
           // 首次访问且快照不可用:回退内置演示数据(仅运行时,不写入设置)
           state.settings.demo = true;
-          loadDemoNews(); loadDemoOps(); loadDemoSum(); loadDemoTech();
+          loadDemoNews(); loadDemoOps(); loadDemoSum(); loadDemoTech(); loadDemoRank();
           return;
         }
         state.snapshotError = (e && e.message) || String(e);
@@ -1300,9 +1429,10 @@
       if (cache.ops && cache.ops.status === 'ready' && cache.ops.items && cache.ops.items.length) { state.ops = cache.ops; stampExisting('ops', state.ops.items); }
       if (cache.sum && cache.sum.status === 'ready' && cache.sum.items && cache.sum.items.length) { state.sum = cache.sum; stampExisting('sum', state.sum.items); }
       if (cache.tech && cache.tech.status === 'ready' && cache.tech.items && cache.tech.items.length) { state.tech = cache.tech; stampExisting('tech', state.tech.items); }
+      if (cache.rank && cache.rank.status === 'ready' && cache.rank.items && cache.rank.items.length) { state.rank = cache.rank; stampExisting('rank', state.rank.items); }
       if (cache.snap && cache.snap.ts) state.snapshot = cache.snap;
     }
-    if (state.settings.demo) { loadDemoNews(); loadDemoOps(); loadDemoSum(); loadDemoTech(); return; }
+    if (state.settings.demo) { loadDemoNews(); loadDemoOps(); loadDemoSum(); loadDemoTech(); loadDemoRank(); return; }
     if (configured()) { markViewed(state.view); render(); syncStale(); return; }
     // 未配置 Key:先渲染本地缓存,再拉取公开快照
     markViewed(state.view);

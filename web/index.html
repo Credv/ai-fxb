@@ -61,6 +61,9 @@
       <button class="tab" role="tab" id="tab-tech" aria-controls="panel-tech" aria-selected="false" data-view="tech" type="button">
         <span class="tab__ico" aria-hidden="true">△</span> 前沿技术
       </button>
+      <button class="tab" role="tab" id="tab-rank" aria-controls="panel-rank" aria-selected="false" data-view="rank" type="button">
+        <span class="tab__ico" aria-hidden="true">♛</span> 模型排行
+      </button>
       <button class="tab" role="tab" id="tab-ops" aria-controls="panel-ops" aria-selected="false" data-view="ops" type="button">
         <span class="tab__ico" aria-hidden="true">◎</span> 商机雷达
       </button>
@@ -144,6 +147,26 @@
             <div class="filter-group"><span class="filter-group__label">赛道</span><div class="chips" id="techTrackChips"></div></div>
           </div>
           <div class="list" id="techList"></div>
+        </div>
+      </section>
+
+      <!-- 模型排行面板 -->
+      <section class="panel" id="panel-rank" role="tabpanel" aria-labelledby="tab-rank" hidden>
+        <div class="toolbar">
+          <span class="toolbar__sel" id="rankSel"></span>
+          <div class="spacer"></div>
+          <span class="toolbar__status" id="rankStatus"></span>
+          <button class="btn btn--primary btn--sm" id="genRankBtn" type="button">生成排行</button>
+        </div>
+        <p class="ops-hint">综合总榜 + 细分赛道榜:检索各大公开榜单(综合竞技场、推理/代码基准、视频与图像生成评测、语音多模态、游戏/Agent 基准),回答「当下做什么任务该选哪个模型」。点条目看排名依据与短板。</p>
+        <div class="panel-state" id="rankState" hidden></div>
+        <div id="rankBody" hidden>
+          <div class="sum-overview" id="rankOverview" hidden></div>
+          <div class="stats" id="rankStats"></div>
+          <div class="filters">
+            <div class="filter-group"><span class="filter-group__label">赛道</span><div class="chips" id="rankTrackChips"></div></div>
+          </div>
+          <div class="list" id="rankList"></div>
         </div>
       </section>
     </main>

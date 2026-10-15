@@ -154,6 +154,15 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .card__title a{color:inherit;text-decoration:none}
 .card__title a:hover{text-decoration:underline;color:#bae6fd}
 .tech-en{font-size:12.5px;font-weight:600;color:var(--txt-3);letter-spacing:.3px}
+/* 模型排行 */
+.rank-group{margin-bottom:8px}
+.rank-group__title{margin:6px 2px 10px;font-size:14px;font-weight:700;color:#c9d6ff;letter-spacing:.6px;display:flex;align-items:center;gap:10px}
+.rank-group__title::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line-2),transparent)}
+.rank-no{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;font-weight:800;color:#7dd3fc;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.35);border-radius:6px;padding:2px 8px;letter-spacing:.5px}
+.rank-item.is-top{border-color:rgba(56,189,248,.45);background:linear-gradient(160deg,rgba(56,189,248,.1),rgba(167,139,250,.06))}
+.rank-item.is-top::before{opacity:1}
+.rank-item.is-top .rank-no{color:#04121f;background:linear-gradient(135deg,#34d399,#38bdf8);border-color:transparent;box-shadow:0 0 12px -2px rgba(52,211,153,.7)}
+.rank-score{margin-left:auto}
 .card__sum{margin:0;font-size:13.6px;color:var(--txt-2)}
 .card__impact{margin:10px 0 0;font-size:13px;color:var(--txt-2);background:rgba(56,189,248,.06);border-left:2px solid rgba(56,189,248,.5);padding:8px 12px;border-radius:0 8px 8px 0}
 .card__impact b{color:#7dd3fc;font-weight:650}
@@ -324,7 +333,7 @@ main{perspective:1200px}
   .updated{margin:12px 2px 14px;font-size:12px}
 
   /* 主导航:四等分 + 吸顶,长列表里也能随时切看板 */
-  .tabs{position:sticky;top:0;z-index:6;display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+  .tabs{position:sticky;top:0;z-index:6;display:grid;grid-template-columns:repeat(5,1fr);gap:0;
     margin:0 -13px 16px;padding:0 13px;background:rgba(7,11,22,.88);
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
   .tab{justify-content:center;gap:5px;padding:10px 2px 12px;font-size:12px;letter-spacing:.2px}
