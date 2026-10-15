@@ -402,10 +402,10 @@ main{perspective:1200px}
   height: 0 !important;
 }
 
-/* 手机/平板可读性:3D 星域调暗、面板底色改近不透明深色。
-   桌面端卡片是 3.5% 白的半透明,靠深色背景衬字;小屏上地球辉光会透过来把字"吃掉",故单独压底。 */
+/* 手机/平板可读性与科幻感的折中:面板半透明深色(地球辉光可隐约透出但不吃字),3D 背景适度调暗。
+   桌面端卡片是 3.5% 白的半透明,靠深色背景衬字;小屏地球更亮,故单独压底但保留透感。 */
 @media(max-width:640px),(hover:none){
-  :root{--panel:rgba(9,14,26,.88);--panel-2:rgba(13,19,33,.94)}
-  #bg3d{opacity:.45}
-  .op{background-color:rgba(11,15,29,.9);background-image:linear-gradient(160deg,rgba(124,58,237,.14),rgba(56,189,248,.07))}
+  :root{--panel:rgba(9,14,26,.74);--panel-2:rgba(13,19,33,.82)}
+  #bg3d{opacity:.6}
+  .op{background-color:rgba(11,15,29,.78);background-image:linear-gradient(160deg,rgba(124,58,237,.14),rgba(56,189,248,.07))}
 }
