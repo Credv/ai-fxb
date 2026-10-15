@@ -202,12 +202,25 @@
   function extractJSON(text) {
     var t = String(text || '').trim();
     t = t.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
-    var s = t.indexOf('{'), e = t.lastIndexOf('}');
+    try { return JSON.parse(t); } catch (e) { /* 带前后缀时退化为截取括号内内容 */ }
+    var so = t.indexOf('{'), sa = t.indexOf('[');
+    var eo = t.lastIndexOf('}'), ea = t.lastIndexOf(']');
+    var s, e;
+    if (sa >= 0 && (so < 0 || sa < so)) { s = sa; e = ea; } else { s = so; e = eo; }
     if (s >= 0 && e > s) t = t.slice(s, e + 1);
     return JSON.parse(t);
   }
+  // 模型偶尔换键名或直接把数组放在顶层:按候选键依次取,取不到返回空数组
+  function pickArr(obj, keys) {
+    if (Array.isArray(obj)) return obj;
+    if (!obj || typeof obj !== 'object') return [];
+    for (var i = 0; i < keys.length; i++) {
+      if (Array.isArray(obj[keys[i]])) return obj[keys[i]];
+    }
+    return [];
+  }
   function normalizeNews(obj) {
-    var arr = Array.isArray(obj.news) ? obj.news : [];
+    var arr = pickArr(obj, ['news', 'items', 'events', '新闻', '新闻列表']);
     return {
       generated_at: obj.generated_at || fmtDate(new Date()),
       items: arr.map(function (n) {
@@ -220,7 +233,7 @@
     };
   }
   function normalizeSum(obj) {
-    var hl = Array.isArray(obj.highlights) ? obj.highlights : [];
+    var hl = pickArr(obj, ['highlights', 'items', 'summary', '要点']);
     return {
       generated_at: obj.generated_at || fmtDate(new Date()),
       overview: obj.overview || '',
@@ -233,7 +246,7 @@
     };
   }
   function normalizeTech(obj) {
-    var arr = Array.isArray(obj.tech) ? obj.tech : [];
+    var arr = pickArr(obj, ['tech', 'items', 'techs', '技术']);
     return {
       generated_at: obj.generated_at || fmtDate(new Date()),
       items: arr.map(function (t) {
@@ -248,7 +261,7 @@
     };
   }
   function normalizeOps(obj) {
-    var arr = Array.isArray(obj.opportunities) ? obj.opportunities : [];
+    var arr = pickArr(obj, ['opportunities', 'items', 'ops', '商机']);
     return {
       generated_at: obj.generated_at || fmtDate(new Date()),
       items: arr.map(function (o) {
@@ -283,9 +296,9 @@
   }
   function normalizeRank(obj) {
     var items = [];
-    (Array.isArray(obj.ranks) ? obj.ranks : []).forEach(function (r) {
+    pickArr(obj, ['ranks', 'items', 'boards']).forEach(function (r) {
       var track = RANK_TRACKS.indexOf(r.track) >= 0 ? r.track : '综合总榜';
-      (Array.isArray(r.items) ? r.items : []).forEach(function (m) {
+      pickArr(r, ['items', 'models', 'rankings']).forEach(function (m) {
         items.push({
           title: m.model || '未命名模型', vendor: m.vendor || '', rank: parseInt(m.rank, 10) || 0,
           track: track, score: m.score || '', note: m.note || '', detail: m.detail || '',
