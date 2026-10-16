@@ -70,6 +70,9 @@
       <button class="tab" role="tab" id="tab-news" aria-controls="panel-news" aria-selected="false" data-view="news" type="button">
         <span class="tab__ico" aria-hidden="true">✦</span> AI 大事件
       </button>
+      <button class="tab" role="tab" id="tab-net" aria-controls="panel-net" aria-selected="false" data-view="net" type="button">
+        <span class="tab__ico" aria-hidden="true">✷</span> 蛛网
+      </button>
     </nav>
 
     <main>
@@ -168,6 +171,24 @@
           </div>
           <div class="list" id="rankList"></div>
         </div>
+      </section>
+
+      <!-- 情报蛛网面板 -->
+      <section class="panel" id="panel-net" role="tabpanel" aria-labelledby="tab-net" hidden>
+        <div class="toolbar">
+          <span class="toolbar__sel" id="netSel"></span>
+          <div class="spacer"></div>
+          <span class="toolbar__status" id="netPage"></span>
+          <button class="btn btn--ghost btn--sm" id="netPrev" type="button">上一页</button>
+          <button class="btn btn--ghost btn--sm" id="netNext" type="button">下一页</button>
+        </div>
+        <p class="ops-hint">把当日快照的条目结成一张网:左侧是条目,右侧按内容分三条分支,点条目直接看详情。</p>
+        <div class="filters">
+          <div class="filter-group"><span class="filter-group__label">分支</span><div class="chips" id="netRouteChips"></div></div>
+        </div>
+        <div class="panel-state" id="netState" hidden></div>
+        <div class="net-stage"><canvas id="netCanvas" width="1600" height="900" aria-label="情报蛛网:当日快照条目按分支分流的动画视图"></canvas></div>
+        <p class="net-swipe">左右滑动看完整蛛网</p>
       </section>
     </main>
 

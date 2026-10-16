@@ -177,6 +177,16 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   .rank-bar__score{order:2}
   .rank-bar__rail{order:3;flex:1 1 100%;height:9px;min-width:0}
 }
+/* 蛛网是上游写死的 1600×900 构图:压进 1076 的卡片宽会把 9~11px 的小字缩到看不清。
+   这一块单独跳出 shell 宽度按视口取宽(最宽 1600 = 原始 1:1),再窄就横向滑动而不是继续缩。 */
+.net-stage{position:relative;
+  width:min(1600px, 100vw - 28px);margin:4px auto 0;
+  margin-left:calc(50% - min(1600px, 100vw - 28px) / 2);
+  border:1px solid var(--line);border-radius:var(--radius);
+  background:#0a1122;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+  box-shadow:inset 0 0 60px -30px rgba(56,189,248,.35)}
+.net-stage canvas{display:block;width:100%;min-width:1280px;height:auto}
+.net-swipe{display:none;margin:8px 2px 0;font-size:11.5px;color:var(--txt-3)}
 .card__sum{margin:0;font-size:13.6px;color:var(--txt-2)}
 .card__impact{margin:10px 0 0;font-size:13px;color:var(--txt-2);background:rgba(56,189,248,.06);border-left:2px solid rgba(56,189,248,.5);padding:8px 12px;border-radius:0 8px 8px 0}
 .card__impact b{color:#7dd3fc;font-weight:650}
@@ -346,8 +356,8 @@ main{perspective:1200px}
   .masthead__actions .btn{position:absolute;top:2px;right:0;padding:8px 10px}
   .updated{margin:12px 2px 14px;font-size:12px}
 
-  /* 主导航:四等分 + 吸顶,长列表里也能随时切看板 */
-  .tabs{position:sticky;top:0;z-index:6;display:grid;grid-template-columns:repeat(5,1fr);gap:0;
+  /* 主导航:六等分 + 吸顶,长列表里也能随时切看板 */
+  .tabs{position:sticky;top:0;z-index:6;display:grid;grid-template-columns:repeat(6,1fr);gap:0;
     margin:0 -13px 16px;padding:0 13px;background:rgba(7,11,22,.88);
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
   .tab{justify-content:center;gap:5px;padding:10px 2px 12px;font-size:12px;letter-spacing:.2px}
@@ -403,6 +413,9 @@ main{perspective:1200px}
   .dt__text{font-size:14.5px}
   .input{font-size:16px}
   .picker__item{padding:10px}
+
+  /* 蛛网:窄屏不缩构图,改成横向滑动(基础规则已给 canvas 设 1280 下限) */
+  .net-swipe{display:block}
 }
 
 /* 触屏没有真正的 hover:去掉悬停位移/高亮,否则点完一张卡会一直"亮着" */

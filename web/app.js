@@ -127,7 +127,7 @@
     usage: loadUsage(),
     snapshot: null,      // 公开快照元信息 { ts, model, at }:未配置 Key 的访客看站长每日生成的数据
     snapshotError: '',
-    filters: { newsCat: '全部', newsRegion: '全部', newsImp: '全部', opsTime: '全部', opsTrack: '全部', opsOrigin: '全部', techTrack: '全部', rankTrack: '全部' }
+    filters: { newsCat: '全部', newsRegion: '全部', newsImp: '全部', opsTime: '全部', opsTrack: '全部', opsOrigin: '全部', techTrack: '全部', rankTrack: '全部', netRoute: 'all' }
   };
 
   // ---------- 工具 ----------
@@ -730,17 +730,20 @@
     $('panel-sum').hidden = state.view !== 'sum';
     $('panel-tech').hidden = state.view !== 'tech';
     $('panel-rank').hidden = state.view !== 'rank';
+    $('panel-net').hidden = state.view !== 'net';
     $('panel-news').classList.toggle('is-active', state.view === 'news');
     $('panel-ops').classList.toggle('is-active', state.view === 'ops');
     $('panel-sum').classList.toggle('is-active', state.view === 'sum');
     $('panel-tech').classList.toggle('is-active', state.view === 'tech');
     $('panel-rank').classList.toggle('is-active', state.view === 'rank');
+    $('panel-net').classList.toggle('is-active', state.view === 'net');
     renderSelLabels();
     renderNewsPanel();
     renderOpsPanel();
     renderSumPanel();
     renderTechPanel();
     renderRankPanel();
+    renderNetPanel();
   }
 
   function renderSource() {
@@ -1055,6 +1058,82 @@
       '</div>';
   }
 
+  // ---------- 情报蛛网(画面用 vendor/spider 的第三方动画层,数据用本站快照) ----------
+  var NET_BOARDS = ['sum', 'tech', 'news', 'ops', 'rank'];
+  var NET_ROUTES = [['all', '全部'], ['code', '情报'], ['model', '技术'], ['you', '商机']];
+  var netApi = null, netSig = '', netErr = '', netBgPaused = false, netBgWas = true, netLoading = false;
+  function netBuckets() {
+    var b = {};
+    NET_BOARDS.forEach(function (k) { b[k] = (state[k] && state[k].status === 'ready') ? state[k].items : []; });
+    return b;
+  }
+  function netSigOf(b) { return NET_BOARDS.map(function (k) { return k + b[k].length; }).join('|'); }
+  function netTotal(b) { return NET_BOARDS.reduce(function (n, k) { return n + b[k].length; }, 0); }
+  function setBgPaused(pause) {
+    if (!window.__bg3d) return;
+    if (pause) {
+      if (netBgPaused) return;
+      // 以 ai-fxb-3d 为准,不能读 setThree 勾选框:设置面板没打开过时它没被同步过,还原会误关背景
+      try { netBgWas = localStorage.getItem('ai-fxb-3d') !== 'off'; } catch (e) { netBgWas = true; }
+      window.__bg3d.setEnabled(false);
+      netBgPaused = true;
+    } else if (netBgPaused) {
+      netBgPaused = false;
+      window.__bg3d.setEnabled(netBgWas);
+    }
+  }
+  function renderNetChips() {
+    $('netRouteChips').innerHTML = NET_ROUTES.map(function (r) {
+      return '<button class="chip' + (state.filters.netRoute === r[0] ? ' is-on' : '') + '" type="button" data-netroute="' + r[0] + '">' + esc(r[1]) + '</button>';
+    }).join('');
+  }
+  function mountNet(b, sig) {
+    netApi = window.__net;
+    netApi.mount($('netCanvas'), b, {
+      onPick: function (board, id) { openDetail(board, id); },
+      onPage: function (p, total) {
+        $('netPage').textContent = '第 ' + p + ' / ' + total + ' 页';
+        $('netPrev').disabled = p <= 1; $('netNext').disabled = p >= total;
+      },
+      date: state.rank.generated_at || state.sum.generated_at || '',
+      connection: state.snapshot ? '公开快照' : '本机生成'
+    });
+    netApi.pick(state.filters.netRoute);
+    netSig = sig;
+  }
+  function renderNetPanel() {
+    if (state.view !== 'net') {
+      if (netApi) { netApi.unmount(); netApi = null; netSig = ''; }
+      setBgPaused(false);
+      return;
+    }
+    setBgPaused(true);
+    renderNetChips();
+    var b = netBuckets(), total = netTotal(b), sig = netSigOf(b), st = $('netState');
+    $('netSel').textContent = total ? '共 ' + total + ' 条入网' : '';
+    $('netCanvas').hidden = total === 0;
+    if (!total) {
+      if (netApi) { netApi.unmount(); netApi = null; netSig = ''; }
+      st.hidden = false;
+      st.innerHTML = '<p>还没有条目:先在其它板块生成,或等每日快照写入。</p>' +
+        (netErr ? '<p>动画层加载失败:' + esc(netErr) + '</p>' : '');
+      return;
+    }
+    st.hidden = true;
+    if (netApi && netSig === sig) { netApi.pick(state.filters.netRoute); return; }
+    if (netErr || netLoading) return;
+    var go = function () {
+      netLoading = false;
+      if (state.view !== 'net' || netErr || !window.__net) return;
+      var cur = netBuckets(), curSig = netSigOf(cur);
+      if (netApi && netSig === curSig) return;
+      mountNet(cur, curSig);
+    };
+    if (window.__net) { go(); return; }
+    netLoading = true;
+    import('./net.js').then(go, function (e) { netLoading = false; netErr = (e && e.message) ? e.message : String(e); renderNetPanel(); });
+  }
+
   function chipHtml(list, active, group) {
     return list.map(function (v) {
       return '<button class="chip' + (v === active ? ' is-on' : '') + '" type="button" data-group="' + group + '" data-val="' + esc(v) + '">' + esc(v) + '</button>';
@@ -1346,6 +1425,18 @@
         });
         render();
       });
+    });
+
+    $('netPrev').addEventListener('click', function () { if (netApi) netApi.step(-1); });
+    $('netNext').addEventListener('click', function () { if (netApi) netApi.step(1); });
+    // 暂停 3D 会写 localStorage,关浏览器前必须还原,否则下次进来背景被静默关掉
+    window.addEventListener('pagehide', function () { if (netBgPaused) setBgPaused(false); });
+    $('netRouteChips').addEventListener('click', function (e) {
+      var btn = e.target.closest ? e.target.closest('[data-netroute]') : null;
+      if (!btn) return;
+      state.filters.netRoute = btn.getAttribute('data-netroute');
+      if (netApi) netApi.pick(state.filters.netRoute);
+      renderNetChips();
     });
 
     document.addEventListener('click', function (e) {
