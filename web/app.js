@@ -148,7 +148,7 @@
     var s, hasProvider = false;
     try {
       var raw = localStorage.getItem(STORE_KEY);
-      if (!raw) { s = Object.assign({}, DEFAULTS); s._first = true; return s; }
+      if (!raw) return Object.assign({}, DEFAULTS);
       var parsed = JSON.parse(raw) || {};
       // 旧存档没有 provider 字段:不能信合并后的默认值,要按已保存的 Base URL 反推
       hasProvider = typeof parsed.provider === 'string' && !!PROVIDERS[parsed.provider];
@@ -164,7 +164,7 @@
     return s;
   }
   function persistSettings() {
-    var s = Object.assign({}, state.settings); delete s._first;
+    var s = Object.assign({}, state.settings);
     try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) {}
   }
   function loadCache() {
@@ -630,7 +630,7 @@
     state.settings.demo = $('setDemo').checked && !state.settings.apiKey;
   }
   function saveSettings() {
-    readSettingsForm(); delete state.settings._first; persistSettings(); closeSettings();
+    readSettingsForm(); persistSettings(); closeSettings();
     if (window.__bg3d) window.__bg3d.setEnabled($('setThree').checked);
     if (state.settings.demo) { loadDemoNews(); loadDemoOps(); loadDemoSum(); loadDemoTech(); loadDemoRank(); }
     else render();
@@ -791,7 +791,7 @@
     if (state.settings.demo) { el.textContent = '⚠ 演示模式:以下为内置示例数据,非真实检索结果。请在「设置」填写 API 并关闭演示模式。'; el.style.color = '#fde68a'; return; }
     if (!configured()) {
       // 公开快照模式(未配置 Key 的访客)
-      if (state.snapshotError) { el.style.color = '#fda4af'; el.textContent = '公开快照载入失败:' + state.snapshotError + ' · 刷新页面可重试,或在「设置」配置自己的 API Key。'; return; }
+      if (state.snapshotError) { el.style.color = '#fda4af'; el.textContent = '公开快照载入失败:' + state.snapshotError + ' · 稍后刷新重试' + (ADMIT ? ',或在「设置」配置自己的 API Key。' : '。'); return; }
       if (state.snapshot) {
         el.style.color = '';
         var ns = totalNew();
@@ -817,6 +817,12 @@
     var os = $('opsSel'); if (os) os.innerHTML = '类型 <b>' + esc(OPS_MODES[state.opsMode].label) + '</b>';
   }
 
+  // 公开快照模式下访客没有 Key:空板块要说「这轮快照没有」,不能让他去开一个自己看不见的设置面板
+  function snapIdle(kind) {
+    if (configured() || state.settings.demo || ADMIT) return '';
+    if (state.snapshotError) return '公开快照没能载入 · 稍后刷新重试。';
+    return '公开快照本轮没有' + kind + ' · 每日两次自动更新,稍后刷新即可。';
+  }
   function panelStateHtml(bucket, kind, readyHint) {
     if (bucket.status === 'loading') {
       return '<div class="state"><div class="state__inner"><div class="spinner"></div><p class="state__title">正在生成…</p><p class="state__desc" id="' + kind + 'Elapsed">生成中…已等待 0 秒。</p></div></div>';
@@ -857,7 +863,7 @@
     $('newsBody').hidden = !ready;
     var st = $('newsState');
     st.hidden = ready;
-    if (!ready) { st.innerHTML = panelStateHtml(b, 'news', configured() ? '点右上「生成新闻」开始检索。' : '请先在「设置」配置 API,再生成。'); return; }
+    if (!ready) { st.innerHTML = panelStateHtml(b, 'news', snapIdle('大事件') || (configured() ? '点右上「生成新闻」开始检索。' : '请先在「设置」配置 API,再生成。')); return; }
     renderNewsStats(); renderNewsFilters(); renderNewsList();
   }
   function renderOpsPanel() {
@@ -871,7 +877,7 @@
     $('opsBody').hidden = !ready;
     var st = $('opsState');
     st.hidden = ready;
-    if (!ready) { st.innerHTML = panelStateHtml(b, 'ops', configured() ? '先在上方选择类型,再点对应的「生成」按钮。两类分开生成、请求更小更易成功。' : '请先在「设置」配置 API,再生成。'); return; }
+    if (!ready) { st.innerHTML = panelStateHtml(b, 'ops', snapIdle('商机') || (configured() ? '先在上方选择类型,再点对应的「生成」按钮。两类分开生成、请求更小更易成功。' : '请先在「设置」配置 API,再生成。')); return; }
     renderOpsStats(); renderOpsFilters(); renderOpsNotice(); renderOpsList();
   }
   function renderOpsStatus() {
@@ -908,7 +914,7 @@
     $('sumBody').hidden = !ready;
     var st = $('sumState');
     st.hidden = ready;
-    if (!ready) { st.innerHTML = panelStateHtml(b, 'sum', configured() ? '点右上「生成汇总」,30 秒看完最近几天 AI 大事。' : '请先在「设置」配置 API,再生成。'); return; }
+    if (!ready) { st.innerHTML = panelStateHtml(b, 'sum', snapIdle('汇总') || (configured() ? '点右上「生成汇总」,30 秒看完最近几天 AI 大事。' : '请先在「设置」配置 API,再生成。')); return; }
     $('sumOverview').innerHTML = '<b>导读 · ' + esc(b.generated_at) + ' · 最近 ' + (b.range || state.sumRange) + ' 天</b>' + esc(b.overview || '');
     renderSumList();
   }
@@ -933,7 +939,7 @@
     $('techBody').hidden = !ready;
     var st = $('techState');
     st.hidden = ready;
-    if (!ready) { st.innerHTML = panelStateHtml(b, 'tech', configured() ? '点右上「生成前沿技术」,用大白话看懂最近冒出来的新技术。' : '请先在「设置」配置 API,再生成。'); return; }
+    if (!ready) { st.innerHTML = panelStateHtml(b, 'tech', snapIdle('前沿技术') || (configured() ? '点右上「生成前沿技术」,用大白话看懂最近冒出来的新技术。' : '请先在「设置」配置 API,再生成。')); return; }
     renderTechStats(); renderTechFilters(); renderTechList();
   }
   function renderTechStats() {
@@ -985,7 +991,7 @@
     $('rankBody').hidden = !ready;
     var st = $('rankState');
     st.hidden = ready;
-    if (!ready) { st.innerHTML = panelStateHtml(b, 'rank', configured() ? '点右上「生成排行」,看当下做什么任务该选哪个模型。' : '请先在「设置」配置 API,再生成。'); return; }
+    if (!ready) { st.innerHTML = panelStateHtml(b, 'rank', snapIdle('模型排行') || (configured() ? '点右上「生成排行」,看当下做什么任务该选哪个模型。' : '请先在「设置」配置 API,再生成。')); return; }
     var ov = $('rankOverview');
     ov.hidden = !b.overview;
     ov.innerHTML = b.overview ? '<b>总评</b>' + esc(b.overview) : '';
@@ -1506,29 +1512,32 @@
   }
   function loadSnapshot() {
     var hadData = hasAnyItems();
-    fetch('data/snapshot.json', { cache: 'no-cache' })
-      .then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status + (r.status === 404 ? '(快照文件不存在)' : ''));
-        return r.json();
-      })
-      .then(function (snap) {
-        if (!snap || typeof snap.generated_ts !== 'number') throw new Error('快照文件格式不正确(缺少 generated_ts)');
-        if (hadData && state.snapshot && state.snapshot.ts === snap.generated_ts) return; // 与本地一致,无需重灌
-        adoptSnapshot(snap);
-        markViewed(state.view);
-        render();
-      })
-      .catch(function (e) {
-        if (hadData) return; // 本地已有旧数据:继续用,不打扰
-        if (state.settings._first) {
-          // 首次访问且快照不可用:回退内置演示数据(仅运行时,不写入设置)
-          state.settings.demo = true;
-          loadDemoNews(); loadDemoOps(); loadDemoSum(); loadDemoTech(); loadDemoRank();
-          return;
-        }
-        state.snapshotError = (e && e.message) || String(e);
-        render();
-      });
+    function fail(e) {
+      if (hadData) return; // 本地已有旧数据:继续用,不打扰
+      // 不退回演示数据:访客看到「示例模型」会当成真实排行,而提示的「设置」入口普通访客根本没有
+      state.snapshotError = (e && e.message) || String(e);
+      render();
+    }
+    function attempt(left) {
+      fetch('data/snapshot.json', { cache: 'no-cache' })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status + (r.status === 404 ? '(快照文件不存在)' : ''));
+          return r.json();
+        })
+        .then(function (snap) {
+          if (!snap || typeof snap.generated_ts !== 'number') throw new Error('快照文件格式不正确(缺少 generated_ts)');
+          if (hadData && state.snapshot && state.snapshot.ts === snap.generated_ts) return; // 与本地一致,无需重灌
+          adoptSnapshot(snap);
+          markViewed(state.view);
+          render();
+        })
+        .catch(function (e) {
+          // 重新部署的瞬间或网络抖一下就会读空:隔 1.5 秒静默重试一次再报错
+          if (left > 0) { setTimeout(function () { attempt(left - 1); }, 1500); return; }
+          fail(e);
+        });
+    }
+    attempt(1);
   }
 
   // ---------- 启动 ----------
