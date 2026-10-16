@@ -791,11 +791,11 @@
     if (state.settings.demo) { el.textContent = '⚠ 演示模式:以下为内置示例数据,非真实检索结果。请在「设置」填写 API 并关闭演示模式。'; el.style.color = '#fde68a'; return; }
     if (!configured()) {
       // 公开快照模式(未配置 Key 的访客)
-      if (state.snapshotError) { el.style.color = '#fda4af'; el.textContent = '公开快照载入失败:' + state.snapshotError + ' · 稍后刷新重试' + (ADMIT ? ',或在「设置」配置自己的 API Key。' : '。'); return; }
+      if (state.snapshotError) { el.style.color = '#fda4af'; el.textContent = '数据载入失败:' + state.snapshotError + ' · 稍后刷新重试' + (ADMIT ? ',或在「设置」配置自己的 API Key。' : '。'); return; }
       if (state.snapshot) {
         el.style.color = '';
         var ns = totalNew();
-        el.textContent = '公开快照 · 数据截至 ' + fmtDateTime(state.snapshot.ts) + (ns ? ' · ' + ns + ' 条新增(NEW)' : '') + ' · 每日自动更新';
+        el.textContent = '数据截至 ' + fmtDateTime(state.snapshot.ts) + (ns ? ' · ' + ns + ' 条新增(NEW)' : '');
         return;
       }
     }
@@ -817,11 +817,11 @@
     var os = $('opsSel'); if (os) os.innerHTML = '类型 <b>' + esc(OPS_MODES[state.opsMode].label) + '</b>';
   }
 
-  // 公开快照模式下访客没有 Key:空板块要说「这轮快照没有」,不能让他去开一个自己看不见的设置面板
+  // 访客没有 Key,也不该看到「快照/生成」这类后台说法:空板块只说没有 + 什么时候再来
   function snapIdle(kind) {
     if (configured() || state.settings.demo || ADMIT) return '';
-    if (state.snapshotError) return '公开快照没能载入 · 稍后刷新重试。';
-    return '公开快照本轮没有' + kind + ' · 每天早上 8:30 自动更新,稍后刷新即可。';
+    if (state.snapshotError) return '数据没能载入 · 稍后刷新重试。';
+    return '暂无' + kind + ' · 每天早上 8:30 更新,稍后刷新即可。';
   }
   function panelStateHtml(bucket, kind, readyHint) {
     if (bucket.status === 'loading') {
@@ -1521,11 +1521,11 @@
     function attempt(left) {
       fetch('data/snapshot.json', { cache: 'no-cache' })
         .then(function (r) {
-          if (!r.ok) throw new Error('HTTP ' + r.status + (r.status === 404 ? '(快照文件不存在)' : ''));
+          if (!r.ok) throw new Error('HTTP ' + r.status + (r.status === 404 ? '(数据文件不存在)' : ''));
           return r.json();
         })
         .then(function (snap) {
-          if (!snap || typeof snap.generated_ts !== 'number') throw new Error('快照文件格式不正确(缺少 generated_ts)');
+          if (!snap || typeof snap.generated_ts !== 'number') throw new Error('数据格式不正确(缺少 generated_ts)');
           if (hadData && state.snapshot && state.snapshot.ts === snap.generated_ts) return; // 与本地一致,无需重灌
           adoptSnapshot(snap);
           markViewed(state.view);
