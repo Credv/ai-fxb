@@ -21,7 +21,7 @@
     provider: 'qwen',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     apiKey: '',
-    model: 'qwen-plus',
+    model: 'qwen3.8-flash',
     enableSearch: true,
     timeoutSec: 300,
     autoSync: true,
@@ -36,7 +36,7 @@
     qwen: {
       label: '千问 · 阿里云百炼',
       baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-      model: 'qwen-plus',
+      model: 'qwen3.8-flash',
       format: 'openai',
       search: true,
       keyHint: 'Key 在 bailian.console.aliyun.com → API-KEY 管理创建,sk- 开头。',
@@ -523,7 +523,7 @@
   function genModalHtml() {
     var def = GEN_KINDS[genSel.kind], out = '';
     if (def.opt === 'none') {
-      out += '<div class="gen-opt"><span class="gen-opt__label">生成范围</span><p class="gen-note">综合总榜 + 6 个细分赛道榜(逻辑推理 / 代码编程 / 视频生成 / 图像生成 / 语音多模态 / 游戏与Agent),一次请求完成。</p></div>';
+      out += '<div class="gen-opt"><span class="gen-opt__label">生成范围</span><p class="gen-note">综合总榜 + 5 个细分赛道榜(逻辑推理 / 代码编程 / 视频生成 / 图像生成 / 语音多模态),一次请求完成。</p></div>';
     } else if (def.opt === 'range') {
       out += '<div class="gen-opt"><span class="gen-opt__label">时间范围(过去 N 天)</span><div class="chips">' +
         RANGES.map(function (r) {
@@ -1021,23 +1021,38 @@
         groups.push({ track: it.track, items: items.filter(function (x) { return x.track === it.track; }) });
       }
     });
-    $('rankList').innerHTML = groups.map(function (g) {
-      return '<div class="rank-group"><h3 class="rank-group__title">' + esc(g.track) + '</h3><div class="list">' +
-        g.items.map(rankCard).join('') + '</div></div>';
-    }).join('');
+    $('rankList').innerHTML = groups.map(rankGroupHtml).join('');
   }
-  function rankCard(it) {
-    var title = it.url ? '<a href="' + esc(it.url) + '" target="_blank" rel="noopener noreferrer">' + esc(it.title) + '</a>' : esc(it.title);
-    return '<article class="card rank-item' + (it.rank === 1 ? ' is-top' : '') + '" data-detail="rank:' + it.id + '">' +
-      '<div class="card__top">' + newBadge(it) +
-        '<span class="rank-no">#' + (it.rank || '-') + '</span>' +
-        (it.vendor ? '<span class="tag tag--minor">' + esc(it.vendor) + '</span>' : '') +
-        (it.score ? '<span class="pill pill--high rank-score">' + esc(it.score) + '</span>' : '') +
-        (it.date ? '<span class="tag tag--date">' + esc(it.date) + '</span>' : '') +
-      '</div>' +
-      '<h3 class="card__title">' + title + '</h3>' +
-      (it.note ? '<p class="card__sum">' + esc(it.note) + '</p>' : '') +
-      cardFoot(it) + '</article>';
+  function rankScoreNum(it) {
+    var m = String(it.score || '').match(/\d+(\.\d+)?/);
+    return m ? parseFloat(m[0]) : null;
+  }
+  function rankMetric(it) {
+    var s = String(it.source || '');
+    return s.indexOf('·') >= 0 ? s.split('·').pop().trim() : '';
+  }
+  function rankDomain(metric, nums) {
+    var hi = nums.length ? Math.max.apply(null, nums) : 1;
+    if (/elo/i.test(metric)) return { from: 1000, to: Math.max(1400, Math.ceil(hi / 50) * 50) };
+    return { from: 0, to: Math.max(100, Math.ceil(hi / 10) * 10) };
+  }
+  function rankGroupHtml(g) {
+    var vals = g.items.map(rankScoreNum);
+    var nums = vals.filter(function (v) { return v != null; });
+    var dm = rankDomain(rankMetric(g.items[0]), nums);
+    return '<div class="rank-group"><h3 class="rank-group__title">' + esc(g.track) +
+      '<span class="rank-group__scale">' + esc(rankMetric(g.items[0])) + ' ' + dm.from + '–' + dm.to + '</span></h3><div class="rank-chart">' +
+      g.items.map(function (it, i) { return rankBar(it, vals[i], dm); }).join('') + '</div></div>';
+  }
+  function rankBar(it, v, dm) {
+    var span = dm.to - dm.from || 1;
+    var pct = (v == null) ? null : Math.max(2, Math.min(96, Math.round((v - dm.from) / span * 96)));
+    return '<div class="rank-bar' + (it.rank === 1 ? ' is-top' : '') + '" data-detail="rank:' + it.id + '" title="' + esc(it.note || '') + '">' +
+      '<span class="rank-no">#' + (it.rank || '-') + '</span>' + newBadge(it) +
+      '<span class="rank-bar__name">' + esc(it.title) + (it.vendor ? '<em>' + esc(it.vendor) + '</em>' : '') + '</span>' +
+      '<span class="rank-bar__rail">' + (pct != null ? '<span class="rank-bar__fill" style="width:' + pct + '%"></span>' : '') + '</span>' +
+      '<span class="rank-bar__score">' + esc(it.score || '') + '</span>' +
+      '</div>';
   }
 
   function chipHtml(list, active, group) {

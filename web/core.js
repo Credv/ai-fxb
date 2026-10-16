@@ -284,12 +284,12 @@
   }
 
   // ---------- 模型排行 ----------
-  var RANK_TRACKS = ['综合总榜', '逻辑推理', '代码编程', '视频生成', '图像生成', '语音多模态', '游戏与Agent'];
+  var RANK_TRACKS = ['综合总榜', '逻辑推理', '代码编程', '视频生成', '图像生成', '语音多模态'];
   function buildRankMessages() {
     var dstr = fmtDate(new Date());
     var sys = '你是「AI 窗口」的模型评测引擎。你会联网检索各大公开榜单与基准的最新结果,客观整理当前主流大模型的能力排行,不编造分数与名次。你只输出一个 JSON 对象,不要输出任何解释、前后缀或 Markdown 代码块。';
     var schema = '{"generated_at":"' + dstr + '","overview":"60到100字总评:当前各榜单的竞争格局与值得注意的变化","ranks":[{"track":"从[' + RANK_TRACKS.join(',') + ']选一个","source":"榜单或基准名(如 LMArena、Artificial Analysis、GPQA、SWE-bench、VBench 等)","url":"榜单链接,没有则空字符串","updated":"YYYY-MM","items":[{"rank":1,"model":"模型名(含版本)","vendor":"厂商","score":"榜单展示的分数或评分(字符串,没有则空字符串)","note":"20到40字一句点评:强在哪、适合什么场景","detail":"80到160字:排名依据(哪个榜单、什么指标)、核心优势、短板或不适合的场景","url":"参考链接,没有则空字符串"}]}]}';
-    var user = '今天是 ' + dstr + '。请联网检索各大公开榜单(综合对话竞技场类总榜、推理/数学基准、代码基准如 SWE-bench、视频生成评测、图像生成竞技场、语音与多模态评测、游戏/Agent 基准等)当前最新可用版本,整理主流大模型的能力排行。\n' +
+    var user = '今天是 ' + dstr + '。请联网检索各大公开榜单(优先 Artificial Analysis 与 LMArena:综合智能指数、GPQA 等推理基准、代码基准、视频生成 Elo、图像生成 Elo、语音评测)当前最新可用版本,整理主流大模型的能力排行。\n' +
       '严格按以下 JSON 结构输出:\n' + schema + '\n' +
       '要求:ranks 覆盖全部 ' + RANK_TRACKS.length + ' 个赛道,「综合总榜」为综合类榜单,其余为细分榜;每榜按 rank 从 1 开始列 3 到 5 个模型;model 与 score 尽量与榜单原文一致,source 与 updated 标明榜单名与数据月份;不要列入已下线或已被新版替代的模型;note 回答"什么场景该选它",detail 补充依据与边界。全部简体中文。只输出 JSON。';
     return [{ role: 'system', content: sys }, { role: 'user', content: user }];

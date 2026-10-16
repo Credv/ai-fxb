@@ -1,12 +1,13 @@
 /* 每日快照生成脚本(Node,GitHub Actions 定时调用)
- * 用站长自己的 API Key(环境变量注入,绝不写入仓库)跑一轮五个看板的生成,
+ * 用站长自己的 API Key(环境变量注入,绝不写入仓库)跑一轮四个看板的生成(sum/tech/news/ops),
+ * 模型排行(rank)不经过大模型:直接抓取 Artificial Analysis 公开榜单的每日镜像,真实分数、零 token。
  * 与旧 web/data/snapshot.json 合并(保留历史、标记 NEW、最新在前),写回快照文件。
  * 提交推送后 Netlify 自动重新部署,访客无需任何 Key 即可查看。
  *
  * 环境变量:
  *   AIFXB_API_KEY      必填。大模型 API Key(OpenAI 兼容格式,默认千问百炼)。
  *   AIFXB_BASE_URL     默认 https://dashscope.aliyuncs.com/compatible-mode/v1
- *   AIFXB_MODEL        默认 qwen-plus
+ *   AIFXB_MODEL        默认 qwen3.8-flash
  *   AIFXB_REGION       本地机会地区,默认 福建省
  *   AIFXB_SEARCH       置 0 关闭 enable_search(默认开启)
  *   AIFXB_TIMEOUT_SEC  单次请求超时秒数,默认 300
@@ -29,7 +30,7 @@ const SNAP_FILE = process.env.AIFXB_SNAPSHOT_FILE || join(ROOT, 'web', 'data', '
 const CFG = {
   apiKey: process.env.AIFXB_API_KEY || '',
   baseUrl: (process.env.AIFXB_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1').replace(/\/+$/, ''),
-  model: process.env.AIFXB_MODEL || 'qwen-plus',
+  model: process.env.AIFXB_MODEL || 'qwen3.8-flash',
   region: process.env.AIFXB_REGION || '福建省',
   search: process.env.AIFXB_SEARCH !== '0',
   timeoutMs: (parseInt(process.env.AIFXB_TIMEOUT_SEC || '300', 10) || 300) * 1000
@@ -103,6 +104,94 @@ async function genBoard(label, messages, normalize) {
   }
   throw lastErr;
 }
+
+// ---- 模型排行:抓取 Artificial Analysis 公开榜单的每日镜像(真实数据,不调大模型、不耗 token) ----
+const AA_MIRROR = process.env.AIFXB_RANK_MIRROR || 'https://raw.githubusercontent.com/EvanZhouDev/ai-model-index/main/data';
+const AA_SITE_URL = 'https://artificialanalysis.ai/';
+const RANK_TRACK_DEFS = [
+  { track: '综合总榜', file: 'llm/aa-intelligence.json', metric: '智能指数' },
+  { track: '逻辑推理', file: 'llm/gpqa.json', metric: 'GPQA Diamond' },
+  { track: '代码编程', file: 'llm/aa-coding.json', metric: '代码指数' },
+  { track: '视频生成', file: 'text-to-video/elo.json', metric: 'Elo' },
+  { track: '图像生成', file: 'text-to-image/elo.json', metric: 'Elo' },
+  { track: '语音多模态', file: 'text-to-speech/elo.json', metric: 'Elo' }
+];
+function getJSON(url, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const mod = u.protocol === 'http:' ? http : https;
+    const req = mod.get(u, { headers: { 'User-Agent': 'ai-fxb-snapshot/1.0', 'Accept': 'application/json' }, timeout: timeoutMs }, (res) => {
+      if (res.statusCode >= 301 && res.statusCode <= 308 && res.headers.location) {
+        res.resume();
+        return resolve(getJSON(new URL(res.headers.location, u).toString(), timeoutMs));
+      }
+      if (res.statusCode !== 200) { res.resume(); return reject(new Error('HTTP ' + res.statusCode)); }
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => {
+        try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
+        catch (e) { reject(new Error('返回不是合法 JSON')); }
+      });
+    });
+    req.on('timeout', () => req.destroy(new Error('请求超时')));
+    req.on('error', reject);
+  });
+}
+function fmtScore(metric, v) {
+  if (typeof v !== 'number') return String(v || '');
+  if (metric === 'GPQA Diamond' && v <= 1) return (v * 100).toFixed(1) + '%';
+  return String(v);
+}
+async function fetchTrackBoard(d) {
+  const j = await getJSON(AA_MIRROR + '/' + d.file, 30000);
+  const date = String(j.generated_at || '').slice(0, 10);
+  const seen = Object.create(null);
+  const items = [];
+  (Array.isArray(j.models) ? j.models : []).forEach((m) => {
+    if (items.length >= 5) return;
+    const base = String(m.name || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+    if (!base || seen[base]) return;
+    seen[base] = 1;
+    const score = fmtScore(d.metric, m.score);
+    const rank = items.length + 1;
+    items.push({
+      title: base, vendor: String(m.creator || ''), rank, track: d.track, score,
+      note: 'Artificial Analysis ' + d.metric + ' 得分 ' + score,
+      detail: '排名依据:Artificial Analysis(独立第三方评测平台)' + d.metric + ' 榜第 ' + rank + ' 名,数据日期 ' + date + ',模型由 ' + (m.creator || '未知') + ' 提供。边界提示:该榜基于固定题库或竞技场对战统计,对特定任务可能有偏差,选型建议以实测为准。',
+      source: 'Artificial Analysis · ' + d.metric, url: AA_SITE_URL, date
+    });
+  });
+  if (!items.length) throw new Error('榜单为空');
+  return { track: d.track, date, items };
+}
+async function fetchRankReal() {
+  const results = await Promise.all(RANK_TRACK_DEFS.map((d) =>
+    (async () => {
+      let last = null;
+      for (let i = 0; i < 3; i++) {
+        try { return await fetchTrackBoard(d); }
+        catch (e) { last = e; await new Promise((r) => setTimeout(r, 1500)); }
+      }
+      throw last;
+    })().catch((e) => {
+      console.error('[snapshot] rank/' + d.track + ' 抓取失败:' + (e && e.message ? e.message : String(e)));
+      return null;
+    })
+  ));
+  const ok = results.filter(Boolean);
+  if (ok.length < 4) throw new Error('排行镜像 ' + ok.length + '/' + RANK_TRACK_DEFS.length + ' 个榜单抓取成功,不足 4 个,保留旧数据');
+  const items = [];
+  RANK_TRACK_DEFS.forEach((d) => {
+    const r = results[RANK_TRACK_DEFS.indexOf(d)];
+    if (r) r.items.forEach((it) => items.push(it));
+  });
+  const overall = results[RANK_TRACK_DEFS.findIndex((d) => d.track === '综合总榜')];
+  const top1 = overall && overall.items[0];
+  const overview = '六大榜单抓取自独立第三方评测 Artificial Analysis 的公开数据(镜像每日同步,数据日期 ' + (ok[0].date || '') + ')。' +
+    (top1 ? '当前综合总榜第一:' + top1.title + '(' + top1.vendor + ',' + top1.score + ')。' : '');
+  return { generated_at: core.todayStr(), overview, items };
+}
+
 const old = loadOld();
 function oldBucket(k) {
   return (old && old[k] && Array.isArray(old[k].items)) ? old[k] : null;
@@ -150,11 +239,11 @@ const newsRes = await runJob('news', async () => {
   return { status: 'ready', items, generated_at: p.generated_at, fetched_at: now, range: 3 };
 });
 
-// 排行:整榜替换(榜单反映"当下",掉榜的模型不应继续保留)
+// 排行:整榜替换;数据来自 Artificial Analysis 真实榜单镜像(不经大模型)
 const rankRes = await runJob('rank', async () => {
-  const p = await genBoard('rank', core.buildRankMessages(), core.normalizeRank);
+  const p = await fetchRankReal();
   const items = core.stampExisting('rank', p.items);
-  return { status: 'ready', items, overview: p.overview || '', generated_at: p.generated_at, fetched_at: now, range: 0 };
+  return { status: 'ready', items, overview: p.overview, generated_at: p.generated_at, fetched_at: now, range: 0 };
 });
 
 // ops:三种类型分别生成、按 origin 分组合并(与前端 generateOps 相同规则)
