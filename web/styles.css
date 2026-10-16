@@ -356,8 +356,8 @@ main{perspective:1200px}
   .masthead__actions .btn{position:absolute;top:2px;right:0;padding:8px 10px}
   .updated{margin:12px 2px 14px;font-size:12px}
 
-  /* 主导航:六等分 + 吸顶,长列表里也能随时切看板 */
-  .tabs{position:sticky;top:0;z-index:6;display:grid;grid-template-columns:repeat(6,1fr);gap:0;
+  /* 主导航:五等分 + 吸顶,长列表里也能随时切看板(蛛网重新上线时改回 6) */
+  .tabs{position:sticky;top:0;z-index:6;display:grid;grid-template-columns:repeat(5,1fr);gap:0;
     margin:0 -13px 16px;padding:0 13px;background:rgba(7,11,22,.88);
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
   .tab{justify-content:center;gap:5px;padding:10px 2px 12px;font-size:12px;letter-spacing:.2px}
