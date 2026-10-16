@@ -1542,11 +1542,9 @@
 
   // ---------- 启动 ----------
   function init() {
-    if (!ADMIT) {
-      ['settingsBtn', 'usageChip', 'sourceChip'].forEach(function (id) {
-        var el = $(id); if (el) el.style.display = 'none';
-      });
-    }
+    // 管理面(设置入口、来源/token 芯片、各板块「生成」按钮与参数标签)统一由 CSS 按 html.admit 控制:
+    // 默认隐藏,所以普通访客在 JS 之前也不会闪出这些控件;带 ?admit=true 才加上这个类。
+    if (ADMIT) document.documentElement.classList.add('admit');
     bind();
     var cache = loadCache();
     if (cache) {

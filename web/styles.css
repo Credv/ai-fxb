@@ -275,6 +275,10 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .dt__link:hover{text-decoration:underline}
 .dt__kind{font-size:11.5px;color:var(--txt-3)}
 .btn[hidden]{display:none}
+/* 管理面闸门:访客没有 Key、也点不动生成,所以「生成」按钮、范围标签、来源/token 芯片、设置入口
+   与讲生成流程的提示统一不显示;URL 带 ?admit=true 时 app.js 给 <html> 加 .admit 才放开。
+   用 CSS 而不是 JS 逐个隐藏:脚本执行前也不会闪出来。 */
+html:not(.admit) [data-admin]{display:none}
 .toolbar__sel{font-size:12.5px;color:var(--txt-3);background:var(--panel);border:1px solid var(--line);padding:5px 12px;border-radius:999px}
 .toolbar__sel b{color:var(--txt-2);font-weight:600}
 .gen-opt__label{display:block;font-size:12.5px;color:var(--txt-3);margin-bottom:9px}

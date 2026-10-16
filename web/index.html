@@ -35,14 +35,14 @@
       </div>
 
       <div class="masthead__actions">
-        <div class="source-chip" id="sourceChip" title="数据来源状态">
+        <div class="source-chip" id="sourceChip" data-admin="1" title="数据来源状态">
           <span class="source-chip__dot" id="sourceDot"></span>
           <span id="sourceLabel">未配置</span>
         </div>
-        <div class="source-chip" id="usageChip" title="API token 消耗统计">
+        <div class="source-chip" id="usageChip" data-admin="1" title="API token 消耗统计">
           <span>token:<b id="usageTotal">0</b></span>
         </div>
-        <button class="btn btn--ghost" id="settingsBtn" type="button" title="设置">
+        <button class="btn btn--ghost" id="settingsBtn" data-admin="1" type="button" title="设置">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden="true">
             <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.7"/>
             <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-2.9 1.2v.17a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 2.6 14H2.43a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4 7.6l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6V4.43a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 2.9 1.2l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 21.4 11h.17a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.57 1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
@@ -81,10 +81,10 @@
       <!-- 新闻面板 -->
       <section class="panel" id="panel-news" role="tabpanel" aria-labelledby="tab-news" hidden>
         <div class="toolbar">
-          <span class="toolbar__sel" id="newsSel"></span>
+          <span class="toolbar__sel" id="newsSel" data-admin="1"></span>
           <div class="spacer"></div>
           <span class="toolbar__status" id="newsStatus"></span>
-          <button class="btn btn--primary btn--sm" id="genNewsBtn" type="button">生成新闻</button>
+          <button class="btn btn--primary btn--sm" id="genNewsBtn" data-admin="1" type="button">生成新闻</button>
         </div>
         <div class="panel-state" id="newsState" hidden></div>
         <div id="newsBody" hidden>
@@ -101,12 +101,12 @@
       <!-- 商机面板 -->
       <section class="panel" id="panel-ops" role="tabpanel" aria-labelledby="tab-ops" hidden>
         <div class="toolbar">
-          <span class="toolbar__sel" id="opsSel"></span>
+          <span class="toolbar__sel" id="opsSel" data-admin="1"></span>
           <div class="spacer"></div>
           <span class="toolbar__status" id="opsStatus"></span>
-          <button class="btn btn--primary btn--sm" id="genOpsBtn" type="button">生成商机</button>
+          <button class="btn btn--primary btn--sm" id="genOpsBtn" data-admin="1" type="button">生成商机</button>
         </div>
-        <p class="ops-hint">点「生成商机」后会在弹窗里选择类型并二次确认才发起请求:「AI 赛道商机」来自近期市场动态;「国家政策支持」解析中国近半年国家级 / 城市级最新 AI 规划;「本地机会」结合你在「设置」里配置的所在地区(默认福建省),检索当地 AI 政策与产业动态。三类分开生成、请求更小更易成功,结果融合显示并用标签区分。</p>
+        <p class="ops-hint" data-admin="1">点「生成商机」后会在弹窗里选择类型并二次确认才发起请求:「AI 赛道商机」来自近期市场动态;「国家政策支持」解析中国近半年国家级 / 城市级最新 AI 规划;「本地机会」结合你在「设置」里配置的所在地区(默认福建省),检索当地 AI 政策与产业动态。三类分开生成、请求更小更易成功,结果融合显示并用标签区分。</p>
         <div class="panel-state" id="opsState" hidden></div>
         <div id="opsBody" hidden>
           <div class="stats" id="opsStats"></div>
@@ -123,10 +123,10 @@
       <!-- 汇总面板 -->
       <section class="panel is-active" id="panel-sum" role="tabpanel" aria-labelledby="tab-sum">
         <div class="toolbar">
-          <span class="toolbar__sel" id="sumSel"></span>
+          <span class="toolbar__sel" id="sumSel" data-admin="1"></span>
           <div class="spacer"></div>
           <span class="toolbar__status" id="sumStatus"></span>
-          <button class="btn btn--primary btn--sm" id="genSumBtn" type="button">生成汇总</button>
+          <button class="btn btn--primary btn--sm" id="genSumBtn" data-admin="1" type="button">生成汇总</button>
         </div>
         <div class="panel-state" id="sumState" hidden></div>
         <div id="sumBody" hidden>
@@ -139,10 +139,10 @@
       <!-- 前沿技术面板 -->
       <section class="panel" id="panel-tech" role="tabpanel" aria-labelledby="tab-tech" hidden>
         <div class="toolbar">
-          <span class="toolbar__sel" id="techSel"></span>
+          <span class="toolbar__sel" id="techSel" data-admin="1"></span>
           <div class="spacer"></div>
           <span class="toolbar__status" id="techStatus"></span>
-          <button class="btn btn--primary btn--sm" id="genTechBtn" type="button">生成前沿技术</button>
+          <button class="btn btn--primary btn--sm" id="genTechBtn" data-admin="1" type="button">生成前沿技术</button>
         </div>
         <p class="ops-hint">聚焦最近冒出来的新技术、新架构、新名词(如新型注意力机制、推理模型、Agent 框架、多模态方法等),每条用「原理解读卡片」呈现:一句大白话讲清它是什么、为什么重要,并附来源链接可深读。</p>
         <div class="panel-state" id="techState" hidden></div>
@@ -158,10 +158,10 @@
       <!-- 模型排行面板 -->
       <section class="panel" id="panel-rank" role="tabpanel" aria-labelledby="tab-rank" hidden>
         <div class="toolbar">
-          <span class="toolbar__sel" id="rankSel"></span>
+          <span class="toolbar__sel" id="rankSel" data-admin="1"></span>
           <div class="spacer"></div>
           <span class="toolbar__status" id="rankStatus"></span>
-          <button class="btn btn--primary btn--sm" id="genRankBtn" type="button">生成排行</button>
+          <button class="btn btn--primary btn--sm" id="genRankBtn" data-admin="1" type="button">生成排行</button>
         </div>
         <p class="ops-hint">综合总榜 + 细分赛道榜:数据抓取自独立第三方评测 Artificial Analysis 的公开榜单(每日同步,真实分数与出处),回答「当下做什么任务该选哪个模型」。点条目看排名依据与边界。</p>
         <div class="panel-state" id="rankState" hidden></div>
