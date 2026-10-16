@@ -131,7 +131,7 @@
         <div class="panel-state" id="sumState" hidden></div>
         <div id="sumBody" hidden>
           <div class="sum-overview" id="sumOverview"></div>
-          <p class="sum-tip">以下为要点速览;感兴趣的条目点标题/来源可跳转原文深读。</p>
+          <p class="sum-tip">点标题或来源可看原文。</p>
           <div class="list" id="sumList"></div>
         </div>
       </section>
@@ -144,7 +144,7 @@
           <span class="toolbar__status" id="techStatus"></span>
           <button class="btn btn--primary btn--sm" id="genTechBtn" data-admin="1" type="button">生成前沿技术</button>
         </div>
-        <p class="ops-hint">聚焦最近冒出来的新技术、新架构、新名词(如新型注意力机制、推理模型、Agent 框架、多模态方法等),每条用「原理解读卡片」呈现:一句大白话讲清它是什么、为什么重要,并附来源链接可深读。</p>
+        <p class="ops-hint" data-admin="1">聚焦最近冒出来的新技术、新架构、新名词(如新型注意力机制、推理模型、Agent 框架、多模态方法等),每条用「原理解读卡片」呈现:一句大白话讲清它是什么、为什么重要,并附来源链接可深读。</p>
         <div class="panel-state" id="techState" hidden></div>
         <div id="techBody" hidden>
           <div class="stats" id="techStats"></div>
@@ -163,7 +163,7 @@
           <span class="toolbar__status" id="rankStatus"></span>
           <button class="btn btn--primary btn--sm" id="genRankBtn" data-admin="1" type="button">生成排行</button>
         </div>
-        <p class="ops-hint">综合总榜 + 细分赛道榜:数据抓取自独立第三方评测 Artificial Analysis 的公开榜单(每日同步,真实分数与出处),回答「当下做什么任务该选哪个模型」。点条目看排名依据与边界。</p>
+        <p class="ops-hint">榜单数据来自独立第三方评测 Artificial Analysis,每日同步。</p>
         <div class="panel-state" id="rankState" hidden></div>
         <div id="rankBody" hidden>
           <div class="sum-overview" id="rankOverview" hidden></div>
@@ -184,7 +184,7 @@
           <button class="btn btn--ghost btn--sm" id="netPrev" type="button">上一页</button>
           <button class="btn btn--ghost btn--sm" id="netNext" type="button">下一页</button>
         </div>
-        <p class="ops-hint">把当日快照的条目结成一张网:左侧是条目,右侧按内容分三条分支,点条目直接看详情。</p>
+        <p class="ops-hint" data-admin="1">把当日快照的条目结成一张网:左侧是条目,右侧按内容分三条分支,点条目直接看详情。</p>
         <div class="filters">
           <div class="filter-group"><span class="filter-group__label">分支</span><div class="chips" id="netRouteChips"></div></div>
         </div>
