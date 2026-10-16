@@ -951,7 +951,7 @@
       { n: Object.keys(tracks).length, l: '覆盖赛道' }, { n: esc(state.tech.generated_at), l: '数据日期', small: true }
     ];
     $('techStats').innerHTML = stats.map(function (s) {
-      return '<div class="stat"><div class="stat__n"' + (s.small ? ' style="font-size:18px"' : '') + '>' + s.n + '</div><div class="stat__l">' + s.l + '</div></div>';
+      return '<div class="stat"><div class="stat__n' + (s.small ? ' stat__n--sm' : '') + '">' + s.n + '</div><div class="stat__l">' + s.l + '</div></div>';
     }).join('');
   }
   function renderTechFilters() {
@@ -1006,7 +1006,7 @@
       { n: tops, l: '榜首模型' }, { n: esc(state.rank.generated_at), l: '数据日期', small: true }
     ];
     $('rankStats').innerHTML = stats.map(function (s) {
-      return '<div class="stat"><div class="stat__n"' + (s.small ? ' style="font-size:18px"' : '') + '>' + s.n + '</div><div class="stat__l">' + s.l + '</div></div>';
+      return '<div class="stat"><div class="stat__n' + (s.small ? ' stat__n--sm' : '') + '">' + s.n + '</div><div class="stat__l">' + s.l + '</div></div>';
     }).join('');
   }
   function renderRankFilters() {
@@ -1154,7 +1154,7 @@
       { n: Object.keys(regions).length, l: '覆盖地区' }, { n: esc(state.news.generated_at), l: '数据日期', small: true }
     ];
     $('newsStats').innerHTML = stats.map(function (s) {
-      return '<div class="stat"><div class="stat__n"' + (s.small ? ' style="font-size:18px"' : '') + '>' + s.n + '</div><div class="stat__l">' + s.l + '</div></div>';
+      return '<div class="stat"><div class="stat__n' + (s.small ? ' stat__n--sm' : '') + '">' + s.n + '</div><div class="stat__l">' + s.l + '</div></div>';
     }).join('');
   }
   function renderNewsFilters() {
