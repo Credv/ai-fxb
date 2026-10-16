@@ -821,7 +821,7 @@
   function snapIdle(kind) {
     if (configured() || state.settings.demo || ADMIT) return '';
     if (state.snapshotError) return '公开快照没能载入 · 稍后刷新重试。';
-    return '公开快照本轮没有' + kind + ' · 每日两次自动更新,稍后刷新即可。';
+    return '公开快照本轮没有' + kind + ' · 每天早上 8:30 自动更新,稍后刷新即可。';
   }
   function panelStateHtml(bucket, kind, readyHint) {
     if (bucket.status === 'loading') {

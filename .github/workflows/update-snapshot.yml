@@ -1,10 +1,10 @@
-# 每日自动生成公开快照并提交,推送后 Netlify 自动重新部署。
+# 每日自动生成公开快照并提交,推送后托管平台(Cloudflare Pages)自动重新部署。
 # API Key 只存在仓库 Secret(DASHSCOPE_API_KEY)里,绝不进入仓库文件或前端产物。
 name: update-snapshot
 
 on:
   schedule:
-    - cron: '0 11,23 * * *'   # UTC 11:00/23:00 = 北京时间每天 19:00 / 次日 07:00
+    - cron: '30 0 * * *'   # UTC 00:30 = 北京时间每天 08:30,一天一次(省 token)
   workflow_dispatch: {}     # 也支持在 Actions 页面手动触发
 
 permissions:

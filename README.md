@@ -54,7 +54,7 @@ node server.mjs
 
 - `tools/generate-snapshot.mjs`:用环境变量里的 Key 跑一轮四个 AI 看板生成(sum/tech/news/ops),与旧快照合并(保留历史 21 天、标 NEW、最新在前)后写 `web/data/snapshot.json`。单项失败保留旧数据继续,不会把快照打空。
 - **模型排行不由模型生成**:让模型"联网检索榜单"时它会连榜单名一起编(实测出现过虚构的 LMArena 版本、不存在的模型、把自家 Qwen 排第一),所以排行改为直接抓 Artificial Analysis 的公开数据镜像 `EvanZhouDev/ai-model-index`(每日同步),6 个榜单各取去重后前 5 名,整榜替换,零 token。少于 4 个榜抓取成功则保留旧数据。可用 `AIFXB_RANK_MIRROR` 覆盖镜像地址。
-- `.github/workflows/update-snapshot.yml`:每天北京时间 07:00 与 19:00 自动运行上述脚本,有变化才 commit+push,推送触发 Netlify 重新部署。也可在 Actions 页面手动触发。
+- `.github/workflows/update-snapshot.yml`:每天北京时间 **08:30 自动运行一次**(cron `30 0 * * *` UTC,为省 token 从每日两次改成一次),有变化才 commit+push,推送即自动重新部署。也可在 Actions 页面手动触发。
 - 前置条件:仓库 Settings → Secrets and variables → Actions 里添加 `DASHSCOPE_API_KEY`(百炼 API Key)。Key 只存在 Secret 里,不进入仓库任何文件。
 - 本地手动跑一次:
   ```bash
