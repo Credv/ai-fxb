@@ -2,10 +2,11 @@
  * 设计约束:本机常见为软件渲染(Microsoft Basic Render Driver / SwiftShader),无独显。
  * 因此背景必须极轻:pixelRatio 锁 1、少量图元、内置 FPS 看门狗自动降级、页面隐藏即暂停。
  * 依赖:同目录 ./vendor/three.module.js(已本地化,不联网、不访问 CDN)。
+ * 该库有 270KB(gzip),而背景只是装饰,所以不在首屏 import:页面 load 后走空闲队列再动态加载,
+ * 不与正文的 app.js / snapshot.json 抢带宽(国内到边缘节点一次往返就是 1~8 秒)。
  * 地球贴图:纯程序化用 canvas 绘制(海洋渐变 + 大洲轮廓 + 经纬网 + 极冰),不加载任何外部图片。
  * 与 app.js 解耦:仅负责 canvas 背景,并提供 window.__bg3d.setEnabled(bool) 供手动开关。
  */
-import * as THREE from './vendor/three.module.js';
 import { CONTINENTS, landHubs } from './earth-data.js';
 
 (function () {
@@ -15,10 +16,14 @@ import { CONTINENTS, landHubs } from './earth-data.js';
   var canvas = document.getElementById('bg3d');
   if (!canvas) return;
 
-  try { if (localStorage.getItem(FLAG_KEY) === 'off') { canvas.remove(); return; } } catch (e) {}
-
+  var THREE = null;      // 动态 import 后才赋值;为 null 表示背景库还没下/没跑
+  var wantOn = true;     // 用户开关:未加载时也要记住,否则空闲队列会把它又开起来
   var EARTH_R = 1.6;
-  var EARTH_POS = new THREE.Vector3(0, 0.3, -2.5);
+  var EARTH_POS = null;  // 需要 THREE,放到 boot() 里构造
+
+  // 关掉时只是不下 three.js、不跑 WebGL,但 __bg3d 仍然要定义:
+  // 早退会让设置里的开关变成单向(关了就再也开不回来,只能清 localStorage)
+  try { if (localStorage.getItem(FLAG_KEY) === 'off') { wantOn = false; canvas.style.display = 'none'; } } catch (e) {}
 
   var renderer, scene, camera, DOT;
   var earth, earthWire, net, nodes, packets = [], halo, stars, stars2, grid, ring, ring2, ring3, glow;
@@ -403,9 +408,30 @@ import { CONTINENTS, landHubs } from './earth-data.js';
     });
   }
 
+  function boot() {
+    if (THREE) return;
+    import('./vendor/three.module.js').then(function (m) {
+      if (THREE || !wantOn) return;
+      THREE = m;
+      EARTH_POS = new THREE.Vector3(0, 0.3, -2.5);
+      try { init(); } catch (e) { console.warn('[bg3d] init failed:', e && e.message, e); canvas.style.display = 'none'; }
+    }, function (e) {
+      // 背景库没下来也不影响正文:留 CSS 底,静默降级
+      console.warn('[bg3d] three.js 载入失败,3D 背景不启用:', e && e.message);
+      canvas.style.display = 'none';
+    });
+  }
+
+  function scheduleBoot() {
+    if (window.requestIdleCallback) requestIdleCallback(function () { if (wantOn) boot(); }, { timeout: 5000 });
+    else setTimeout(function () { if (wantOn) boot(); }, 1500);
+  }
+
   window.__bg3d = {
     setEnabled: function (on) {
       try { localStorage.setItem(FLAG_KEY, on ? 'on' : 'off'); } catch (e) {}
+      wantOn = on;
+      if (!THREE) { if (on) { canvas.style.display = ''; boot(); } return; }   // 还没加载:要开就现在开,要关则本来就没跑
       if (on) {
         canvas.style.display = '';
         if (!dead && !degraded) start(); else if (!dead) renderer.render(scene, camera);
@@ -414,5 +440,6 @@ import { CONTINENTS, landHubs } from './earth-data.js';
     isDegraded: function () { return degraded || dead; }
   };
 
-  try { init(); } catch (e) { console.warn('[bg3d] init failed:', e && e.message, e); canvas.style.display = 'none'; }
+  if (document.readyState === 'complete') scheduleBoot();
+  else window.addEventListener('load', scheduleBoot, { once: true });
 })();

@@ -73,11 +73,12 @@ ai-fxb/
 │  └─ update-snapshot.yml     # 每日定时生成快照并提交
 ├─ web/
 │  ├─ index.html
+│  ├─ _headers       # Cloudflare Pages 响应头:静态资源缓存策略（国内到边缘节点一次往返 1~8 秒,能不回源就不回源）
 │  ├─ styles.css
 │  ├─ core.js        # 共享核心:提示词/归一化/合并规则（浏览器与快照脚本共用）
 │  ├─ app.js
 │  ├─ net.js         # 情报蛛网:把当日快照条目喂给下面的动画层（按需动态 import）
-│  ├─ bg3d.js        # 3D 背景
+│  ├─ bg3d.js        # 3D 背景（three.js 270KB 在页面 load 后的空闲队列里才下载,不进首屏）
 │  ├─ vendor/
 │  │  ├─ three.module.js
 │  │  └─ spider/     # MIT 第三方动画层 + NOTICE.md（改了什么、为什么、怎么升级）
@@ -89,3 +90,4 @@ ai-fxb/
 
 - 请通过 `http://127.0.0.1:5178` 访问，不要用 `file://` 直接打开 HTML，否则浏览器跨域限制会导致接口调用失败。
 - 本项目为个人本地工具，API 调用按你自己的千问 token 计费。
+- **首屏只加载正文**：`three.js`(270KB gzip)是装饰性 3D 背景用的，不在首屏请求，页面 `load` 后走空闲队列再动态 `import`；关掉 3D 时完全不下载。`web/_headers` 负责缓存策略：首页与 `data/snapshot.json` 每次回源(保证当天快照可见)，`vendor/*` 给 30 天 `immutable`，自有 js/css 给 5 分钟 + `stale-while-revalidate`。
