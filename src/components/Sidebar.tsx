@@ -63,6 +63,16 @@ export default function Sidebar() {
         </div>
 
         <div className="skill-group">
+          <div className="skill-group-title">小游戏与图形</div>
+          <div className="skill-tags">
+            <span className="skill-tag">Canvas 2D 引擎</span>
+            <span className="skill-tag">Web Audio</span>
+            <span className="skill-tag">微信云开发</span>
+            <span className="skill-tag">无头自动化验证</span>
+          </div>
+        </div>
+
+        <div className="skill-group">
           <div className="skill-group-title">AI 工程化</div>
           <div className="skill-tags">
             <span className="skill-tag">Harness</span>
