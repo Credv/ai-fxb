@@ -245,7 +245,7 @@ export default function App() {
         ))}
 
         <div className="footer">
-          © 2026 陈鸿 · 前端开发工程师 · 联系方式：13123332932 | 793927991@qq.com
+          © 2026 陈鸿 · 全栈开发工程师 · 联系方式：13123332932 | 793927991@qq.com
           <br />
           在线作品：
           <a className="footer-link" href="https://3ecat.me/ai-fxb" target="_blank" rel="noopener noreferrer">3ecat.me/ai-fxb</a>

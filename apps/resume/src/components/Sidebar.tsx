@@ -3,10 +3,10 @@ export default function Sidebar() {
     <aside className="sidebar">
       <img className="avatar" src="https://img.alicdn.com/imgextra/i4/O1CN011D4H3IIuAAE18Ung_!!6000000000943-0-tps-560-800.jpg" alt="陈鸿" />
       <h1>陈鸿</h1>
-      <p className="subtitle">前端开发工程师</p>
+      <p className="subtitle">全栈开发工程师</p>
 
       <div className="summary">
-        5 年前端，主线是电商商家工作台与金融业务的前端交付；近两年把力气集中在两件事上：一个人把产品从设计做到线上，以及用工程化手段约束 AI 生成代码的质量。
+        5 年前端，近几个月把力气集中在两件事上：一个人把产品从设计做到线上，以及用工程化手段约束 AI 生成代码的质量。
       </div>
 
       {/* 联系方式 */}
@@ -27,6 +27,15 @@ export default function Sidebar() {
         <div className="contact-item">
           <span className="contact-icon">💼</span>
           <span>5 年经验（2020.12 — 2026.09）</span>
+        </div>
+      </div>
+
+      {/* 教育背景 */}
+      <div className="sidebar-section">
+        <h3>教育背景</h3>
+        <div className="edu-item">
+          <div className="school">闽江大学</div>
+          <div className="detail">本科 · 2017 — 2021</div>
         </div>
       </div>
 
@@ -103,14 +112,6 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* 教育背景 */}
-      <div className="sidebar-section">
-        <h3>教育背景</h3>
-        <div className="edu-item">
-          <div className="school">闽江大学</div>
-          <div className="detail">本科 · 2017 — 2021</div>
-        </div>
-      </div>
     </aside>
   )
 }
