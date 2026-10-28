@@ -6,7 +6,7 @@ export default function Sidebar() {
       <p className="subtitle">前端开发工程师</p>
 
       <div className="summary">
-        5 年前端开发经验，做过电商商家与金融业务的前端交付，具备大型 Monorepo 工程治理与 AI 工程化落地能力；独立设计的线上作品可直接打开验证。
+        5 年前端，主线是电商商家工作台与金融业务的前端交付；近两年把力气集中在两件事上：一个人把产品从设计做到线上，以及用工程化手段约束 AI 生成代码的质量。
       </div>
 
       {/* 联系方式 */}
@@ -35,19 +35,29 @@ export default function Sidebar() {
         <h3>技能清单</h3>
 
         <div className="skill-group">
+          <div className="skill-group-title">AI 工程化</div>
+          <div className="skill-tags">
+            <span className="skill-tag">Harness 框架</span>
+            <span className="skill-tag">Agent Workflow</span>
+            <span className="skill-tag">AST 扫描</span>
+            <span className="skill-tag">Prompt 工程</span>
+          </div>
+        </div>
+
+        <div className="skill-group">
           <div className="skill-group-title">前端框架</div>
           <div className="skill-tags">
             <span className="skill-tag">React 16/17/18</span>
             <span className="skill-tag">Umi</span>
-            <span className="skill-tag">Ice</span>
+            <span className="skill-tag">Ice.js</span>
           </div>
         </div>
 
         <div className="skill-group">
           <div className="skill-group-title">工程化</div>
           <div className="skill-tags">
-            <span className="skill-tag">Webpack</span>
             <span className="skill-tag">Vite</span>
+            <span className="skill-tag">Webpack</span>
             <span className="skill-tag">Monorepo</span>
             <span className="skill-tag">pnpm</span>
           </div>
@@ -63,41 +73,32 @@ export default function Sidebar() {
         </div>
 
         <div className="skill-group">
-          <div className="skill-group-title">小游戏与图形</div>
+          <div className="skill-group-title">图形与交互</div>
           <div className="skill-tags">
+            <span className="skill-tag">Three.js / R3F</span>
             <span className="skill-tag">Canvas 2D 引擎</span>
             <span className="skill-tag">Web Audio</span>
+            <span className="skill-tag">ECharts</span>
+            <span className="skill-tag">雪碧图帧动画</span>
+          </div>
+        </div>
+
+        <div className="skill-group">
+          <div className="skill-group-title">小游戏与云</div>
+          <div className="skill-tags">
+            <span className="skill-tag">微信小游戏</span>
             <span className="skill-tag">微信云开发</span>
+            <span className="skill-tag">开放数据域</span>
             <span className="skill-tag">无头自动化验证</span>
           </div>
         </div>
 
         <div className="skill-group">
-          <div className="skill-group-title">AI 工程化</div>
+          <div className="skill-group-title">业务与工具</div>
           <div className="skill-tags">
-            <span className="skill-tag">Harness</span>
-            <span className="skill-tag">AST 扫描</span>
-            <span className="skill-tag">Agent Workflow</span>
-            <span className="skill-tag">Prompt</span>
-          </div>
-        </div>
-
-        <div className="skill-group">
-          <div className="skill-group-title">可视化 & 动画</div>
-          <div className="skill-tags">
-            <span className="skill-tag">Three.js</span>
-            <span className="skill-tag">Motion</span>
-            <span className="skill-tag">ECharts</span>
-            <span className="skill-tag">雪碧图动画</span>
-          </div>
-        </div>
-
-        <div className="skill-group">
-          <div className="skill-group-title">其他</div>
-          <div className="skill-tags">
-            <span className="skill-tag">埋点治理</span>
-            <span className="skill-tag">浏览器插件</span>
-            <span className="skill-tag">Howler.js</span>
+            <span className="skill-tag">埋点体系治理</span>
+            <span className="skill-tag">Chrome 扩展</span>
+            <span className="skill-tag">SSE 流式渲染</span>
           </div>
         </div>
       </div>
