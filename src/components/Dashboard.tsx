@@ -105,7 +105,7 @@ export default function Dashboard() {
             { value: [0, 0], itemStyle: { color: '#06b6d4' } },
             { value: [1, 0], itemStyle: { color: '#06b6d4' } },
             { value: [1, 1], itemStyle: { color: '#8b5cf6' } },
-            { value: [5, 1], itemStyle: { color: '#8b5cf6' } },
+            { value: [6, 1], itemStyle: { color: '#8b5cf6' } },
             { value: [6, 2], itemStyle: { color: '#4f6ef7' } },
             { value: [10, 2], itemStyle: { color: '#4f6ef7' } },
           ],

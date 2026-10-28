@@ -160,8 +160,8 @@ const projects = [
 
 const workExperience = [
   { company: '浩鲸云科技', period: '2020.12 — 2021.12', city: '福州', current: false },
-  { company: '法本科技（蚂蚁集团项目）', period: '2022.01 — 2023.06', city: '杭州', current: false },
-  { company: '博彦科技（阿里巴巴项目）', period: '2023.07 — 至今', city: '杭州', current: true },
+  { company: '法本科技（蚂蚁集团项目）', period: '2021.12 — 2024.05', city: '杭州', current: false },
+  { company: '博彦科技（阿里巴巴项目）', period: '2024.05 — 至今', city: '杭州', current: true },
 ]
 
 const evaluations = [
