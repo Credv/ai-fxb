@@ -46,15 +46,7 @@ const projects = [
         items: [
           '<strong>零后端、零数据库</strong>：逻辑只存在于浏览器与构建期。访客打开就有内容——构建期预生成的每日快照；要自己生成才需要 Key，而 Key 只进浏览器本地存储',
           '<strong>抓包抓不到凭据</strong>：访客的 Key 由浏览器直接发给服务商，只在请求头里，不进 URL、不经过本站域名；站点的 Key 只在 Actions 构建容器里从仓库 Secret 读一次，产物只剩一份静态 JSON。非 https 的网关地址直接拒绝保存（只有本机回环例外），模型返回内容全部经 React 转义，不留 innerHTML 注入口',
-          '<strong>monorepo，一次构建发两条路由</strong>：Vite + React 18 + TypeScript，npm workspaces 把提示词、归一化、稳定 id 与合并规则收成一份共享核心——浏览器端与 Node 快照脚本共用同一套；GitHub 连 Cloudflare Pages，push 即构建',
-        ],
-      },
-      {
-        title: 'AI 应用落地踩过的坑',
-        items: [
-          '<strong>把模型幻觉当数据事故处理</strong>：实测让它「联网检索各大榜单」，它会连榜单名一起编——虚构的 LMArena 版本、不存在的模型、把自家模型排第一。所以榜单这条链路完全不经过模型：改抓独立第三方评测 Artificial Analysis 的公开数据镜像，6 个榜各取去重后前 5，零 token',
-          '<strong>多家服务商的差异得在浏览器里扛</strong>：OpenAI 兼容与 Anthropic 是两套报文；GET 拉模型列表带上 Content-Type 会多一次预检；Anthropic 直连要显式声明 dangerous-direct-browser-access，且对当前网络地区直接 403；一部分模型根本不支持 enable_search——这些报错都必须指到「该改哪里」，而不是甩一句「调用失败」',
-          '<strong>成本和失败都要可见</strong>：token 用量按天记，静默刷新与手动生成分开入账；请求超时可配置并主动中止。每日 6 次 flash 调用产出 4 个看板，单个看板失败只保留该项旧数据、不会把快照打空，再按稳定 id 与旧快照合并——21 天历史、新条目标 NEW、最新在前',
+          '<strong>monorepo，一次构建发两条路由</strong>：Vite + React 18 + TypeScript，npm workspaces 把提示词、归一化、稳定 id 与合并规则收成一份共享核心——浏览器端与 Node 快照脚本共用同一套；GitHub 连 Cloudflare，push 即上线',
         ],
       },
       {
