@@ -41,16 +41,18 @@ export default function ProjectCard({ title, role, desc, sections, valueTags, gi
         </div>
       )}
 
-      {sections.map((section, i) => (
-        <div className="project-section" key={i}>
-          <div className="project-section-title">{section.title}</div>
-          <ul className="project-list">
-            {section.items.map((item, j) => (
-              <li key={j} dangerouslySetInnerHTML={{ __html: item }} />
-            ))}
-          </ul>
-        </div>
-      ))}
+      <div className="project-sections">
+        {sections.map((section, i) => (
+          <div className="project-section" key={i}>
+            <div className="project-section-title">{section.title}</div>
+            <ul className="project-list">
+              {section.items.map((item, j) => (
+                <li key={j} dangerouslySetInnerHTML={{ __html: item }} />
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
 
       {valueTags && valueTags.length > 0 && (
         <div className="value-tags">

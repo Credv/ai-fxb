@@ -32,6 +32,7 @@ body {
 .layout {
   display: flex;
   min-height: 100vh;
+  padding-left: 300px;
 }
 
 /* ═══ 侧边栏 ═══ */
@@ -169,10 +170,11 @@ body {
 
 /* ═══ 主内容 ═══ */
 .main {
-  margin-left: 300px;
   flex: 1;
+  min-width: 0;
+  margin: 0 auto;
   padding: 48px 56px;
-  max-width: 900px;
+  max-width: 1280px;
 }
 
 /* ═══ 工作经历 ══ */
@@ -290,6 +292,21 @@ body {
   position: relative;
   overflow: visible;
   animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* 宽屏时把分节排成两栏：column-width 自己按可用宽度决定栏数，窄容器自动回落到单栏 */
+.project-sections {
+  column-width: 420px;
+  column-gap: 36px;
+  margin-bottom: 14px;
+}
+
+.project-sections .project-section {
+  break-inside: avoid;
+}
+
+.project-sections .project-section:last-child {
+  margin-bottom: 0;
 }
 
 .project-card:hover {
@@ -535,6 +552,7 @@ body {
 
 /* 平板 */
 @media (max-width: 1024px) {
+  .layout { padding-left: 260px; }
   .sidebar { width: 260px; padding: 36px 20px; }
   .main { padding: 36px 28px; }
 }
@@ -547,8 +565,8 @@ body {
     height: auto;
     padding: 32px 20px 24px;
   }
-  .layout { flex-direction: column; }
-  .main { margin-left: 0; padding: 20px 16px; }
+  .layout { flex-direction: column; padding-left: 0; }
+  .main { margin: 0; max-width: none; padding: 20px 16px; }
 
   .avatar { width: 80px; height: 80px; }
   .sidebar h1 { font-size: 20px; }
@@ -606,9 +624,10 @@ body {
 /* ═══ 打印 ═══ */
 @media print {
   .sidebar { position: relative; width: 100%; height: auto; }
-  .layout { flex-direction: column; }
-  .main { margin-left: 0; }
+  .layout { flex-direction: column; padding-left: 0; }
+  .main { margin: 0; max-width: none; }
   .project-card { break-inside: avoid; box-shadow: none; border: 1px solid #ddd; }
+  .project-sections { column-width: auto; }
   /* 打印时背景会被丢弃：渐变底没了，白字就看不见，链接改成纸面可读的样式 */
   .project-link { background: none; padding: 0; border-radius: 0; }
   .project-link--live { color: #4f6ef7; }
