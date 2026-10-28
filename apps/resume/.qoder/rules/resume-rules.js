@@ -26,12 +26,6 @@ export default [
         pattern: 'src/components/*.tsx',
         check: '/interface \\w+Props|type \\w+Props =/.test(content)',
       },
-      {
-        id: 'echarts-cleanup',
-        description: 'ECharts 实例必须在组件卸载时 dispose',
-        pattern: 'src/components/Dashboard.tsx',
-        check: '/chart\\.dispose\\(\\)/.test(content)',
-      },
     ],
   },
 ]

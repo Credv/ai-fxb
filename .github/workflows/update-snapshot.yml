@@ -21,6 +21,10 @@ jobs:
         with:
           node-version: 20
 
+      # 快照脚本 import @ai-fxb/core(编译产物),所以要先装依赖并构建共享核心
+      - name: Install and build core
+        run: npm ci --registry=https://registry.npmjs.org && npm run build:core
+
       - name: Generate snapshot
         env:
           AIFXB_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
@@ -34,7 +38,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add web/data/snapshot.json
+          git add apps/console/public/data/snapshot.json
           if git diff --cached --quiet; then
             echo "snapshot unchanged, nothing to commit"
           else

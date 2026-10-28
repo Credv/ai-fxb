@@ -1,0 +1,25 @@
+{
+  "name": "@ai-fxb/core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "提示词 / 结果归一化 / 稳定 id 与历史合并:浏览器端与 Node 快照脚本共用同一份,避免两边漂移",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "ai-fxb-site",
+  "private": true,
+  "version": "1.0.0",
+  "description": "3ecat.me 单仓:根路由是简历,子路由 /ai-fxb 是 AI 窗口情报控制台",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/core",
+    "apps/resume",
+    "apps/console"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @ai-fxb/core && npm run build --workspace resume-react && npm run build --workspace @ai-fxb/console && node scripts/assemble.mjs",
+    "build:core": "npm run build --workspace @ai-fxb/core",
+    "build:resume": "npm run build --workspace resume-react",
+    "build:console": "npm run build --workspace @ai-fxb/console",
+    "dev:resume": "npm run build:core && npm run dev --workspace resume-react",
+    "dev:console": "npm run build:core && npm run dev --workspace @ai-fxb/console",
+    "preview": "node scripts/preview.mjs",
+    "typecheck": "npm run typecheck --workspace @ai-fxb/core && npm run typecheck --workspace @ai-fxb/console"
+  }
+}

@@ -6,7 +6,7 @@ export default function Sidebar() {
       <p className="subtitle">前端开发工程师</p>
 
       <div className="summary">
-        5 年前端开发经验，先后参与大厂核心业务线，具备大型 Monorepo 工程架构实践与 AI 工程化落地能力。
+        5 年前端开发经验，做过电商商家与金融业务的前端交付，具备大型 Monorepo 工程治理与 AI 工程化落地能力；独立设计的线上作品可直接打开验证。
       </div>
 
       {/* 联系方式 */}
@@ -26,7 +26,7 @@ export default function Sidebar() {
         </div>
         <div className="contact-item">
           <span className="contact-icon">💼</span>
-          <span>5 年经验（2020.12 至今）</span>
+          <span>5 年经验（2020.12 — 2026.09）</span>
         </div>
       </div>
 

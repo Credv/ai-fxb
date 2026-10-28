@@ -4,9 +4,9 @@
 
 ## 项目概述
 
-- **项目名称**：resume-react
+- **项目名称**：resume-react（现在是 3ecat.me 的根路由，AI 窗口在 `/ai-fxb/`）
 - **描述**：陈鸿 - 前端开发工程师个人简历网站
-- **技术栈**：React 18 + TypeScript + Vite + ECharts
+- **技术栈**：React 18 + TypeScript + Vite
 - **构建工具**：Vite 5.4
 - **样式方案**：全局 CSS（CSS Variables + 响应式媒体查询）
 
@@ -27,8 +27,7 @@ resume-react/
 │   ├── vite-env.d.ts       # Vite 类型声明
 │   ── components/
 │       ├── Sidebar.tsx      # 侧边栏（头像/联系方式/技能/教育）
-│       ├── ProjectCard.tsx  # 项目卡片（可复用）
-│       └── Dashboard.tsx    # ECharts 数据可视化看板
+│       └── ProjectCard.tsx  # 项目卡片（可复用，含在线演示/源码链接）
 ├── scripts/
 │   └── harness-check.js    # Harness 约束检查脚本
 └── .qoder/
@@ -49,7 +48,7 @@ resume-react/
 ### Sidebar
 - **职责**：展示个人信息、联系方式、技能清单、教育背景
 - **Props**：无（静态数据内嵌）
-- **依赖**：`/avatar.png` 静态资源
+- **依赖**：头像用的是远程图床 URL（`img.alicdn.com`）；`public/avatar.png` 目前**没有被引用**，图床失效时可用它兜底
 
 ### ProjectCard
 - **职责**：展示单个项目的完整信息
@@ -62,14 +61,10 @@ resume-react/
     sections: { title: string; items: string[] }[]
     valueTags?: string[]
     githubUrl?: string
+    liveUrl?: string
   }
   ```
-
-### Dashboard
-- **职责**：ECharts 数据可视化看板（技能雷达/项目分布/工作Timeline）
-- **Props**：无
-- **依赖**：`echarts` npm 包
-- **注意**：使用 `useRef` + `useEffect` 初始化图表，组件卸载时 `dispose`
+- **注意**：`liveUrl` 存在时在描述下方渲染 `.project-links`（「在线地址」+「代码仓库」两个胶囊链接），此时右上角的 GitHub 角标 `.gh-badge` 会让位给链接行，避免同一仓库出现两个入口；只有 `githubUrl` 的卡片仍显示角标。`items` 里的字符串按 HTML 注入（`<strong>` 加粗小标题），因此**不能把外部不可信文本放进来**。
 
 ## 开发规范
 

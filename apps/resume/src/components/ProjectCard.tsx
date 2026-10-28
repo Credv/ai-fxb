@@ -5,12 +5,13 @@ interface ProjectCardProps {
   sections: { title: string; items: string[] }[]
   valueTags?: string[]
   githubUrl?: string
+  liveUrl?: string
 }
 
-export default function ProjectCard({ title, role, desc, sections, valueTags, githubUrl }: ProjectCardProps) {
+export default function ProjectCard({ title, role, desc, sections, valueTags, githubUrl, liveUrl }: ProjectCardProps) {
   return (
     <div className="project-card">
-      {githubUrl && (
+      {githubUrl && !liveUrl && (
         <div className="gh-badge">
           <a href={githubUrl} target="_blank" rel="noopener noreferrer" title="查看源码">
             <svg className="gh-badge-icon" viewBox="0 0 16 16" fill="currentColor">
@@ -26,6 +27,19 @@ export default function ProjectCard({ title, role, desc, sections, valueTags, gi
       </div>
 
       <div className="project-desc">{desc}</div>
+
+      {liveUrl && (
+        <div className="project-links">
+          <a className="project-link project-link--live" href={liveUrl} target="_blank" rel="noopener noreferrer">
+            在线地址：<span className="project-link-url">{liveUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+          </a>
+          {githubUrl && (
+            <a className="project-link" href={githubUrl} target="_blank" rel="noopener noreferrer">
+              代码仓库：<span className="project-link-url">{githubUrl.replace(/^https?:\/\//, '')}</span>
+            </a>
+          )}
+        </div>
+      )}
 
       {sections.map((section, i) => (
         <div className="project-section" key={i}>

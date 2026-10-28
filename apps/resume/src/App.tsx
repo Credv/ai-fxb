@@ -1,32 +1,68 @@
 import { useState, useEffect } from 'react'
 import Sidebar from './components/Sidebar'
 import ProjectCard from './components/ProjectCard'
-import Dashboard from './components/Dashboard'
 
 const projects = [
   {
+    title: 'AI 窗口 · 全球 AI 情报控制台',
+    role: '独立设计与实现（个人作品，线上可直接打开）',
+    desc: '零后端的 AI 情报站点：浏览器直连大模型做联网检索与聚合，站长侧每天定时预生成公开快照，任何访客无需配置即可阅读。产品设计、提示词与数据管线、前端、部署全部个人完成。',
+    sections: [
+      {
+        title: '架构与交付',
+        items: [
+          '<strong>无服务器、无数据库</strong>：逻辑只存在于浏览器与构建期，数据来自每日快照文件，或访问者自己的 Key',
+          '<strong>Vite + React 18 + TypeScript 多包仓库</strong>：npm workspaces 拆出共享核心与两个应用，提示词、归一化、稳定 id 与合并规则只写一份，浏览器端与 Node 快照脚本共用同一套',
+          '<strong>推送即自动构建部署</strong>：GitHub 仓库连 Cloudflare Pages，一次构建同时发布两条路由（根路由是简历，/ai-fxb/ 是控制台），日常零运维',
+          '<strong>Key 的边界——抓包抓不到凭据</strong>：全站没有后端，Key 只出现在两条 HTTPS 直连里。访客自己的 Key 由浏览器直接发给服务商，放在 Authorization / x-api-key 请求头，不进 URL、不经过本站域名，抓 3ecat.me 的流量拿不到任何凭据；站点的 Key 只在 GitHub Actions 的构建容器里从仓库 Secret 读一次，产物只剩一份静态 JSON，不进仓库、不进构建产物、不打进日志',
+          '<strong>把这条边界做实</strong>：自定义网关强制 https（本机回环除外），明文地址直接拒绝保存并说明原因；模型返回内容全部经 React 转义渲染，不留 innerHTML 注入口，避免用一段回答把用户 localStorage 里的 Key 读走',
+        ],
+      },
+      {
+        title: '数据管线',
+        items: [
+          '<strong>构建期预生成</strong>：GitHub Actions 每天定时跑一个 Node 脚本，用 6 次 flash 调用生成 4 个看板，与旧快照按稳定 id 合并——保留 21 天历史、新条目标 NEW、最新在前；单个看板失败只保留该项旧数据，不会把快照打空，脚本只在有变化时才提交',
+          '<strong>排行只取可核实数据</strong>：实测让模型「联网检索各大榜单」时它会连榜单名一起编（虚构的 LMArena 版本、不存在的模型、把自家模型排第一），因此榜单改为直接抓独立第三方评测 Artificial Analysis 的公开数据镜像，6 个榜单各取去重后前 5 名，零 token；条形图用固定刻度（指数 0–100 / Elo 1000–1400）而非 min/max 归一化，避免放大真实差距',
+          '<strong>两层内容口径</strong>：每条信息要求精炼文案 + 完整详情 + 原文出处与原文链接，卡片只放短句，点开看完整来龙去脉',
+        ],
+      },
+      {
+        title: '性能与兼容',
+        items: [
+          '<strong>首屏 91 KB gzip</strong>：three.js（172 KB gzip）只为装饰性 3D 背景服务，页面 load 后走空闲队列动态 import，关掉 3D 完全不下载；装饰层与动画层各自独立 chunk，都不进首屏包',
+          '<strong>按链路特点定缓存</strong>：实测国内到 Cloudflare 边缘节点一次往返 1~8 秒，因此带内容哈希的资源给一年 immutable，首页与每日快照强制回源',
+          '<strong>低端设备自动降级</strong>：软件渲染与低帧率检测触发降级或关闭背景，触屏与窄屏走低配参数，≤640px 重排为吸顶导航与底部抽屉式弹窗',
+          '<strong>按角色裁剪界面</strong>：访客看不到自己也用不了的生成与设置入口（CSS 级隐藏，脚本执行前也不会闪出），管理面靠 URL 参数放开',
+        ],
+      },
+    ],
+    valueTags: ['零后端', 'monorepo 重写', '首屏 91 KB gzip', '榜单只用可核实数据', 'Key 不经过本站'],
+    liveUrl: 'https://3ecat.me/ai-fxb',
+    githubUrl: 'https://github.com/Credv/ai-fxb',
+  },
+  {
     title: '千牛平台 · 金融阵地',
     role: '核心开发 & Owner',
-    desc: '千牛平台金融模块（千牛 → 金融 → 总览），面向淘宝/天猫商家提供金融服务入口与数据总览，是千牛生态核心商业化模块之一。',
+    desc: '淘宝/天猫商家工作台千牛的金融服务阵地，承接商家侧金融产品入口与经营数据总览，是千牛生态的核心商业化模块之一；我负责该阵地从页面到 Node 服务层的整体交付。',
     sections: [
       {
         title: '核心工作',
         items: [
-          '负责 <strong>6 个微服务包</strong>（淘宝包、天猫包、共用产品组件包、模块组件包、营销组件包、Node 服务包）的架构设计与日常迭代',
-          '推进 Monorepo 工程转型，统一包管理、构建流程与发布规范',
-          '完成 React17 → React18 升级，解决 StrictMode 双渲染、生命周期变更等兼容性问题',
+          '<strong>负责 Monorepo 下 6 个包的架构与迭代</strong>：淘宝 / 天猫业务包、共用产品组件、模块与营销组件、Node 服务层',
+          '<strong>推进 Monorepo 工程转型</strong>：统一包管理、构建流程与发布规范，把散落在多仓的重复配置收敛成一套',
+          '<strong>完成 React 17 → 18 升级</strong>：逐项处理 StrictMode 双渲染、并发渲染与废弃生命周期的兼容问题',
         ],
       },
       {
         title: '技术亮点',
         items: [
           '<strong>Monorepo 架构治理</strong>：pnpm workspace 管理多包依赖，统一 tsconfig 路径别名与 ESLint 规则',
-          '<strong>埋点体系优化</strong>：系统性治理埋点缺失/重复/命名不规范问题，接入三方监控平台',
-          '<strong>AI 埋点工具</strong>：开发 Chrome 插件自动采集页面埋点，提升埋点治理效率',
+          '<strong>埋点体系治理</strong>：清理缺失、重复与命名不一致的埋点，建立上报口径并接入三方监控平台',
+          '<strong>AI 埋点工具</strong>：自研 Chrome 插件自动采集页面埋点，把人工逐页盘点换成机器扫描',
         ],
       },
     ],
-    valueTags: ['6 个微服务包', 'React18 升级', 'Monorepo 转型', '埋点治理'],
+    valueTags: ['6 个业务与组件包', 'React18 升级', 'Monorepo 转型', '埋点治理'],
   },
   {
     title: 'Harness Engineering · AI Agent 工程化治理框架',
@@ -56,7 +92,7 @@ const projects = [
   {
     title: '招财猫 · 互动祈福 H5 应用',
     role: 'AI 辅助开发 & Owner',
-    desc: '基于 Ice.js v3 + React 18 的半游戏化营销 H5 应用，用户可领养虚拟猫咪、许愿祈福、出行探险、收集签文日记。Harness Engineering + AI Agent 辅助开发，大幅提升开发效率。',
+    desc: '基于 Ice.js v3 + React 18 的半游戏化营销 H5：领养虚拟猫咪、许愿祈福、出行探险、收集签文日记。自建的 Harness Engineering 框架在这个项目里真正跑起来，用来约束 AI 生成代码的质量。',
     sections: [
       {
         title: '核心技术',
@@ -70,7 +106,7 @@ const projects = [
       {
         title: 'AI 辅助与工程化',
         items: [
-          '<strong>AI 辅助开发</strong>：Harness Engineering + AI Agent 全程辅助，从组件开发到接口联调，显著提升开发效率',
+          '<strong>AI 辅助开发</strong>：Harness Engineering 的结构化知识与机械化约束落在日常迭代，AI 出组件与接口联调的初稿，人工审核后合入',
           '<strong>悬浮猫咪交互系统</strong>：react-rnd 拖拽 + 手势追踪状态切换（平视/仰视/俯视）+ 无操作休眠唤醒 + 边缘吸附 + 多状态机协调',
           '<strong>复杂状态管理</strong>：领养→祈愿→出行→轮询→收获→反馈完整生命周期，localStorage 降级兜底 + 3s 超时保护',
           '<strong>跨端适配</strong>：手淘环境判断 + PC 端 iframe 包裹方案，Pegasus 插件集成 DEF 发布体系',
@@ -82,7 +118,7 @@ const projects = [
   {
     title: '催收平台 · AI 对话小助手',
     role: '核心开发',
-    desc: '为内部催收平台集成 AI 对话能力，辅助催收人员快速获取信息、生成分析报告。',
+    desc: '在内部催收作业台里接入大模型对话能力：案件信息查取、沟通与分析报告生成，都收进一次自然语言对话，前端负责流式渲染与多格式内容的可读呈现。',
     sections: [
       {
         title: '核心技术',
@@ -98,7 +134,7 @@ const projects = [
   {
     title: 'Pre-Release Check · AI 代码发布质量门禁',
     role: '独立设计 & 开发',
-    desc: '自主设计的 AI Agent Skill，定位为代码发布前的自动化质量门禁（Quality Gate）。通过意图识别自动触发，对 Git diff 执行多维度静态分析，在 MR 阶段拦截风险，落地质量左移理念。',
+    desc: '自主设计的 AI Agent Skill，做代码发布前的自动化质量门禁：由意图识别自动触发，对 Git diff 执行多维度静态分析，在 MR 阶段就把风险拦下来，而不是等上线后复盘。',
     sections: [
       {
         title: '5 维检测矩阵',
@@ -158,17 +194,19 @@ const projects = [
   },
 ]
 
-const workExperience = [
-  { company: '浩鲸云科技', period: '2020.12 — 2021.12', city: '福州', current: false },
-  { company: '法本科技（蚂蚁集团项目）', period: '2021.12 — 2024.05', city: '杭州', current: false },
-  { company: '博彦科技（阿里巴巴项目）', period: '2024.05 — 至今', city: '杭州', current: true },
-]
+interface WorkItem {
+  org: string
+  role: string
+  vendor?: string
+  period: string
+  city: string
+  current?: boolean
+}
 
-const evaluations = [
-  { icon: '🎯', text: '5 年大厂项目经验，具备大型复杂项目的独立开发与 Owner 能力' },
-  { icon: '🏗️', text: 'Monorepo 架构转型实战经验，善于治理多包工程、推动技术升级' },
-  { icon: '🤖', text: 'AI 工程化深入实践，将 AI 能力落地到真实研发工作流，提升团队效率' },
-  { icon: '👨‍💻', text: '技术 Owner 意识，能够主导项目架构设计、任务拆分与进度管理' },
+const workExperience: WorkItem[] = [
+  { org: '阿里巴巴 · 千牛平台', role: '前端开发工程师', vendor: '博彦科技', period: '2024.05 — 2026.09', city: '杭州' },
+  { org: '蚂蚁集团 · 金融业务', role: '前端开发工程师', vendor: '法本科技', period: '2021.12 — 2024.05', city: '杭州' },
+  { org: '浩鲸云科技', role: '前端开发工程师', period: '2020.12 — 2021.12', city: '福州' },
 ]
 
 export default function App() {
@@ -199,9 +237,11 @@ export default function App() {
         <div className="work-timeline">
           {workExperience.map((exp, i) => (
             <div className={`work-item${exp.current ? ' current' : ''}`} key={i}>
-              <div className="company">{exp.company}</div>
+              <div className="company">{exp.org}</div>
+              <div className="role">{exp.role}</div>
               <div className="period">{exp.period}</div>
               <div className="city">{exp.city}</div>
+              {exp.vendor && <div className="vendor">签约主体 · {exp.vendor}</div>}
             </div>
           ))}
         </div>
@@ -215,29 +255,13 @@ export default function App() {
           <ProjectCard key={i} {...project} />
         ))}
 
-        {/* 数据可视化 */}
-        <div className="section-title">
-          <div className="icon">📊</div>
-          数据可视化能力展示
-        </div>
-        <Dashboard />
-
-        {/* 自我评价 */}
-        <div className="section-title">
-          <div className="icon">⭐</div>
-          自我评价
-        </div>
-        <div className="eval-grid">
-          {evaluations.map((eval_, i) => (
-            <div className="eval-item" key={i}>
-              <div className="eval-icon">{eval_.icon}</div>
-              <span>{eval_.text}</span>
-            </div>
-          ))}
-        </div>
-
         <div className="footer">
           © 2026 陈鸿 · 前端开发工程师 · 联系方式：13123332932 | 793927991@qq.com
+          <br />
+          在线作品：
+          <a className="footer-link" href="https://3ecat.me/ai-fxb" target="_blank" rel="noopener noreferrer">3ecat.me/ai-fxb</a>
+          {' · '}
+          <a className="footer-link" href="https://github.com/Credv" target="_blank" rel="noopener noreferrer">github.com/Credv</a>
         </div>
       </main>
 

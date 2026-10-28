@@ -1,8 +1,8 @@
 /* 每日快照生成脚本(Node,GitHub Actions 定时调用)
  * 用站长自己的 API Key(环境变量注入,绝不写入仓库)跑一轮四个看板的生成(sum/tech/news/ops),
  * 模型排行(rank)不经过大模型:直接抓取 Artificial Analysis 公开榜单的每日镜像,真实分数、零 token。
- * 与旧 web/data/snapshot.json 合并(保留历史、标记 NEW、最新在前),写回快照文件。
- * 提交推送后 Netlify 自动重新部署,访客无需任何 Key 即可查看。
+ * 与上一份快照合并(保留历史、标记 NEW、最新在前),写回 apps/console/public/data/snapshot.json。
+ * 提交推送后 Cloudflare Pages 自动重新部署,访客无需任何 Key 即可查看(路由 /ai-fxb/)。
  *
  * 环境变量:
  *   AIFXB_API_KEY      必填。大模型 API Key(OpenAI 兼容格式,默认千问百炼)。
@@ -13,19 +13,16 @@
  *   AIFXB_TIMEOUT_SEC  单次请求超时秒数,默认 300
  *   AIFXB_SNAPSHOT_FILE 快照输出路径覆盖(仅测试用)
  */
-import { createRequire } from 'node:module';
+import * as core from '@ai-fxb/core';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import https from 'node:https';
 import http from 'node:http';
 
-const require = createRequire(import.meta.url);
-const core = require('../web/core.js');
-
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const SNAP_FILE = process.env.AIFXB_SNAPSHOT_FILE || join(ROOT, 'web', 'data', 'snapshot.json');
+const SNAP_FILE = process.env.AIFXB_SNAPSHOT_FILE || join(ROOT, 'apps', 'console', 'public', 'data', 'snapshot.json');
 
 const CFG = {
   apiKey: process.env.AIFXB_API_KEY || '',

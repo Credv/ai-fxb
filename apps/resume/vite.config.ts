@@ -11,5 +11,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        // 框架与业务代码分开:改简历文案时不会让用户重新下载 React(资源带 content-hash 长缓存)
+        manualChunks: {
+          react: ['react', 'react-dom'],
+        },
+      },
+    },
   },
 })

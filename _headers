@@ -1,0 +1,29 @@
+# Cloudflare Pages 响应头。发布时由 scripts/assemble.mjs 原样拷进 dist/,不要直接改 dist 里的副本。
+# 国内访客到 CF 边缘节点一次往返要 1~8 秒,所以能给长缓存的都给;但首页与每日快照必须每次回源,
+# 否则站长当天生成的数据访客看不到。
+# 顺序有讲究:CF 会把命中的规则按先后叠加,同名头以后者为准,所以宽泛的 /* 写在最前,具体路径写在后面覆盖它。
+# vite 产物文件名带内容哈希(/assets/*、/ai-fxb/assets/*),换内容就换 URL,可以放心 immutable。
+
+/*
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/ai-fxb/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/ai-fxb/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/ai-fxb/data/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/ai-fxb/assets/*
+  Cache-Control: public, max-age=31536000, immutable
