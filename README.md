@@ -7,7 +7,7 @@
 - `/` —— 个人简历站（`apps/resume`）
 - `/ai-fxb/` —— 本控制台（`apps/console`）
 
-两者共用一个仓库、一次构建、一个域名（Cloudflare Pages 托管，push 即部署）。
+两者共用一个仓库、一次构建、一个域名（Cloudflare Workers 静态资产托管，push 即部署）。
 
 ## 特点
 
@@ -73,7 +73,7 @@ npm run dev:resume     # 简历   http://127.0.0.1:3000/
 
 - `tools/generate-snapshot.mjs`：用环境变量里的 Key 跑一轮四个 AI 看板生成（sum/tech/news/ops），与旧快照合并（保留历史 21 天、标 NEW、最新在前）后写 `apps/console/public/data/snapshot.json`。单项失败保留旧数据继续，不会把快照打空。它直接复用 `@ai-fxb/core` 的提示词与归一化规则，所以跑之前要先 `npm run build:core`（workflow 里已串好）。
 - **模型排行不由模型生成**：让模型"联网检索榜单"时它会连榜单名一起编（实测出现过虚构的 LMArena 版本、不存在的模型、把自家 Qwen 排第一），所以排行改为直接抓 Artificial Analysis 的公开数据镜像 `EvanZhouDev/ai-model-index`（每日同步），6 个榜单各取去重后前 5 名，整榜替换，零 token。少于 4 个榜抓取成功则保留旧数据。可用 `AIFXB_RANK_MIRROR` 覆盖镜像地址。
-- `.github/workflows/update-snapshot.yml`：每天北京时间 **00:00 自动运行一次**（cron `0 16 * * *` UTC），先装依赖并编译 core，再生成快照，有变化才 commit+push，推送即触发 Cloudflare Pages 重新构建部署。也可在 Actions 页面手动触发。注意 GitHub 的定时触发只保证「每天一次」、不保证准点（实测延迟过 27 分钟和 4 小时 22 分），所以放在零点：即使延后几小时也仍在夜里跑完。
+- `.github/workflows/update-snapshot.yml`：每天北京时间 **00:00 自动运行一次**（cron `0 16 * * *` UTC），先装依赖并编译 core，再生成快照，有变化才 commit+push，推送即触发线上重新构建部署。也可在 Actions 页面手动触发。注意 GitHub 的定时触发只保证「每天一次」、不保证准点（实测延迟过 27 分钟和 4 小时 22 分），所以放在零点：即使延后几小时也仍在夜里跑完。
 - 前置条件：仓库 Settings → Secrets and variables → Actions 里添加 `DASHSCOPE_API_KEY`（百炼 API Key）。Key 只存在 Secret 里，不进入仓库任何文件。
 - 本地手动跑一次：
   ```bash
@@ -96,11 +96,18 @@ npm run dev:resume     # 简历   http://127.0.0.1:3000/
 
 ## 部署
 
-Cloudflare Pages 与本仓库的 Git 绑定保持不变，只是构建方式从"发布 `web/` 目录"改成"云端构建"：
+线上是 **Cloudflare Workers 的「静态资产」项目**（不是 Pages —— 概览页那句「Metrics 不适用于仅包含静态资产的 Workers」就是证据），Git 绑定与自定义域 `3ecat.me` 都挂在这个 Worker 上。它靠仓库根的 **`wrangler.jsonc`** 知道要上传哪个目录：
 
-- **Build command**：`npm run build`
-- **Build output directory**：`dist`
-- **Node version**：仓库根 `.node-version` 已写 `20`（CF 会读取它选运行时）
+```jsonc
+{ "name": "ai-fxb", "assets": { "directory": "./dist", "not_found_handling": "none" } }
+```
+
+Cloudflare 侧需要且只需要两个字段（设置 → 构建 → 构建设置）：
+
+- **构建命令（Build command）**：`npm run build` —— 先产出 `dist/`，否则 `wrangler deploy` 会因为目录不存在而失败
+- **部署命令（Deploy command）**：保持 `npx wrangler deploy` —— 它读上面的 `wrangler.jsonc`，没有这份配置就会报「detection logic has been run in the root of a workspace」
+- **Node 版本**：仓库根 `.node-version` 已写 `20`，CF 会读它选运行时（构建日志里 `nodejs@20.20.2` 就是它生效）
+- 没有「输出目录」这个字段可填：Workers 项目的资产目录只认 `wrangler.jsonc`
 
 `scripts/assemble.mjs` 把两个 app 的产物拼成发布目录：`apps/resume/dist` → `dist/`（根路由），`apps/console/dist` → `dist/ai-fxb/`，并带上根目录的 `_headers`。产物不入库（`.gitignore` 已忽略 `dist/`）。
 
@@ -109,7 +116,8 @@ Cloudflare Pages 与本仓库的 Git 绑定保持不变，只是构建方式从"
 ```
 ai-fxb/
 ├─ package.json               # workspace 根:build / dev:resume / dev:console / preview / typecheck
-├─ _headers                   # Cloudflare Pages 响应头:缓存策略(注意 CF 按顺序匹配,后写的同头规则覆盖前面的)
+├─ _headers                   # Workers 静态资产响应头:缓存策略(注意 CF 按顺序匹配,后写的同头规则覆盖前面的)
+├─ wrangler.jsonc             # Cloudflare Workers 部署配置:资产目录 = dist
 ├─ 启动.bat                    # Windows 双击:装依赖 → 构建 → 起本地服务器 → 开浏览器
 ├─ scripts/
 │  ├─ assemble.mjs            # 两个 app 的 dist 拼装成发布目录 dist/
