@@ -64,7 +64,7 @@ resume-react/
     liveUrl?: string
   }
   ```
-- **注意**：`liveUrl` 存在时在描述下方渲染 `.project-links`（「在线地址」+「代码仓库」两个胶囊链接），此时右上角的 GitHub 角标 `.gh-badge` 会让位给链接行，避免同一仓库出现两个入口；只有 `githubUrl` 的卡片仍显示角标。`items` 里的字符串按 HTML 注入（`<strong>` 加粗小标题），因此**不能把外部不可信文本放进来**。
+- **注意**：GitHub 入口一律走右上角的 `.gh-badge` 角标（2026-10-29 他要求 AI 窗口与 Pre-Release 保持同一种样式）；`liveUrl` 存在时描述下方的 `.project-links` 只渲染「在线地址」一个胶囊，不再重复放「代码仓库」，避免同一仓库两个入口。`items` 里的字符串按 HTML 注入（`<strong>` 加粗小标题），因此**不能把外部不可信文本放进来**。
 
 ## 简历内容规则（改文案前先读这里）
 
