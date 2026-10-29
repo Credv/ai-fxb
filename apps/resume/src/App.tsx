@@ -185,9 +185,9 @@ interface WorkItem {
 }
 
 const workExperience: WorkItem[] = [
-  { org: '阿里巴巴 · 千牛平台', role: '前端开发工程师', vendor: '博彦科技', period: '2024.05 — 2026.09', city: '杭州' },
-  { org: '蚂蚁集团 · 金融业务', role: '前端开发工程师', vendor: '法本科技', period: '2021.12 — 2024.05', city: '杭州' },
-  { org: '浩鲸云科技', role: '前端开发工程师', period: '2020.12 — 2021.12', city: '福州' },
+  { org: '阿里巴巴 · 千牛平台', role: '全栈开发工程师', vendor: '博彦科技', period: '2024.05 — 2026.09', city: '杭州' },
+  { org: '蚂蚁集团 · 金融业务', role: '全栈开发工程师', vendor: '法本科技', period: '2021.12 — 2024.05', city: '杭州' },
+  { org: '浩鲸云科技', role: '全栈开发工程师', period: '2020.12 — 2021.12', city: '福州' },
 ]
 
 export default function App() {
