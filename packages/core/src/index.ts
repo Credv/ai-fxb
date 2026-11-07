@@ -107,10 +107,26 @@ export function itemDateKey(it: ItemBase): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
   return (it && it.firstSeen) || '';
 }
+// ---------- 占位条目识别(模型查不到时会写「XX待核实 + 来源:检索限制」的空壳,一律丢弃) ----------
+const PLACEHOLDER_TITLE = /(待核实|待确认|待补充|未检索到|无法确认|暂无可靠|信息缺失)/;
+const PLACEHOLDER_SOURCE = /(检索限制|未检索|无法检索|内部检索|缺少联网|无联网)/;
+const PLACEHOLDER_BODY = /(未检索到可靠公开信息|未能检索到|无法访问.{0,12}(网站|新闻|公开信息)|缺少实时联网工具)/;
+export function isPlaceholderItem(it: ItemBase): boolean {
+  if (!it) return true;
+  const any = it as any;
+  if (PLACEHOLDER_TITLE.test(String(any.title || ''))) return true;
+  if (PLACEHOLDER_SOURCE.test(String(any.source || ''))) return true;
+  if (!String(any.url || '') && PLACEHOLDER_BODY.test(String(any.takeaway || '') + String(any.detail || '') + String(any.summary || '') + String(any.description || ''))) return true;
+  return false;
+}
+export function countPlaceholders(items?: ItemBase[]): number { return (Array.isArray(items) ? items : []).filter(isPlaceholderItem).length; }
+export function dropPlaceholders<T extends ItemBase>(items: T[] | undefined): T[] {
+  return (Array.isArray(items) ? items : []).filter((it) => !isPlaceholderItem(it));
+}
 // 合并:本次新拉取 + 上次历史;未见过的 id 标 isNew,已见过的保留其 firstSeen
 export function mergeBucketItems<T extends ItemBase>(kind: BucketKind, oldItems: T[] | undefined, newItems: T[] | undefined): T[] {
-  const old = Array.isArray(oldItems) ? oldItems : [];
-  const fresh = Array.isArray(newItems) ? newItems : [];
+  const old = dropPlaceholders(oldItems);
+  const fresh = dropPlaceholders(newItems);
   const oldById: Record<string, T> = {};
   const seen: Record<string, 1> = {};
   let merged: T[] = [];
@@ -235,7 +251,7 @@ export function buildSumMessages(range: number): Message[] {
   const user = '今天是 ' + dstr + '。请联网检索 ' + start + ' 至 ' + dstr + '(最近 ' + range + ' 天)全球 AI 大小事,写一份"快速汇总",供不想逐条细读的人 30 秒看完。\n' +
     '严格按以下 JSON 结构输出:\n' +
     '{"generated_at":"' + dstr + '","overview":"80到140字的整体导读,概括这几天 AI 领域的主线与氛围","highlights":[{"title":"要点标题,不超过24字","takeaway":"一句话精炼要点,20到45字,说明发生了什么、为什么值得关注","detail":"120到220字详情,讲清这条要点的来龙去脉:背景、涉及主体、关键数字或条款、时间线、后续影响","tag":"主题标签,如 模型/融资/监管/产品/研究","date":"该事件日期 YYYY-MM-DD","source":"来源名","url":"原始链接,没有则空字符串"}]}\n' +
-    '要求:highlights 给出 5 到 8 条,覆盖不同主题;每条尽量附真实 url 与 source 以便点击深读;detail 必须真正补充信息,不能只是复述 takeaway;date 填事件真实日期,输出按 date 从新到旧排列。全部简体中文。只输出 JSON。';
+    '要求:highlights 只写确实检索到的事件,查到几条写几条(可以少于 5 条),不要为凑数编造;严禁占位条目——凡是标题含「待核实/未检索到」、来源写「检索限制」、或正文只在说明"查不到信息"的条目一律不输出;某几天没有可靠信息就跳过那几天;每条尽量附真实 url 与 source 以便点击深读;detail 必须真正补充信息,不能只是复述 takeaway;date 填事件真实日期,输出按 date 从新到旧排列。全部简体中文。只输出 JSON。';
   return [{ role: 'system', content: sys }, { role: 'user', content: user }];
 }
 // 前沿技术:最近出现的新技术 / 新名词,用大白话讲清原理
@@ -285,11 +301,11 @@ export function normalizeNews(obj: any): { generated_at: string; items: NewsItem
   const arr = pickArr(obj, ['news', 'items', 'events', '新闻', '新闻列表']);
   return {
     generated_at: obj.generated_at || fmtDate(new Date()),
-    items: arr.map((n: any): NewsItem => ({
+    items: dropPlaceholders(arr.map((n: any): NewsItem => ({
       title: n.title || '未命名事件', summary: n.summary || '', detail: n.detail || '', category: n.category || '行业动态',
       importance: n.importance === '重大' ? '重大' : '一般', region: n.region || '全球',
       date: n.date || '', source: n.source || '', url: n.url || '', impact: n.impact || ''
-    }))
+    })))
   };
 }
 export function normalizeSum(obj: any): { generated_at: string; overview: string; items: SumItem[] } {
@@ -297,17 +313,17 @@ export function normalizeSum(obj: any): { generated_at: string; overview: string
   return {
     generated_at: obj.generated_at || fmtDate(new Date()),
     overview: obj.overview || '',
-    items: hl.map((h: any): SumItem => ({
+    items: dropPlaceholders(hl.map((h: any): SumItem => ({
       title: h.title || '未命名要点', takeaway: h.takeaway || '', detail: h.detail || '', tag: h.tag || '综合',
       date: h.date || '', source: h.source || '', url: h.url || ''
-    }))
+    })))
   };
 }
 export function normalizeTech(obj: any): { generated_at: string; items: TechItem[] } {
   const arr = pickArr(obj, ['tech', 'items', 'techs', '技术']);
   return {
     generated_at: obj.generated_at || fmtDate(new Date()),
-    items: arr.map((t: any): TechItem => {
+    items: dropPlaceholders(arr.map((t: any): TechItem => {
       const track = (typeof t.track === 'string' && t.track.trim()) ? t.track.trim() : '通用应用/工具';
       return {
         title: t.term || '未命名技术', en: t.en || '', principle: t.principle || '', why: t.why || '',
@@ -315,14 +331,14 @@ export function normalizeTech(obj: any): { generated_at: string; items: TechItem
         track, stage: ['研究突破', '早期产品', '规模落地'].indexOf(t.stage) >= 0 ? t.stage : '早期产品',
         source: t.source || '', url: t.url || '', date: t.date || ''
       };
-    })
+    }))
   };
 }
 export function normalizeOps(obj: any): { generated_at: string; items: OpsItem[] } {
   const arr = pickArr(obj, ['opportunities', 'items', 'ops', '商机']);
   return {
     generated_at: obj.generated_at || fmtDate(new Date()),
-    items: arr.map((o: any): OpsItem => {
+    items: dropPlaceholders(arr.map((o: any): OpsItem => {
       const origin = o.origin === '政策规划' ? '政策规划' : (o.origin === '本地机会' ? '本地机会' : '市场商机');
       const track = (typeof o.track === 'string' && o.track.trim()) ? o.track.trim() : '通用应用/工具';
       return {
@@ -337,7 +353,7 @@ export function normalizeOps(obj: any): { generated_at: string; items: OpsItem[]
         difficulty: ['高', '中', '低'].indexOf(o.difficulty) >= 0 ? o.difficulty : '中',
         audience: o.audience || '', action: o.action || ''
       };
-    })
+    }))
   };
 }
 

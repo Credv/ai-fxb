@@ -72,6 +72,8 @@ npm run dev:resume     # 简历   http://127.0.0.1:3000/
 ## 每日快照（站长侧）
 
 - `tools/generate-snapshot.mjs`：用环境变量里的 Key 跑一轮四个 AI 看板生成（sum/tech/news/ops），与旧快照合并（保留历史 21 天、标 NEW、最新在前）后写 `apps/console/public/data/snapshot.json`。单项失败保留旧数据继续，不会把快照打空。它直接复用 `@ai-fxb/core` 的提示词与归一化规则，所以跑之前要先 `npm run build:core`（workflow 里已串好）。
+- **占位条目一律丢弃**：模型联网没查到时会写「模型发布待核实 / 来源：内部检索限制」这种空壳凑数（实测 sum 看板 24 条里 5 条是这种，还因为日期最新顶在最前面）。`core.isPlaceholderItem()` 统一判定（标题含待核实/未检索到、来源含检索限制、无链接且正文只在说查不到），在四处入口各过滤一遍：`normalizeSum/Tech/News/Ops`、`mergeBucketItems`（旧数据和新数据都过）、前端读快照与读本机缓存、`generate-snapshot.mjs` 的日志。过滤后为 0 条按失败处理，保留旧数据，不会把板块打空。生成请求同时带 `search_options.forced_search`（强制联网），接口不认这个参数时整轮自动回退成仅 `enable_search`。
+- `tools/purge-placeholder.mjs`：零 token 清理已写进快照的占位条目（`--check` 只报告，发现即退出码 1）。存量清理用它，之后每天由生成脚本自己保证。
 - **模型排行不由模型生成**：让模型"联网检索榜单"时它会连榜单名一起编（实测出现过虚构的 LMArena 版本、不存在的模型、把自家 Qwen 排第一），所以排行改为直接抓 Artificial Analysis 的公开数据镜像 `EvanZhouDev/ai-model-index`（每日同步），6 个榜单各取去重后前 5 名，整榜替换，零 token。少于 4 个榜抓取成功则保留旧数据。可用 `AIFXB_RANK_MIRROR` 覆盖镜像地址。
 - `.github/workflows/update-snapshot.yml`：每天北京时间 **00:00 自动运行一次**（cron `0 16 * * *` UTC），先装依赖并编译 core，再生成快照，有变化才 commit+push，推送即触发线上重新构建部署。也可在 Actions 页面手动触发。注意 GitHub 的定时触发只保证「每天一次」、不保证准点（实测延迟过 27 分钟和 4 小时 22 分），所以放在零点：即使延后几小时也仍在夜里跑完。
 - 前置条件：仓库 Settings → Secrets and variables → Actions 里添加 `DASHSCOPE_API_KEY`（百炼 API Key）。Key 只存在 Secret 里，不进入仓库任何文件。

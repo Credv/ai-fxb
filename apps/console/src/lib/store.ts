@@ -3,6 +3,7 @@
  */
 import { useSyncExternalStore } from 'react';
 import type { ItemBase } from '@ai-fxb/core';
+import { dropPlaceholders } from '@ai-fxb/core';
 import {
   CACHE_KEY, loadModelsCache, loadSettings, loadUsage,
   persistUsage, PROVIDERS, saveModelsCache, threeEnabledByFlag,
@@ -220,7 +221,9 @@ export function loadCacheIntoState(): void {
   if (!cache) return;
   (['news', 'ops', 'sum', 'tech', 'rank'] as BucketKind[]).forEach((k) => {
     const b = cache?.[k] as Bucket | undefined;
-    if (b && b.status === 'ready' && Array.isArray(b.items) && b.items.length) state[k] = b;
+    if (!b || b.status !== 'ready' || !Array.isArray(b.items)) return;
+    b.items = dropPlaceholders(b.items);
+    if (b.items.length) state[k] = b;
   });
   const snap = cache.snap as SnapshotMeta | null | undefined;
   if (snap && snap.ts) state.snapshot = snap;

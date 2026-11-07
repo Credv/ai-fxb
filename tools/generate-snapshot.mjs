@@ -9,7 +9,7 @@
  *   AIFXB_BASE_URL     默认 https://dashscope.aliyuncs.com/compatible-mode/v1
  *   AIFXB_MODEL        默认 qwen3.8-flash
  *   AIFXB_REGION       本地机会地区,默认 福建省
- *   AIFXB_SEARCH       置 0 关闭 enable_search(默认开启)
+ *   AIFXB_SEARCH       置 0 关闭联网检索(默认开启:enable_search + search_options.forced_search)
  *   AIFXB_TIMEOUT_SEC  单次请求超时秒数,默认 300
  *   AIFXB_SNAPSHOT_FILE 快照输出路径覆盖(仅测试用)
  */
@@ -59,11 +59,21 @@ function postJSON(url, payload, timeoutMs) {
 
 let totalTokens = 0;
 let totalCalls = 0;
+// 先带 search_options.forced_search(强制联网检索,避免模型凭记忆作答留下「待核实」占位);
+// 若接口不接受该参数,整轮运行回退为仅 enable_search,不因此失败
+let searchMode = CFG.search ? 'forced' : 'off';
 
 async function chat(label, messages) {
   const payload = { model: CFG.model, messages, temperature: 0.4, stream: false };
-  if (CFG.search) payload.enable_search = true;
-  const r = await postJSON(CFG.baseUrl + '/chat/completions', payload, CFG.timeoutMs);
+  if (searchMode !== 'off') payload.enable_search = true;
+  if (searchMode === 'forced') payload.search_options = { forced_search: true };
+  let r = await postJSON(CFG.baseUrl + '/chat/completions', payload, CFG.timeoutMs);
+  if (r.status !== 200 && searchMode === 'forced' && /search_options|forced_search/i.test(r.text)) {
+    console.error('[snapshot] ' + label + ':API 拒绝 search_options.forced_search(HTTP ' + r.status + ' · ' + r.text.slice(0, 200) + '),本轮回退为仅 enable_search');
+    searchMode = 'off';
+    delete payload.search_options;
+    r = await postJSON(CFG.baseUrl + '/chat/completions', payload, CFG.timeoutMs);
+  }
   if (r.status !== 200) {
     throw new Error(label + ':HTTP ' + r.status + ' · ' + r.text.slice(0, 400));
   }
@@ -82,6 +92,13 @@ function loadOld() {
   try { return JSON.parse(readFileSync(SNAP_FILE, 'utf8')); } catch (e) { return null; }
 }
 
+// 统计原始返回里的占位条目数(normalize 已过滤,这里回到未过滤的 JSON 上数)
+function countRawPlaceholders(obj) {
+  const lists = Array.isArray(obj) ? [obj]
+    : Object.keys(obj || {}).filter((k) => Array.isArray(obj[k])).map((k) => obj[k]);
+  return lists.reduce((n, arr) => n + core.countPlaceholders(arr), 0);
+}
+
 // 调用 + 解析 + 归一化;结果为 0 条视为失败(打印原始返回片段便于排查),自动重试一次
 async function genBoard(label, messages, normalize) {
   let lastErr = null;
@@ -89,15 +106,19 @@ async function genBoard(label, messages, normalize) {
     const raw = await chat(label, messages);
     let p;
     try {
-      p = normalize(core.extractJSON(raw));
+      const obj = core.extractJSON(raw);
+      p = normalize(obj);
+      const dropped = countRawPlaceholders(obj);
+      const withUrl = p.items.filter((it) => it && it.url).length;
+      console.log('[snapshot] ' + label + ' 保留 ' + p.items.length + ' 条,丢弃占位 ' + dropped + ' 条,带原文链接 ' + withUrl + '/' + p.items.length);
     } catch (e) {
       lastErr = new Error(label + ':返回内容无法解析为 JSON · ' + raw.slice(0, 300));
       console.error('[snapshot] ' + lastErr.message + '(第 ' + attempt + ' 次)');
       continue;
     }
     if (p.items && p.items.length) return p;
-    lastErr = new Error(label + ':模型返回了 0 条数据(原始返回前 300 字:' + raw.slice(0, 300) + ')');
-    console.error('[snapshot] ' + label + ' 返回 0 条(第 ' + attempt + ' 次),原始返回前 300 字:' + raw.slice(0, 300));
+    lastErr = new Error(label + ':模型返回的内容过滤后为 0 条(可能全是占位;原始返回前 300 字:' + raw.slice(0, 300) + ')');
+    console.error('[snapshot] ' + label + ' 过滤后 0 条(第 ' + attempt + ' 次),原始返回前 300 字:' + raw.slice(0, 300));
   }
   throw lastErr;
 }

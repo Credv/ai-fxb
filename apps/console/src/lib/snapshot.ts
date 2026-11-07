@@ -1,7 +1,7 @@
 /* 公开数据接入:没有配置 Key 的访客,读的是站长每天生成好、随站点一起发布的 JSON。
  * 读不到就沿用本机已有数据;不退回示例数据——访客把「示例模型」当成真实排行会更糟。
  */
-import { countNew, stampExisting } from '@ai-fxb/core';
+import { countNew, dropPlaceholders, stampExisting } from '@ai-fxb/core';
 import { notify, saveCache, state, type Bucket, type BucketKind } from './store';
 
 const SNAPSHOT_URL = 'data/snapshot.json';
@@ -32,6 +32,7 @@ function adoptSnapshot(snap: SnapshotJson): void {
   BOARDS.forEach((k) => {
     const b = snap[k] as Bucket | undefined;
     if (!b || !Array.isArray(b.items)) return;
+    b.items = dropPlaceholders(b.items);
     const prev = (state[k] as Bucket).items || [];
     const prevIds: Record<string, number> = {};
     prev.forEach((it) => { if (it && it.id) prevIds[it.id] = 1; });
