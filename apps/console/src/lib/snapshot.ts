@@ -2,7 +2,7 @@
  * 读不到就沿用本机已有数据;不退回示例数据——访客把「示例模型」当成真实排行会更糟。
  */
 import { countNew, dropPlaceholders, stampExisting } from '@ai-fxb/core';
-import { notify, saveCache, state, type Bucket, type BucketKind } from './store';
+import { BUCKET_KINDS, notify, saveCache, state, type Bucket, type BucketKind } from './store';
 
 const SNAPSHOT_URL = 'data/snapshot.json';
 
@@ -17,9 +17,10 @@ interface SnapshotJson {
   news?: RawBucket;
   rank?: RawBucket;
   ops?: RawBucket;
+  jobs?: RawBucket;
 }
 
-const BOARDS: BucketKind[] = ['sum', 'tech', 'news', 'rank', 'ops'];
+const BOARDS: BucketKind[] = BUCKET_KINDS;
 
 function hasAnyItems(): boolean {
   return BOARDS.some((k) => {

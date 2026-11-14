@@ -4,7 +4,7 @@ import { setBgPaused } from '../three/bg3d';
 import { openDetail, setFilter, state, useVersion, type BucketKind } from '../lib/store';
 import type { NetApi, NetBuckets } from '../net/net';
 
-const NET_BOARDS: BucketKind[] = ['sum', 'tech', 'news', 'ops', 'rank'];
+const NET_BOARDS: BucketKind[] = ['sum', 'tech', 'news', 'ops', 'rank', 'jobs'];
 const NET_ROUTES: [string, string][] = [['all', '全部'], ['code', '情报'], ['model', '技术'], ['you', '商机']];
 
 function buckets(): NetBuckets {

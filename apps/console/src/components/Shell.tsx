@@ -1,6 +1,6 @@
 /* 外壳:顶栏(来源/用量/设置)与页签导航 */
 import { ADMIT } from '../lib/settings';
-import { state, setView, openSettings, useVersion, type BucketKind, type View } from '../lib/store';
+import { LIVE_KINDS, state, setView, openSettings, useVersion, type BucketKind, type View } from '../lib/store';
 
 // 蛛网页签暂时下线(面板与 net/ 动画层都还在,改成 true 即恢复)
 export const SHOW_NET_TAB = false;
@@ -10,6 +10,7 @@ const TABS: { view: View; ico: string; label: string }[] = [
   { view: 'tech', ico: '△', label: '前沿技术' },
   { view: 'rank', ico: '♛', label: '模型排行' },
   { view: 'ops', ico: '◎', label: '商机雷达' },
+  { view: 'jobs', ico: '◈', label: '就业形势' },
   { view: 'news', ico: '✦', label: 'AI 大事件' },
   { view: 'net', ico: '✷', label: '蛛网' }
 ];
@@ -72,7 +73,7 @@ export function Masthead() {
 
 export function Tabs() {
   useVersion();
-  const tabs = TABS.filter((t) => t.view !== 'net' || SHOW_NET_TAB);
+  const tabs = TABS.filter((t) => (t.view === 'net' ? SHOW_NET_TAB : LIVE_KINDS.indexOf(t.view as BucketKind) >= 0));
   return (
     <nav className="tabs" role="tablist" aria-label="主导航">
       {tabs.map((t) => {

@@ -1,5 +1,6 @@
 /* 每日快照生成脚本(Node,GitHub Actions 定时调用)
- * 用站长自己的 API Key(环境变量注入,绝不写入仓库)跑一轮四个看板的生成(sum/tech/news/ops),
+ * 用站长自己的 API Key(环境变量注入,绝不写入仓库)跑一轮五个看板的生成
+ * (sum / tech / ops 三类 / jobs 四城两组;AI 大事件 news 已暂停,内容与 sum 重叠),
  * 模型排行(rank)不经过大模型:直接抓取 Artificial Analysis 公开榜单的每日镜像,真实分数、零 token。
  * 与上一份快照合并(保留历史、标记 NEW、最新在前),写回 apps/console/public/data/snapshot.json。
  * 提交推送后 Cloudflare Pages 自动重新部署,访客无需任何 Key 即可查看(路由 /ai-fxb/)。
@@ -235,7 +236,8 @@ if (!CFG.apiKey) {
   process.exit(1);
 }
 
-// ---- 五个看板:sum(3天)/ tech(30天)/ news(3天)/ rank(整榜替换)/ ops(ai+policy+local) ----
+// ---- 五个看板:sum(3天)/ tech(30天)/ rank(整榜替换)/ ops(ai+policy+local)/ jobs(四城两组) ----
+// AI 大事件(news)已暂停生成:内容与 AI 汇总重叠,每天省一次请求。恢复只需把 newsRes 那段加回来并写进 snap。
 const sumRes = await runJob('sum', async () => {
   const p = await genBoard('sum', core.buildSumMessages(3), core.normalizeSum);
   const ob = oldBucket('sum');
@@ -250,12 +252,30 @@ const techRes = await runJob('tech', async () => {
   return { status: 'ready', items, generated_at: p.generated_at, fetched_at: now, range: 30 };
 });
 
-const newsRes = await runJob('news', async () => {
-  const p = await genBoard('news', core.buildNewsMessages(3), core.normalizeNews);
-  const ob = oldBucket('news');
-  const items = core.mergeBucketItems('news', ob ? ob.items : [], p.items);
-  return { status: 'ready', items, generated_at: p.generated_at, fetched_at: now, range: 3 };
+// jobs:四城分两组各一次请求(单城一次要 4 次,太贵);按城市分组分别合并,避免误清新岗位的 NEW 标记
+let jobsItems = (oldBucket('jobs') && oldBucket('jobs').items) || [];
+let jobsUpdated = false;
+for (const group of core.JOB_GROUPS) {
+  const label = 'jobs/' + group.join('·');
+  const inGroup = (city) => group.indexOf(city) >= 0;
+  const r = await runJob(label, async () => {
+    const p = await genBoard(label, core.buildJobsMessages(group), core.normalizeJobs);
+    const same = jobsItems.filter((it) => inGroup(it.city));
+    const other = jobsItems.filter((it) => !inGroup(it.city));
+    jobsItems = core.mergeBucketItems('jobs', same, p.items).concat(core.stampExisting('jobs', other));
+    jobsUpdated = true;
+    return true;
+  });
+  if (!r) { /* 单组失败:保留该组旧数据,继续下一组 */ }
+}
+jobsItems.sort((a, b) => {
+  const ka = core.itemDateKey(a), kb = core.itemDateKey(b);
+  return ka !== kb ? kb.localeCompare(ka) : String(b.firstSeen || '').localeCompare(String(a.firstSeen || ''));
 });
+const oldJobs = oldBucket('jobs');
+const jobsRes = jobsItems.length
+  ? { status: 'ready', items: jobsItems, generated_at: core.todayStr(), fetched_at: jobsUpdated ? now : ((oldJobs && oldJobs.fetched_at) || 0), range: 0 }
+  : null;
 
 // 排行:整榜替换;数据来自 Artificial Analysis 真实榜单镜像(不经大模型)
 const rankRes = await runJob('rank', async () => {
@@ -298,12 +318,12 @@ const snap = {
   model: CFG.model,
   sum: sumRes || oldBucket('sum') || { status: 'idle', items: [] },
   tech: techRes || oldBucket('tech') || { status: 'idle', items: [] },
-  news: newsRes || oldBucket('news') || { status: 'idle', items: [] },
   rank: rankRes || oldBucket('rank') || { status: 'idle', items: [] },
-  ops: opsRes || oldBucket('ops') || { status: 'idle', items: [] }
+  ops: opsRes || oldBucket('ops') || { status: 'idle', items: [] },
+  jobs: jobsRes || oldBucket('jobs') || { status: 'idle', items: [] }
 };
 
-const produced = [sumRes, techRes, newsRes, rankRes, opsUpdated ? opsRes : null].filter(Boolean).length;
+const produced = [sumRes, techRes, rankRes, opsUpdated ? opsRes : null, jobsUpdated ? jobsRes : null].filter(Boolean).length;
 if (!produced && !old) {
   console.error('[snapshot] 全部生成失败且没有旧快照可保留,不写文件。失败项:' + failures.join(', '));
   process.exit(1);
@@ -315,5 +335,8 @@ console.log('[snapshot] 已写入 ' + SNAP_FILE);
 console.log('[snapshot] 本次成功 ' + produced + '/5 个看板' + (failures.length ? ',失败:' + failures.join(', ') : '') +
   ' · 共 ' + totalCalls + ' 次调用,' + totalTokens + ' tokens');
 console.log('[snapshot] 条目数:sum=' + snap.sum.items.length + ' tech=' + snap.tech.items.length +
-  ' news=' + snap.news.items.length + ' rank=' + snap.rank.items.length + ' ops=' + snap.ops.items.length);
+  ' rank=' + snap.rank.items.length + ' ops=' + snap.ops.items.length + ' jobs=' + snap.jobs.items.length);
+const byCity = {};
+snap.jobs.items.forEach((it) => { const c = it.city || '未标注'; byCity[c] = (byCity[c] || 0) + 1; });
+console.log('[snapshot] 岗位覆盖城市:' + Object.keys(byCity).map((c) => c + ' ' + byCity[c] + ' 条').join(' / '));
 if (failures.length && !old) process.exit(1);

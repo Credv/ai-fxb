@@ -1,6 +1,6 @@
 /* 消息详情弹窗:卡片给结论,这里给全文与出处 */
 import type { ReactNode } from 'react';
-import type { ItemBase, NewsItem, OpsItem, RankItem, SumItem, TechItem } from '@ai-fxb/core';
+import type { ItemBase, JobsItem, NewsItem, OpsItem, RankItem, SumItem, TechItem } from '@ai-fxb/core';
 import { KIND_NAME, closeDetail, findItem, state, useVersion, type BucketKind } from '../lib/store';
 
 function Block({ label, text, mod }: { label: string; text?: string; mod?: 'acc' | 'warn' }) {
@@ -8,6 +8,28 @@ function Block({ label, text, mod }: { label: string; text?: string; mod?: 'acc'
   return (
     <div className={'dt__block' + (mod ? ' dt__block--' + mod : '')}>
       <span className="dt__label">{label}</span><p className="dt__text">{text}</p>
+    </div>
+  );
+}
+
+function ListBlock({ label, items, mod }: { label: string; items?: string[]; mod?: 'acc' | 'warn' }) {
+  const list = (items || []).filter(Boolean);
+  if (!list.length) return null;
+  return (
+    <div className={'dt__block' + (mod ? ' dt__block--' + mod : '')}>
+      <span className="dt__label">{label}</span>
+      <ol className="dt__steps">{list.map((s, i) => <li key={i}>{s}</li>)}</ol>
+    </div>
+  );
+}
+
+function TagBlock({ label, items }: { label: string; items?: string[] }) {
+  const list = (items || []).filter(Boolean);
+  if (!list.length) return null;
+  return (
+    <div className="dt__block">
+      <span className="dt__label">{label}</span>
+      <div className="dt__tags">{list.map((s) => <span className="tag tag--skill" key={s}>{s}</span>)}</div>
     </div>
   );
 }
@@ -31,6 +53,12 @@ function Tags({ kind, it }: { kind: BucketKind; it: ItemBase }) {
     t.push(<span className="rank-no" key="n">#{r.rank || '-'}</span>);
     if (r.vendor) t.push(<span className="tag tag--minor" key="v">{r.vendor}</span>);
     if (r.score) t.push(<span className="pill pill--high" key="s">{r.score}</span>);
+  } else if (kind === 'jobs') {
+    const j = it as JobsItem;
+    t.push(<span className="tag tag--region" key="city">{j.city}</span>);
+    t.push(<span className="tag tag--cat" key="cat">{j.category}</span>);
+    if (j.salary) t.push(<span className="pill pill--high" key="sal">薪资 · {j.salary}</span>);
+    if (j.entry) t.push(<span className="pill pill--low" key="en">门槛 · {j.entry}</span>);
   } else {
     const o = it as OpsItem;
     t.push(<span className={'pill ' + (o.origin === '政策规划' ? 'pill--policy' : o.origin === '本地机会' ? 'pill--local' : 'pill--market')} key="o">{o.origin}</span>);
@@ -79,8 +107,16 @@ export function DetailModal() {
             <Block label="精炼" text={(it as OpsItem).description} />
             <Block label="详情" text={it.detail} />
             <OpsWarn it={it as OpsItem} />
-            <Block label="行动建议" text={(it as OpsItem).action} mod="acc" />
+            <Block label="第一步" text={(it as OpsItem).action} mod="acc" />
+            <ListBlock label="上手路径" items={(it as OpsItem).steps} />
+            <Block label="起步投入" text={(it as OpsItem).cost} />
             <Block label="适合谁" text={(it as OpsItem).audience} />
+          </> : null}
+          {kind === 'jobs' ? <>
+            <TagBlock label="所需技术" items={(it as JobsItem).skills} />
+            <Block label="需求依据" text={(it as JobsItem).demand} mod="acc" />
+            <Block label="怎么准备" text={(it as JobsItem).prepare} />
+            <Block label="详情" text={it.detail} />
           </> : null}
           {!it.detail ? <p className="dt__none">旧数据没有详情,重新生成后就会有。</p> : null}
           <div className="dt__src">

@@ -22,6 +22,7 @@ export interface ItemBase {
   // itemId 的兼容字段:历史 id 由 date/policy/term 参与计算,改名会让已入库条目全部变成"新增"
   policy?: string;
   term?: string;
+  city?: string;
 }
 
 export interface NewsItem extends ItemBase {
@@ -57,6 +58,20 @@ export interface OpsItem extends ItemBase {
   difficulty: string;
   audience: string;
   action: string;
+  // 上手路径:3 到 5 步,每步一句「做什么 + 做到什么程度 + 在哪做」;cost 是起步投入与周期
+  steps: string[];
+  cost: string;
+}
+
+// 就业形势:某个城市里确实在招的岗位 + 拿到它需要的技术
+export interface JobsItem extends ItemBase {
+  city: string;
+  category: string;
+  salary: string;
+  demand: string;
+  entry: string;
+  prepare: string;
+  skills: string[];
 }
 
 export interface RankItem extends ItemBase {
@@ -67,8 +82,8 @@ export interface RankItem extends ItemBase {
   note: string;
 }
 
-export type AnyItem = NewsItem | SumItem | TechItem | OpsItem | RankItem | ItemBase;
-export type BucketKind = 'news' | 'sum' | 'tech' | 'ops' | 'rank';
+export type AnyItem = NewsItem | SumItem | TechItem | OpsItem | RankItem | JobsItem | ItemBase;
+export type BucketKind = 'news' | 'sum' | 'tech' | 'ops' | 'rank' | 'jobs';
 
 // ---------- 日期工具 ----------
 export function pad(n: number): string { return n < 10 ? '0' + n : '' + n; }
@@ -82,7 +97,18 @@ export const RANGE_COUNT: Record<number, [number, number]> = { 1: [4, 6], 3: [6,
 export const OPS_TRACKS = ['大模型/基础模型', '智能算力/AI芯片', '具身智能/机器人', '自动驾驶/智能车', '智能制造', 'AI+医疗', 'AI+金融', '数据要素', 'AI+政务/城市治理', '低空经济', 'AI+内容/文创', 'AI+教育', 'AI安全/治理', '通用应用/工具'];
 export const OPS_TRACK_ENUM = OPS_TRACKS.join(',');
 export const OPS_LEVELS = ['国家级', '省级', '市级'];
-export const MAX_ITEMS: Record<string, number> = { news: 60, sum: 24, tech: 40, ops: 60 };
+// 就业形势:只做这四座城市(站长选的求职半径),两城一组分两次请求,单次响应不至于太长被截
+export const JOB_CITIES = ['广州', '深圳', '厦门', '漳州'];
+export const JOB_GROUPS: string[][] = [JOB_CITIES.slice(0, 2), JOB_CITIES.slice(2)];
+export const JOB_CATS = ['算法与模型', '后端与架构', '前端与终端', '数据与分析', '测试与运维', '产品与运营', '设计与内容', '实施与支持'];
+export const JOB_CAT_ENUM = JOB_CATS.join(',');
+// 三类商机共用的「怎么上手」字段:光有一句行动建议看不出从哪起步,所以拆成可照做的分步路径 + 起步投入
+export const OPS_ACTION_SCHEMA = '"difficulty":"高/中/低 选一个",' +
+  '"audience":"适合谁做,不超过16字,写清是什么身份(如 会写 Python 的兼职者/有本地制造业关系的销售)",' +
+  '"action":"第一步行动建议,20到40字,必须是今天就能做完的一件具体事",' +
+  '"steps":["上手路径,给 3 到 5 步,每步不超过34字:做什么 + 做到什么程度 + 具体在哪里做(平台/渠道/对象要点名,不要写「提升自己能力」这种没法执行的话)"],' +
+  '"cost":"起步投入,不超过30字:大概要花多少钱、占用多少业余时间、需要什么设备或账号"';
+export const MAX_ITEMS: Record<string, number> = { news: 60, sum: 24, tech: 40, ops: 60, jobs: 30 };
 export const HISTORY_DAYS = 21; // 超过此天数的历史条目自动淘汰
 
 // ---------- 稳定 id + 历史保留 + NEW 判定 ----------
@@ -92,7 +118,8 @@ export function hashStr(s: unknown): string {
   return (h >>> 0).toString(36);
 }
 export function itemId(kind: string, it: ItemBase): string {
-  const extra = kind === 'sum' ? '' : (it.date || it.policy || it.term || '');
+  // jobs 用城市而不是日期参与主键:同一个岗位明天还在招就不该重新标一次 NEW
+  const extra = kind === 'sum' ? '' : (kind === 'jobs' ? (it.city || '') : (it.date || it.policy || it.term || ''));
   return kind + '_' + hashStr((it.title || '') + '|' + (it.url || '') + '|' + extra);
 }
 export function ageDays(firstSeen?: string): number {
@@ -189,11 +216,13 @@ export function buildAiOpsMessages(): Message[] {
     '"title":"商机标题,不超过26字","description":"40到70字精炼说明:是什么商机、解决什么需求",' +
     '"detail":"120到220字详情,讲清为什么现在是机会、依据哪些近期动态、具体怎么切入、需要什么资源或能力、主要风险与不确定性",' +
     '"track":"从[' + OPS_TRACK_ENUM + ']选一个","timeframe":"本周 或 本月","potential":"高 或 中",' +
-    '"difficulty":"高/中/低 选一个","audience":"适合谁做,不超过16字","action":"第一步行动建议,20到40字",' +
+    OPS_ACTION_SCHEMA + ',' +
     '"source":"依据的来源媒体/机构名,没有则空字符串","url":"参考来源链接,没有则空字符串"}]}';
   const user = '今天是 ' + dstr + '。请结合最近一周全球与中国 AI 市场动态,提炼个人或小微企业能上手的 AI 赛道商机。\n' +
     '严格按以下 JSON 结构输出:\n' + schema + '\n' +
-    '要求:opportunities 给出 5 到 7 条,覆盖不同 track 赛道,具体可执行、避免空泛;detail 必须给出可判断的真信息,不能重复 description。全部简体中文。只输出 JSON。';
+    '要求:opportunities 给出 5 到 7 条,覆盖不同 track 赛道,具体可执行、避免空泛;detail 必须给出可判断的真信息,不能重复 description;' +
+    'steps 要按"先补哪块能力 → 拿什么作品或案例证明 → 去哪些平台/找哪类客户拿到第一批订单 → 第一单怎么报价交付"的顺序写,渠道点名(如 猪八戒/闲鱼/本地某行业协会/某类企业的具体部门);' +
+    'cost 写实的量级(几百元级/几千元级/需要多少业余时间),不要写"投入较低"这种判断不了的话。全部简体中文。只输出 JSON。';
   return [{ role: 'system', content: sys }, { role: 'user', content: user }];
 }
 export function buildPolicyOpsMessages(): Message[] {
@@ -207,13 +236,15 @@ export function buildPolicyOpsMessages(): Message[] {
     '"track":"从[' + OPS_TRACK_ENUM + ']选一个","level":"从[国家级,省级,市级]选一个",' +
     '"region":"全国 或对应省市名","policy":"规划/政策全称+发布时间,如《XX行动计划》(2025-XX)",' +
     '"source":"发布机构名,如工信部/某市人民政府","url":"政策原文或权威来源链接,没有则空字符串","timeframe":"本周 或 本月","potential":"高 或 中",' +
-    '"difficulty":"高/中/低 选一个","audience":"适合谁做,不超过16字","action":"第一步行动建议,20到40字"}]}';
+    OPS_ACTION_SCHEMA + '}]}';
   const user = '今天是 ' + dstr + '。请联网检索中国 ' + start + ' 至今(近半年)最新的国家级与城市级 AI 相关规划/政策,把每条政策解析成对应的落地商机。\n' +
     '严格按以下 JSON 结构输出:\n' + schema + '\n' +
     '要求:\n' +
     '1) opportunities 给出 5 到 7 条,来源覆盖国家级(如"人工智能+"行动、全国一体化算力网、"数据要素×"行动等)与城市级(如北京/上海/深圳/杭州/广州/成都/合肥等近半年发布的人工智能行动计划或若干措施),层级与城市尽量分散;\n' +
     '2) 每条覆盖不同 track 赛道,务必写清 policy(全称+发布时间)、level、region,尽量附官方 url,真实可核查;\n' +
-    '3) 商机要具体、个人或小微企业可执行。全部简体中文。只输出 JSON。';
+    '3) 商机要具体、个人或小微企业可执行;\n' +
+    '4) steps 要按"政策里哪一条释放出需求 → 谁是需要它的单位 → 用什么身份去接(承接平台/招投标公告/主管科室) → 先做出什么才能进名单 → 第一单怎么报价"的顺序写清,能点名就点名;' +
+    'cost 写实的量级与周期。全部简体中文。只输出 JSON。';
   return [{ role: 'system', content: sys }, { role: 'user', content: user }];
 }
 // 本地机会:结合传入的地区,检索当地 AI 政策/产业/场景,提炼本地可落地商机
@@ -229,13 +260,15 @@ export function buildLocalOpsMessages(regionInput?: string): Message[] {
     '"track":"从[' + OPS_TRACK_ENUM + ']选一个","level":"从[国家级,省级,市级]选一个,没有明确层级则留空字符串",' +
     '"region":"' + region + '内的具体地市/区县,或整个' + region + '","policy":"所依据的本地规划/政策/事件全称+发布时间,没有则空字符串",' +
     '"source":"发布或报道该信息的本地机构名,没有则空字符串","url":"官方或权威来源链接,没有则空字符串","timeframe":"本周 或 本月","potential":"高 或 中",' +
-    '"difficulty":"高/中/低 选一个","audience":"适合谁做,不超过16字","action":"第一步行动建议,20到40字"}]}';
+    OPS_ACTION_SCHEMA + '}]}';
   const user = '今天是 ' + dstr + '。请联网检索中国' + region + ' ' + start + ' 至今(近半年)最新的 AI 相关规划/政策/产业动态(如' + region + '及下辖地市的人工智能行动计划、算力/数据要素政策、场景开放清单、产业基金、园区招商等),把每条解析成' + region + '本地个人或小微企业能落地的商机。\n' +
     '严格按以下 JSON 结构输出:\n' + schema + '\n' +
     '要求:\n' +
     '1) opportunities 给出 5 到 7 条,尽量覆盖' + region + '内不同地市与不同 track 赛道;\n' +
     '2) 每条写清 region(具体到地市/区县)、尽量写清 policy(全称+发布时间)与 level,并尽量附官方 url,真实可核查、不得编造;\n' +
-    '3) 商机要具体、结合本地产业特色(如当地优势行业、集群、资源),个人或小微企业可执行。全部简体中文。只输出 JSON。';
+    '3) 商机要具体、结合本地产业特色(如当地优势行业、集群、资源),个人或小微企业可执行;\n' +
+    '4) steps 要落到' + region + '本地能找到的具体对象上:哪个园区/哪类企业/哪个科室或平台、通过什么方式进去(公开招投标、场景清单申报、园区运营方、行业协会、本地服务商名录),再谈第一单怎么报价交付;' +
+    'cost 写实的量级与周期。全部简体中文。只输出 JSON。';
   return [{ role: 'system', content: sys }, { role: 'user', content: user }];
 }
 export function buildOpsMessages(mode: string, region?: string): Message[] {
@@ -275,6 +308,41 @@ export function buildTechMessages(rangeInput?: number): Message[] {
     '要求:tech 给出 6 到 9 条,覆盖不同 track 赛道与不同 stage 阶段;principle 必须让外行也看得懂;每条尽量附真实 url 以便深读;date 填该技术/报道真实出现的具体日期(YYYY-MM-DD),务必尽量新,不要把窗口最早那天的旧事物当新内容;输出按 date 从新到旧排列。全部简体中文。只输出 JSON。';
   return [{ role: 'system', content: sys }, { role: 'user', content: user }];
 }
+// 就业形势:指定城市里确实在招的 AI/技术岗位,以及拿到它需要的技术
+// city 候选只写本轮问到的城市:分组请求时若把四城全列进 schema,模型会顺手把别城岗位也带回来,两次调用就重复花钱了
+export function jobsSchema(cities: string[], dstr: string): string {
+  const list = (cities.length ? cities : JOB_CITIES).join(',');
+  return '{"generated_at":"' + dstr + '","jobs":[{' +
+    '"title":"岗位名称,照招聘方常用的叫法写,不超过20字",' +
+    '"city":"从[' + list + ']选一个",' +
+    '"category":"从[' + JOB_CAT_ENUM + ']选一个",' +
+    '"salary":"薪资区间,如 9-15K·13薪;来源里没写就留空字符串,严禁估算或编造",' +
+    '"demand":"需求依据,不超过34字:在哪里看到的(如 某市人社局2026年紧缺职业目录/某招聘平台该城在招岗位页/某企业官网招聘),有数字才写数字",' +
+    '"entry":"入门门槛,不超过26字:学历 + 经验年限 + 必须拿得出的作品",' +
+    '"skills":["所需技术或工具,3 到 6 条,每条不超过14字,写具体名称(如 Python、SQL、LangChain、PyTorch、Docker、Vue3、数据标注规范),不要写沟通能力这类软素质"],' +
+    '"prepare":"90到160字:想拿到这个岗位该怎么准备——先补哪一块技术、做出什么东西能证明、面试通常追问什么、这个城市哪类公司在招",' +
+    '"detail":"120到200字:这个岗位为什么在当地缺人、进去之后一天大致做什么、和哪些岗位竞争、往上走通常走哪条路",' +
+    '"date":"YYYY-MM-DD,填来源发布或采集日期",' +
+    '"source":"来源平台/机构名","url":"原始链接,没有则空字符串"}]}';
+}
+export function buildJobsMessages(cities: string[]): Message[] {
+  const dstr = fmtDate(new Date());
+  const list = (cities.length ? cities : JOB_CITIES).join('、');
+  const sys = '你是「AI 窗口」的就业形势分析引擎,面向想在指定城市找 AI 与软件相关工作的人(包括转行和兼职)。' +
+    '你会联网检索这些城市当前真实在招的岗位:招聘平台的岗位列表页、人社部门发布的急需紧缺职业目录、企业官网招聘页与行业用人报告。' +
+    '岗位名、薪资、需求依据必须来自检索到的真实来源,查不到薪资就留空,严禁编造数字或把别城的数据安到这个城市头上。' +
+    '你只输出一个 JSON 对象,不要输出任何解释、前后缀或 Markdown 代码块。';
+  const user = '今天是 ' + dstr + '。请联网检索 ' + list + ' 这几个城市最近(近一个月)AI 相关、最好就业或在招量最大的岗位,每个城市给 4 到 6 条。\n' +
+    '严格按以下 JSON 结构输出:\n' + jobsSchema(cities, dstr) + '\n' +
+    '要求:\n' +
+    '1) 每个城市单独成组,' + list.split('、').join(' 与 ') + ' 都要有结果,不要把两个城市的岗位混在一条里;某城市确实查不到就少给条数,严禁凑数或把别的城市挪过来;\n' +
+    '2) 只收与 AI/软件/数据实际相关的岗位(算法、开发、测试、数据、标注与训练、产品、运营、实施与支持),不收与 AI 无关的通用岗位;\n' +
+    '3) 优先"好就业"的判据:在招数量多、明确写着经验不限或1-3年、学历门槛不高、或缺口被官方目录点名;不要把需要博士/十年经验的稀罕岗位当机会;\n' +
+    '4) skills 只写技术名与工具名;salary 与 demand 的数字必须有来源,没有就留空字符串;\n' +
+    '5) prepare 要让一个准备投简历的人照着做,写清先补什么、做什么作品能证明、面试追问什么、本地哪类公司在招;\n' +
+    '6) date 填来源发布或采集日期,输出按 date 从新到旧排列。全部简体中文。只输出 JSON。';
+  return [{ role: 'system', content: sys }, { role: 'user', content: user }];
+}
 
 // ---------- 结果归一化 ----------
 export function extractJSON(text: string): any {
@@ -296,6 +364,13 @@ function pickArr(obj: any, keys: string[]): any[] {
     if (Array.isArray(obj[keys[i]])) return obj[keys[i]];
   }
   return [];
+}
+// 模型有时给数组、有时给一句话:统一收成字符串数组并限量
+function toStrList(v: unknown, max: number): string[] {
+  if (Array.isArray(v)) return v.map((s) => String(s == null ? '' : s).trim()).filter(Boolean).slice(0, max);
+  const s = String(v == null ? '' : v).trim();
+  if (!s) return [];
+  return s.split(/[,，、;；\n|]+/).map((t) => t.trim()).filter(Boolean).slice(0, max);
 }
 export function normalizeNews(obj: any): { generated_at: string; items: NewsItem[] } {
   const arr = pickArr(obj, ['news', 'items', 'events', '新闻', '新闻列表']);
@@ -351,7 +426,31 @@ export function normalizeOps(obj: any): { generated_at: string; items: OpsItem[]
         url: o.url || '',
         timeframe: o.timeframe === '本月' ? '本月' : '本周', potential: o.potential === '高' ? '高' : '中',
         difficulty: ['高', '中', '低'].indexOf(o.difficulty) >= 0 ? o.difficulty : '中',
-        audience: o.audience || '', action: o.action || ''
+        audience: o.audience || '', action: o.action || '',
+        steps: toStrList(o.steps, 6), cost: String(o.cost || '').trim()
+      };
+    }))
+  };
+}
+export function normalizeJobs(obj: any): { generated_at: string; items: JobsItem[] } {
+  const arr = pickArr(obj, ['jobs', 'items', '岗位', '岗位列表', 'positions']);
+  return {
+    generated_at: obj.generated_at || fmtDate(new Date()),
+    items: dropPlaceholders(arr.map((j: any): JobsItem => {
+      const rawCity = String(j.city || '').trim();
+      // 模型常写「广州市」;认不出这四城时保留原样,由筛选栏按实际值出 chips
+      const city = JOB_CITIES.filter((c) => rawCity.indexOf(c) >= 0)[0] || rawCity;
+      return {
+        title: j.title || '未命名岗位', city,
+        category: String(j.category || '').trim(),
+        salary: String(j.salary || '').trim(),
+        demand: String(j.demand || '').trim(),
+        entry: String(j.entry || '').trim(),
+        prepare: String(j.prepare || '').trim(),
+        skills: toStrList(j.skills, 6),
+        detail: String(j.detail || '').trim(),
+        date: String(j.date || '').slice(0, 10),
+        source: String(j.source || '').trim(), url: String(j.url || '').trim()
       };
     }))
   };

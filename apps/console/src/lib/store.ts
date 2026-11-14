@@ -10,8 +10,8 @@ import {
   type Provider, type Settings, type Usage
 } from './settings';
 
-export type View = 'sum' | 'news' | 'tech' | 'rank' | 'ops' | 'net';
-export type BucketKind = 'news' | 'sum' | 'tech' | 'rank' | 'ops';
+export type View = 'sum' | 'news' | 'tech' | 'rank' | 'ops' | 'jobs' | 'net';
+export type BucketKind = 'news' | 'sum' | 'tech' | 'rank' | 'ops' | 'jobs';
 export type OpsMode = 'ai' | 'policy' | 'local';
 export type BucketStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -39,6 +39,7 @@ export interface Filters {
   newsCat: string; newsRegion: string; newsImp: string;
   opsTime: string; opsTrack: string; opsOrigin: string;
   techTrack: string; rankTrack: string; netRoute: string;
+  jobsCity: string; jobsCat: string;
 }
 
 export interface SnapshotMeta { ts: number; model: string; at: string }
@@ -68,6 +69,7 @@ export interface AppState {
   sum: Bucket;
   tech: Bucket;
   rank: Bucket;
+  jobs: Bucket;
   usage: Usage;
   snapshot: SnapshotMeta | null;
   snapshotError: string;
@@ -88,7 +90,7 @@ export const IMPS = ['全部', '重大', '一般'];
 export const OPS_TIMES = ['全部', '本周', '本月'];
 export const OPS_ORIGINS = ['全部', '政策规划', '市场商机', '本地机会'];
 export const KIND_NAME: Record<BucketKind, string> = {
-  news: 'AI 大事件', sum: 'AI 汇总', tech: '前沿技术', rank: '模型排行', ops: '商机雷达'
+  news: 'AI 大事件', sum: 'AI 汇总', tech: '前沿技术', rank: '模型排行', ops: '商机雷达', jobs: '就业形势'
 };
 
 export function blankBucket(): Bucket {
@@ -112,13 +114,15 @@ export const state: AppState = {
   sum: blankBucket(),
   tech: blankBucket(),
   rank: blankBucket(),
+  jobs: blankBucket(),
   usage: loadUsage(),
   snapshot: null,
   snapshotError: '',
   filters: {
     newsCat: '全部', newsRegion: '全部', newsImp: '全部',
     opsTime: '全部', opsTrack: '全部', opsOrigin: '全部',
-    techTrack: '全部', rankTrack: '全部', netRoute: 'all'
+    techTrack: '全部', rankTrack: '全部', netRoute: 'all',
+    jobsCity: '全部', jobsCat: '全部'
   },
   ui: {
     settingsOpen: false, genKind: null, genRange: 3, genTechRange: 30, genMode: 'ai',
@@ -161,7 +165,8 @@ export function configured(): boolean {
 export function saveCache(): void {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify({
-      news: state.news, ops: state.ops, sum: state.sum, tech: state.tech, rank: state.rank, snap: state.snapshot
+      news: state.news, ops: state.ops, sum: state.sum, tech: state.tech, rank: state.rank,
+      jobs: state.jobs, snap: state.snapshot
     }));
   } catch { /* 写不进本机缓存不影响本次浏览 */ }
 }
@@ -194,22 +199,24 @@ export function fmtTime(ts: number): string {
 export function fmtDateTime(ts: number): string { return fmtDate(new Date(ts)) + ' ' + fmtTime(ts); }
 export function todayStr(): string { return fmtDate(new Date()); }
 
+// 板块清单:新增板块只要在这一行加一个 key,下面几处统计就不会再漏(之前是六个各写一遍的重复列表)
+export const BUCKET_KINDS: BucketKind[] = ['sum', 'news', 'tech', 'rank', 'ops', 'jobs'];
+// 对外在营的板块:AI 大事件与汇总内容重叠,先下线(数据与面板代码都留着,加回这一行即恢复)
+export const LIVE_KINDS: BucketKind[] = ['sum', 'tech', 'rank', 'ops', 'jobs'];
+
 export function anyLoading(): boolean {
-  return state.news.status === 'loading' || state.ops.status === 'loading'
-    || state.sum.status === 'loading' || state.tech.status === 'loading';
+  // 排行是抓来的不是生成的,不参与"正在生成"互斥
+  return BUCKET_KINDS.filter((k) => k !== 'rank').some((k) => state[k].status === 'loading');
 }
 export function anySyncing(): boolean {
-  return !!(state.news.syncing || state.sum.syncing || state.ops.syncing || state.rank.syncing || state.tech.syncing);
+  return BUCKET_KINDS.some((k) => !!state[k].syncing);
 }
 export function totalNew(): number {
-  return (['news', 'sum', 'ops', 'rank', 'tech'] as BucketKind[])
-    .reduce((n, k) => n + state[k].items.filter((it) => it.isNew).length, 0);
+  // 只数在营板块:已下线的 AI 大事件仍留在本机缓存里,不该再往"今日新增"里灌数
+  return LIVE_KINDS.reduce((n, k) => n + state[k].items.filter((it) => it.isNew).length, 0);
 }
 export function lastFetchTs(): number {
-  return Math.max(
-    state.news.fetched_at || 0, state.sum.fetched_at || 0, state.ops.fetched_at || 0,
-    state.rank.fetched_at || 0, state.tech.fetched_at || 0
-  );
+  return LIVE_KINDS.reduce((n, k) => Math.max(n, state[k].fetched_at || 0), 0);
 }
 
 export function loadCacheIntoState(): void {
@@ -219,7 +226,7 @@ export function loadCacheIntoState(): void {
     cache = raw ? JSON.parse(raw) : null;
   } catch { cache = null; }
   if (!cache) return;
-  (['news', 'ops', 'sum', 'tech', 'rank'] as BucketKind[]).forEach((k) => {
+  BUCKET_KINDS.forEach((k) => {
     const b = cache?.[k] as Bucket | undefined;
     if (!b || b.status !== 'ready' || !Array.isArray(b.items)) return;
     b.items = dropPlaceholders(b.items);

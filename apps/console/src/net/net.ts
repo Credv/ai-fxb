@@ -7,8 +7,8 @@ import { normalizeConfig, validateEvent } from './vendor/spider/config.js';
 var PAGE_SIZE = 32;
 var STEP = 0.17;
 var TAIL = 2.8;
-var ROUTE_OF: Record<string, 'code' | 'model' | 'you'> = { sum: 'code', news: 'code', tech: 'model', rank: 'model', ops: 'you' };
-var HINTS = { code: '汇总 + 大事件', model: '前沿技术 + 模型排行', you: '商机雷达' };
+var ROUTE_OF: Record<string, 'code' | 'model' | 'you'> = { sum: 'code', news: 'code', tech: 'model', rank: 'model', ops: 'you', jobs: 'you' };
+var HINTS = { code: '汇总 + 大事件', model: '前沿技术 + 模型排行', you: '商机雷达 + 就业形势' };
 
 var CONFIG = normalizeConfig({
   title: '情报蛛网',
@@ -51,7 +51,7 @@ function rankRatios(items: any[]): (it: any) => number | null {
   };
 }
 
-export type NetBoard = 'sum' | 'news' | 'tech' | 'rank' | 'ops';
+export type NetBoard = 'sum' | 'news' | 'tech' | 'rank' | 'ops' | 'jobs';
 export type NetBuckets = Partial<Record<NetBoard, any[]>>;
 
 interface Row { board: NetBoard; id: string; title: string; stamp: string; score: number | null; note: string }
@@ -59,7 +59,7 @@ interface Row { board: NetBoard; id: string; title: string; stamp: string; score
 function collect(buckets: NetBuckets): Row[] {
   var rows: Row[] = [];
   var ratio = rankRatios(buckets.rank || []);
-  (['sum', 'news', 'tech', 'ops', 'rank'] as NetBoard[]).forEach(function (board) {
+  (['sum', 'news', 'tech', 'ops', 'jobs', 'rank'] as NetBoard[]).forEach(function (board) {
     (buckets[board] || []).forEach(function (it) {
       rows.push({
         board, id: it.id, title: it.title || '',

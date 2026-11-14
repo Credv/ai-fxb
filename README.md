@@ -1,6 +1,6 @@
 # AI 窗口
 
-一个**本地优先**的个人 AI 情报控制台（3D 科幻 HUD）：打开即保留上一次的历史记录，并在后台静默同步当日最新信息，今日新增条目自动标记 **NEW**。内容按「AI 汇总 → 前沿技术 → 模型排行 → 商机雷达 → AI 大事件」呈现。
+一个**本地优先**的个人 AI 情报控制台（3D 科幻 HUD）：打开即保留上一次的历史记录，并在后台静默同步当日最新信息，今日新增条目自动标记 **NEW**。内容按「AI 汇总 → 前沿技术 → 模型排行 → 商机雷达 → 就业形势」呈现。
 
 线上 https://3ecat.me 现在有两个入口：
 
@@ -17,8 +17,9 @@
 - **API Key 只保存在你自己浏览器的 localStorage**，不进入代码、不进入构建产物、不上传任何服务器；站长的 Key 只存在 GitHub Actions Secret 里。
 - **历史保留 + NEW 标记**：每次拉取与缓存按稳定 id 合并，未见过的条目标 NEW 并置顶，历史保留 21 天。
 - **静默同步**：每天首次打开自动后台拉取（可在设置关闭），不阻塞已缓存内容的展示。
-- 五大板块：AI 汇总、前沿技术（原理解读卡片）、模型排行（综合总榜 + 逻辑推理/代码/视频/图像/语音多模态五个细分榜，条形图对比；数据抓取自独立第三方评测 Artificial Analysis 的公开榜单，真实分数与出处，不靠模型编造）、商机雷达（AI 赛道 / 国家政策 / 本地机会三类融合、按赛道标签区分）、AI 大事件。
-- **情报蛛网（暂未开放）**：把当天快照的条目按内容分流成三条分支（情报 = 汇总 + 大事件 / 技术 = 前沿技术 + 模型排行 / 商机 = 商机雷达）的动画视图，点任意条目直接进详情。画面用的是 MIT 授权的第三方动画层（`apps/console/src/net/vendor/spider/`，改动清单见其 `NOTICE.md`），**数据全部来自本站快照**：分数只有模型排行给得出真实比值，其余条目一律显示「未打分」，不做任何估算。入口开关在 `apps/console/src/components/Shell.tsx` 的 `SHOW_NET_TAB`，改成 `true` 即恢复。
+- 板块：AI 汇总、前沿技术（原理解读卡片）、模型排行（综合总榜 + 逻辑推理/代码/视频/图像/语音多模态五个细分榜，条形图对比；数据抓取自独立第三方评测 Artificial Analysis 的公开榜单，真实分数与出处，不靠模型编造）、商机雷达（AI 赛道 / 国家政策 / 本地机会三类融合、按赛道标签区分；每条给「第一步 + 3–5 步上手路径 + 起步投入」）、就业形势（广州 / 深圳 / 厦门 / 漳州 四城的 AI 与软件数据类在招岗位，含所需技术、薪资与需求依据）。
+- **AI 大事件（news）暂时下线**：内容与 AI 汇总重叠，每天省一次请求。数据、面板与 `NewsPanel` 都保留着，把它加回 `apps/console/src/lib/store.ts` 的 `LIVE_KINDS`（以及 `generate-snapshot.mjs` 里的 newsRes 段）即恢复。
+- **情报蛛网（暂未开放）**：把当天快照的条目按内容分流成三条分支（情报 = 汇总 / 技术 = 前沿技术 + 模型排行 / 商机 = 商机雷达 + 就业形势）的动画视图，点任意条目直接进详情。画面用的是 MIT 授权的第三方动画层（`apps/console/src/net/vendor/spider/`，改动清单见其 `NOTICE.md`），**数据全部来自本站快照**：分数只有模型排行给得出真实比值，其余条目一律显示「未打分」，不做任何估算。入口开关在 `apps/console/src/components/Shell.tsx` 的 `SHOW_NET_TAB`，改成 `true` 即恢复。
 - 每条消息分两层：卡片只显示精炼文案，点开进详情弹窗看完整来龙去脉，原文出处与原文链接在卡片和弹窗内都可见。
 - 3D 控制台背景：轻量 WebGL 星域 + 数据链路，软件渲染 / 低帧率自动降级为静态或关闭，手机/触屏走低配参数（运行时按 `pointer:coarse` 与视口宽度判定），可在设置手动开关。three.js 不在首屏请求（见「说明」）。
 - 移动端适配：≤640px 下导航等分吸顶、筛选横向滑动、弹窗变底部抽屉、输入框 16px 防 iOS 自动放大。
@@ -71,8 +72,10 @@ npm run dev:resume     # 简历   http://127.0.0.1:3000/
 
 ## 每日快照（站长侧）
 
-- `tools/generate-snapshot.mjs`：用环境变量里的 Key 跑一轮四个 AI 看板生成（sum/tech/news/ops），与旧快照合并（保留历史 21 天、标 NEW、最新在前）后写 `apps/console/public/data/snapshot.json`。单项失败保留旧数据继续，不会把快照打空。它直接复用 `@ai-fxb/core` 的提示词与归一化规则，所以跑之前要先 `npm run build:core`（workflow 里已串好）。
-- **占位条目一律丢弃**：模型联网没查到时会写「模型发布待核实 / 来源：内部检索限制」这种空壳凑数（实测 sum 看板 24 条里 5 条是这种，还因为日期最新顶在最前面）。`core.isPlaceholderItem()` 统一判定（标题含待核实/未检索到、来源含检索限制、无链接且正文只在说查不到），在四处入口各过滤一遍：`normalizeSum/Tech/News/Ops`、`mergeBucketItems`（旧数据和新数据都过）、前端读快照与读本机缓存、`generate-snapshot.mjs` 的日志。过滤后为 0 条按失败处理，保留旧数据，不会把板块打空。生成请求同时带 `search_options.forced_search`（强制联网），接口不认这个参数时整轮自动回退成仅 `enable_search`。
+- `tools/generate-snapshot.mjs`：用环境变量里的 Key 跑一轮五个看板生成（sum / tech / ops 三类 / jobs 四城两组），与旧快照合并（保留历史 21 天、标 NEW、最新在前）后写 `apps/console/public/data/snapshot.json`。一轮共 **7 次大模型调用**（sum 1 + tech 1 + ops 3 + jobs 2；rank 走第三方镜像、零 token），单项失败保留旧数据继续，不会把快照打空。它直接复用 `@ai-fxb/core` 的提示词与归一化规则，所以跑之前要先 `npm run build:core`（workflow 里已串好）。
+- **就业形势分两组请求**：`core.JOB_GROUPS` 把广州/深圳、厦门/漳州各分成一组，一组一次调用（单城一次要 4 次太贵）；每组的 schema 只列本组城市，否则模型会把别城岗位也带回来、两次调用重复花钱。合并按城市分组分别做，避免第二组把第一组刚标的 NEW 冲掉；`itemId` 对 jobs 用「标题+链接+城市」而不是日期，同一岗位明天还在招不会天天重新标 NEW。
+- **AI 大事件不再生成**：`snap` 里不再写 news。实测当前快照 350,855 B 里 news 占 60,716 B（17%），去掉后访客首屏少下载这么多；恢复方式见「功能」里的说明。
+- **占位条目一律丢弃**：模型联网没查到时会写「模型发布待核实 / 来源：内部检索限制」这种空壳凑数（实测 sum 看板 24 条里 5 条是这种，还因为日期最新顶在最前面）。`core.isPlaceholderItem()` 统一判定（标题含待核实/未检索到、来源含检索限制、无链接且正文只在说查不到），在四处入口各过滤一遍：`normalizeSum/Tech/News/Ops/Jobs`、`mergeBucketItems`（旧数据和新数据都过）、前端读快照与读本机缓存、`generate-snapshot.mjs` 的日志。过滤后为 0 条按失败处理，保留旧数据，不会把板块打空。生成请求同时带 `search_options.forced_search`（强制联网），接口不认这个参数时整轮自动回退成仅 `enable_search`。
 - `tools/purge-placeholder.mjs`：零 token 清理已写进快照的占位条目（`--check` 只报告，发现即退出码 1）。存量清理用它，之后每天由生成脚本自己保证。
 - **模型排行不由模型生成**：让模型"联网检索榜单"时它会连榜单名一起编（实测出现过虚构的 LMArena 版本、不存在的模型、把自家 Qwen 排第一），所以排行改为直接抓 Artificial Analysis 的公开数据镜像 `EvanZhouDev/ai-model-index`（每日同步），6 个榜单各取去重后前 5 名，整榜替换，零 token。少于 4 个榜抓取成功则保留旧数据。可用 `AIFXB_RANK_MIRROR` 覆盖镜像地址。
 - `.github/workflows/update-snapshot.yml`：每天北京时间 **00:00 自动运行一次**（cron `0 16 * * *` UTC），先装依赖并编译 core，再生成快照，有变化才 commit+push，推送即触发线上重新构建部署。也可在 Actions 页面手动触发。注意 GitHub 的定时触发只保证「每天一次」、不保证准点（实测延迟过 27 分钟和 4 小时 22 分），所以放在零点：即使延后几小时也仍在夜里跑完。
@@ -133,7 +136,7 @@ ai-fxb/
 │     ├─ public/data/snapshot.json    # 公开快照(由 Actions 生成,不手工编辑)
 │     └─ src/
 │        ├─ main.tsx          # 入口:?admit=true 时给 <html> 加 .admit
-│        ├─ components/       # 外壳、五个板块、三个弹窗
+│        ├─ components/       # 外壳、各板块面板(含已下线的 NewsPanel)、三个弹窗
 │        ├─ lib/              # settings/store/api/generate/snapshot/demo
 │        ├─ net/              # 情报蛛网页签 + vendor/spider(MIT 第三方动画层)
 │        ├─ three/            # 3D 背景(three.js 从 npm 取,动态 import)

@@ -24,7 +24,7 @@ try {
   process.exit(2);
 }
 
-const BOARDS = ['sum', 'tech', 'news', 'rank', 'ops'];
+const BOARDS = ['sum', 'tech', 'news', 'rank', 'ops', 'jobs'];
 let totalDropped = 0;
 BOARDS.forEach((k) => {
   const b = snap[k];

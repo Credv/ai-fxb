@@ -1,16 +1,16 @@
-/* 生成动作:五个板块各一次独立请求(单次更小、更容易在超时内跑通)。
+/* 生成动作:每个板块各一次独立请求(单次更小、更容易在超时内跑通)。
  * 每次都做:静默/手动区分 → 调 API → 归一化 → 与本机历史合并(保留 firstSeen、标 NEW) → 写本机缓存。
  */
 import {
-  buildNewsMessages, buildOpsMessages, buildRankMessages, buildSumMessages, buildTechMessages,
-  countNew, extractJSON, mergeBucketItems, normalizeNews, normalizeOps, normalizeRank,
+  buildJobsMessages, buildNewsMessages, buildOpsMessages, buildRankMessages, buildSumMessages, buildTechMessages,
+  countNew, extractJSON, JOB_CITIES, mergeBucketItems, normalizeJobs, normalizeNews, normalizeOps, normalizeRank,
   normalizeSum, normalizeTech, stampExisting, type ItemBase, type Message, type OpsItem
 } from '@ai-fxb/core';
 import { callAPI } from './api';
 import { demoData } from './demo';
 import { ADMIT } from './settings';
 import {
-  configured, fmtDate, notify, OPS_MODES, saveCache, state, todayStr,
+  BUCKET_KINDS, configured, fmtDate, notify, OPS_MODES, saveCache, state, todayStr,
   type Bucket, type BucketKind, type OpsMode
 } from './store';
 
@@ -134,6 +134,14 @@ export function generateRank(opts: GenOpts = {}): void {
   runOnce('rank', buildRankMessages(), opts, (t) => normalizeRank(extractJSON(t)));
 }
 
+// 就业形势:四城一次请求(站长侧的每日快照按两城一组分两次,单次响应更稳)
+export function generateJobs(opts: GenOpts = {}): void {
+  const b = state.jobs;
+  if (b.status === 'loading' || b.syncing) return;
+  if (!prepare('jobs', opts, b)) { notify(); return; }
+  runOnce('jobs', buildJobsMessages(JOB_CITIES), opts, (t) => normalizeJobs(extractJSON(t)));
+}
+
 // 商机三类分开生成:只替换同类 origin 的条目,其它类别的结果保留在同一份列表里融合展示
 export function generateOps(opts: GenOpts = {}): void {
   const b = state.ops;
@@ -197,20 +205,22 @@ export function loadDemoBucket(kind: BucketKind): void {
   else if (kind === 'ops') state.ops = demoBucket('ops', d.opportunities, 0);
   else if (kind === 'sum') state.sum = { ...demoBucket('sum', d.highlights, state.sumRange), overview: d.overview };
   else if (kind === 'tech') state.tech = demoBucket('tech', d.tech, state.techRange);
+  else if (kind === 'jobs') state.jobs = demoBucket('jobs', d.jobs, 0);
   else state.rank = { ...demoBucket('rank', d.ranks, 0), overview: d.rankOverview };
   notify();
 }
 
 export function loadAllDemo(): void {
-  (['news', 'ops', 'sum', 'tech', 'rank'] as BucketKind[]).forEach(loadDemoBucket);
+  BUCKET_KINDS.forEach(loadDemoBucket);
 }
 
 // 打开页面时的静默同步:仅当"今天还没同步过"才调用,避免重复消耗 token
+// AI 大事件已暂停同步(与汇总重复、每天省一次请求),恢复只需把 news 那行加回来
 export function syncStale(): void {
   if (state.settings.demo || !configured() || !state.settings.autoSync) return;
   if (isStale(state.sum)) generateSum({ silent: true });
   if (isStale(state.tech)) generateTech({ silent: true });
   if (isStale(state.rank)) generateRank({ silent: true });
-  if (isStale(state.news)) generateNews({ silent: true });
   if (isStale(state.ops)) generateOps({ silent: true });
+  if (isStale(state.jobs)) generateJobs({ silent: true });
 }

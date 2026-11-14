@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { DetailModal } from './DetailModal';
 import { GenModal } from './GenModal';
 import { SettingsModal } from './SettingsModal';
-import { NewsPanel, OpsPanel, RankPanel, SumPanel, TechPanel } from './Boards';
+import { JobsPanel, NewsPanel, OpsPanel, RankPanel, SumPanel, TechPanel } from './Boards';
 import { NetBoard } from './NetBoard';
 import { Foot, Masthead, Tabs } from './Shell';
 import { UpdatedLine } from './UpdatedLine';
@@ -74,6 +74,7 @@ export function App() {
           <TechPanel />
           <RankPanel />
           <OpsPanel />
+          <JobsPanel />
           <NewsPanel />
           <NetBoard />
         </main>

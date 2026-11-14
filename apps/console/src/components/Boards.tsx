@@ -1,10 +1,10 @@
-/* 五个板块:卡片文案、访客/管理两套提示与 DOM 结构都是既定口径,不要顺手改 */
+/* 各板块面板:卡片文案、访客/管理两套提示与 DOM 结构都是既定口径,不要顺手改 */
 import type { ReactNode } from 'react';
 import {
-  OPS_TRACKS, RANK_TRACKS,
-  type NewsItem, type OpsItem, type RankItem, type SumItem, type TechItem
+  JOB_CITIES, OPS_TRACKS, RANK_TRACKS,
+  type JobsItem, type NewsItem, type OpsItem, type RankItem, type SumItem, type TechItem
 } from '@ai-fxb/core';
-import { generateNews, generateOps, generateRank, generateSum, generateTech } from '../lib/generate';
+import { generateJobs, generateNews, generateOps, generateRank, generateSum, generateTech } from '../lib/generate';
 import {
   IMPS, NEWS_CATS, OPS_MODES, OPS_ORIGINS, OPS_TIMES, REGIONS,
   configured, fmtDateTime, openGenModal, state, useVersion,
@@ -337,7 +337,16 @@ export function OpsPanel() {
                       {meta.length ? <span className="op__policy-tag">{meta.join(' · ')}</span> : null}
                     </div>
                   ) : null}
-                  {o.action ? <div className="op__block op__action"><b>行动建议</b>{o.action}</div> : null}
+                  {o.action ? <div className="op__block op__action"><b>第一步</b>{o.action}</div> : null}
+                  {(o.steps && o.steps.length) || o.cost ? (
+                    <div className="op__block op__path">
+                      <b>上手路径</b>
+                      {o.steps && o.steps.length ? (
+                        <ol className="op__steps">{o.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
+                      ) : null}
+                      {o.cost ? <p className="op__cost">起步投入 · {o.cost}</p> : null}
+                    </div>
+                  ) : null}
                   <CardFoot it={o} />
                 </article>
               );
@@ -403,6 +412,74 @@ export function NewsPanel() {
                 </article>
               );
             })}
+        </div>
+      </Body>
+    </Panel>
+  );
+}
+
+// ---------- 就业形势 ----------
+export function JobsPanel() {
+  useVersion();
+  const b = state.jobs;
+  const items = b.items as JobsItem[];
+  const cities: string[] = ['全部'];
+  JOB_CITIES.forEach((c) => { if (items.some((j) => j.city === c)) cities.push(c); });
+  items.forEach((j) => { if (j.city && cities.indexOf(j.city) < 0) cities.push(j.city); });
+  const cats: string[] = ['全部'];
+  items.forEach((j) => { if (j.category && cats.indexOf(j.category) < 0) cats.push(j.category); });
+  const list = items.filter((j) =>
+    (state.filters.jobsCity === '全部' || j.city === state.filters.jobsCity) &&
+    (state.filters.jobsCat === '全部' || j.category === state.filters.jobsCat)
+  );
+  const skills = items.reduce((a: string[], j) => a.concat(j.skills || []), []);
+  const stats: Stat[] = [
+    { n: items.length, l: '在招岗位' },
+    { n: distinct(items.map((j) => j.city).filter(Boolean)), l: '覆盖城市' },
+    { n: distinct(skills.filter(Boolean)), l: '涉及技术' },
+    { n: b.generated_at, l: '数据日期', small: true }
+  ];
+  return (
+    <Panel kind="jobs">
+      <Toolbar
+        sel={<>城市 <b>{state.filters.jobsCity === '全部' ? JOB_CITIES.join(' / ') : state.filters.jobsCity}</b></>}
+        statusCls={'is-' + b.status} status={statusText(b)}
+        genLabel="生成岗位" genKind="jobs" disabled={b.status === 'loading'}
+      />
+      <p className="ops-hint" data-admin="1">只收 {JOB_CITIES.join('、')} 这四座城市与 AI / 软件 / 数据相关的在招岗位,优先给「在招量大、经验学历门槛不高、被官方紧缺目录点名」的岗位。薪资与需求依据照来源原样展示,来源没给数字就留空,不做估算。</p>
+      <Body bucket={b} kind="jobs" onRetry={generateJobs}
+        hint={idleHint('岗位', '点右上「生成岗位」开始检索这四座城市的在招岗位。')}>
+        <div className="stats"><StatRow stats={stats} /></div>
+        <div className="filters">
+          <div className="filter-group"><span className="filter-group__label">城市</span>
+            <div className="chips"><ChipGroup group="jobsCity" options={cities} active={state.filters.jobsCity} /></div></div>
+          <div className="filter-group"><span className="filter-group__label">方向</span>
+            <div className="chips"><ChipGroup group="jobsCat" options={cats} active={state.filters.jobsCat} /></div></div>
+        </div>
+        <div className="grid">
+          {!list.length
+            ? <EmptyState text="没有符合当前筛选的岗位。" />
+            : list.map((j) => (
+              <article className="op op--job" key={j.id} onClick={cardClick('jobs', j)}>
+                <div className="op__head">
+                  <NewBadge it={j} />
+                  {j.city ? <span className="pill pill--city">{j.city}</span> : null}
+                  {j.category ? <span className="pill pill--track">{j.category}</span> : null}
+                  {j.date ? <span className="pill pill--time">{j.date}</span> : null}
+                </div>
+                <h3 className="op__title"><CardTitle it={j} /></h3>
+                <div className="op__meta">
+                  {j.salary ? <span className="pill pill--high">薪资 · {j.salary}</span> : null}
+                  {j.entry ? <span className="pill pill--low">门槛 · {j.entry}</span> : null}
+                </div>
+                {j.skills && j.skills.length ? (
+                  <div className="job__skills">{j.skills.map((s) => <span className="tag tag--skill" key={s}>{s}</span>)}</div>
+                ) : null}
+                {j.demand ? <div className="op__block"><b>需求依据</b>{j.demand}</div> : null}
+                {j.prepare ? <div className="op__block op__path"><b>怎么准备</b><p>{j.prepare}</p></div> : null}
+                <CardFoot it={j} />
+              </article>
+            ))}
         </div>
       </Body>
     </Panel>

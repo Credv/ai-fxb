@@ -1,17 +1,26 @@
 /* 生成二次确认弹窗:点「生成」不直接发请求,先在弹窗里选范围/类型并看清代价,再确认 */
 import { RANGES, TECH_RANGES } from '@ai-fxb/core';
-import { generateNews, generateOps, generateRank, generateSum, generateTech } from '../lib/generate';
+import { generateJobs, generateNews, generateOps, generateRank, generateSum, generateTech } from '../lib/generate';
 import {
   OPS_MODES, OPS_MODE_ORDER, closeGenModal, configured, notify, state, useVersion,
   type BucketKind
 } from '../lib/store';
 
-const GEN_KINDS: Record<BucketKind, { title: string; opt: 'range' | 'techrange' | 'mode' | 'none'; run: () => void }> = {
+const JOB_SCOPE = '广州 / 深圳 / 厦门 / 漳州 四城岗位';
+
+const GEN_KINDS: Record<BucketKind, { title: string; opt: 'range' | 'techrange' | 'mode' | 'none'; run: () => void; desc?: string }> = {
   news: { title: '生成 · AI 大事件', opt: 'range', run: generateNews },
   sum: { title: '生成 · AI 汇总', opt: 'range', run: generateSum },
   tech: { title: '生成 · 前沿技术', opt: 'techrange', run: generateTech },
-  rank: { title: '生成 · 模型排行', opt: 'none', run: generateRank },
-  ops: { title: '生成 · 商机雷达', opt: 'mode', run: generateOps }
+  rank: {
+    title: '生成 · 模型排行', opt: 'none', run: generateRank,
+    desc: '综合总榜 + 5 个细分赛道榜(逻辑推理 / 代码编程 / 视频生成 / 图像生成 / 语音多模态),一次请求完成。'
+  },
+  ops: { title: '生成 · 商机雷达', opt: 'mode', run: generateOps },
+  jobs: {
+    title: '生成 · 就业形势', opt: 'none', run: generateJobs,
+    desc: JOB_SCOPE + ':每城 4 到 6 条在招岗位与所需技术,一次请求完成。岗位、薪资与需求依据只取检索到的真实来源,查不到就留空。'
+  }
 };
 
 function GenRangeChips({ kind }: { kind: 'range' | 'techrange' }) {
@@ -38,7 +47,8 @@ function genNote(): string {
   let scope = '';
   if (state.ui.genKind === 'news' || state.ui.genKind === 'sum') scope = '范围 ' + state.ui.genRange + ' 天';
   else if (state.ui.genKind === 'tech') scope = '范围 ' + state.ui.genTechRange + ' 天';
-  else if (state.ui.genKind === 'rank') scope = '综合总榜 + 6 个细分赛道榜';
+  else if (state.ui.genKind === 'rank') scope = '综合总榜 + 5 个细分赛道榜';
+  else if (state.ui.genKind === 'jobs') scope = JOB_SCOPE;
   else if (state.ui.genKind === 'ops') scope = '类型「' + OPS_MODES[state.ui.genMode].label + '」';
   return '将向 ' + (state.settings.model || 'API') + ' 发起 1 次' + (state.settings.enableSearch ? '联网' : '') +
     '请求(' + scope + '),可能耗时 1–3 分钟并按 token 计费。';
@@ -69,7 +79,7 @@ export function GenModal() {
           {def.opt === 'none' ? (
             <div className="gen-opt">
               <span className="gen-opt__label">生成范围</span>
-              <p className="gen-note">综合总榜 + 5 个细分赛道榜(逻辑推理 / 代码编程 / 视频生成 / 图像生成 / 语音多模态),一次请求完成。</p>
+              <p className="gen-note">{def.desc}</p>
             </div>
           ) : def.opt === 'mode' ? (
             <div className="gen-opt">
