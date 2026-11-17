@@ -18,5 +18,8 @@ node_modules/
 dist/
 apps/*/dist/
 
+# 备课台的明文内容:仓库是 public 的,明文只留本机,入库的只有加密后的 content.json
+/apps/learn/content/
+
 # 本地调试临时文件
 *.tsbuildinfo

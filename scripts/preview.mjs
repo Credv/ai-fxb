@@ -1,6 +1,7 @@
-// 本地预览构建产物:与 Cloudflare Pages 同样的两条路由(简历在 /,AI 窗口在 /ai-fxb)。
+// 本地预览构建产物:与线上一样的三条路由(简历在 /,AI 窗口在 /ai-fxb,备课台在 /learn)。
 // 用法: npm run build && npm run preview
 // 手机/平板用日志里的局域网地址(需同一 WiFi);只监听本机: set HOST=127.0.0.1 && npm run preview
+// 注意:备课台要 WebCrypto,只有 https 或 127.0.0.1 才开放,用局域网 IP 打不开密码。
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -11,7 +12,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ROOT = path.join(root, 'dist');
 const PORT = process.env.PORT ? Number(process.env.PORT) : 5178;
 const HOST = process.env.HOST || '0.0.0.0';
-const CONSOLE_DIR = path.join(ROOT, 'ai-fxb');
+
+// 子路径路由:前缀命中就用那一格的 index.html 兜底,根路由是简历。
+const SUBS = [
+  { prefix: '/ai-fxb', dir: path.join(ROOT, 'ai-fxb') },
+  { prefix: '/learn', dir: path.join(ROOT, 'learn') }
+];
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -35,8 +41,8 @@ function resolveFile(urlPath) {
   const rel = path.join(ROOT, path.normalize(urlPath));
   if (isFile(rel)) return rel;
   if (/\.[a-z0-9]+$/i.test(urlPath)) return null;
-  const inConsole = urlPath === '/ai-fxb' || urlPath.startsWith('/ai-fxb/');
-  const html = path.join(inConsole ? CONSOLE_DIR : ROOT, 'index.html');
+  const sub = SUBS.filter((s) => urlPath === s.prefix || urlPath.startsWith(s.prefix + '/'))[0];
+  const html = path.join(sub ? sub.dir : ROOT, 'index.html');
   return isFile(html) ? html : null;
 }
 
@@ -61,6 +67,7 @@ server.listen(PORT, HOST, () => {
   console.log('站点预览已启动(产物来自 dist/)');
   console.log('  本机      →  http://127.0.0.1:' + PORT + '/         简历');
   console.log('  本机      →  http://127.0.0.1:' + PORT + '/ai-fxb/  AI 窗口');
+  console.log('  本机      →  http://127.0.0.1:' + PORT + '/learn/   备课台(要用 127.0.0.1,局域网 IP 开不了密码)');
   os.networkInterfaces && Object.values(os.networkInterfaces()).flat().forEach((i) => {
     if (i && i.family === 'IPv4' && !i.internal) {
       console.log('  手机/平板 →  http://' + i.address + ':' + PORT + '/ai-fxb/   (需同一 WiFi)');

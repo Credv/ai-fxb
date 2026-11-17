@@ -2,16 +2,17 @@
 
 一个**本地优先**的个人 AI 情报控制台（3D 科幻 HUD）：打开即保留上一次的历史记录，并在后台静默同步当日最新信息，今日新增条目自动标记 **NEW**。内容按「AI 汇总 → 前沿技术 → 模型排行 → 商机雷达 → 就业形势」呈现。
 
-线上 https://3ecat.me 现在有两个入口：
+线上 https://3ecat.me 现在有三个入口：
 
 - `/` —— 个人简历站（`apps/resume`）
 - `/ai-fxb/` —— 本控制台（`apps/console`）
+- `/learn` —— 备课台（`apps/learn`，看内容要密码）
 
-两者共用一个仓库、一次构建、一个域名（Cloudflare Workers 静态资产托管，push 即部署）。
+三者共用一个仓库、一次构建、一个域名（Cloudflare Workers 静态资产托管，push 即部署）。
 
 ## 特点
 
-- **无后端**：只有静态产物。构建工具是 Vite + React 18 + TypeScript（npm workspaces 单仓库：`packages/core` 共享核心 + `apps/resume` + `apps/console`）。three.js 从 npm 取，按需动态加载，不再 vendored 进仓库。
+- **无后端**：只有静态产物。构建工具是 Vite + React 18 + TypeScript（npm workspaces 单仓库：`packages/core` 共享核心 + `apps/resume` + `apps/console` + `apps/learn`）。three.js 从 npm 取，按需动态加载，不再 vendored 进仓库。`apps/learn` 不依赖 `@ai-fxb/core`，它没有 API 调用，是纯内容站。
 - **公开快照模式**：站长每天定时用自己的 Key 生成一次数据快照（GitHub Actions → `apps/console/public/data/snapshot.json` → 站点自动部署），任何访客打开 https://3ecat.me/ai-fxb/ 无需配置即可查看，页面显示「数据截至」时间；访客自己的 Key 永不参与。
 - 浏览器直接调用大模型 API（可选，自选 Key 才启用）：内置千问(阿里云百炼)、DeepSeek、OpenAI、Claude(Anthropic) 与自定义 OpenAI 兼容网关五档预设，切换即自动填地址与默认模型；千问档支持 `enable_search` 联网检索。
 - **API Key 只保存在你自己浏览器的 localStorage**，不进入代码、不进入构建产物、不上传任何服务器；站长的 Key 只存在 GitHub Actions Secret 里。
@@ -38,6 +39,7 @@ npm run preview        # 起本地静态服务器,默认 0.0.0.0:5178
 
 - 简历 → http://127.0.0.1:5178/
 - AI 窗口 → http://127.0.0.1:5178/ai-fxb/
+- 备课台 → http://127.0.0.1:5178/learn/ （内容改动后先 `npm run learn:data`，见「备课台」）
 
 或直接双击 `启动.bat`（Windows），自动装依赖、构建、起服务并打开浏览器。
 
@@ -46,16 +48,18 @@ npm run preview        # 起本地静态服务器,默认 0.0.0.0:5178
 ```bash
 npm run dev:console    # 控制台 http://127.0.0.1:5178/ai-fxb/
 npm run dev:resume     # 简历   http://127.0.0.1:3000/
+npm run dev:learn      # 备课台 http://127.0.0.1:5178/learn/
 ```
 
 `packages/core` 被两个 app 直接引用源码之外的编译产物，改动后先 `npm run build:core`。
 
 ### 手机 / 平板
 
-`npm run preview` 默认监听 `0.0.0.0:5178`，启动日志会打印两条路由的本机地址和局域网地址。手机连**同一个 WiFi**，打开日志里的 `http://<本机局域网IP>:5178/ai-fxb/` 即可，界面已按小屏重排。
+`npm run preview` 默认监听 `0.0.0.0:5178`，启动日志会打印三条路由的本机地址和局域网地址。手机连**同一个 WiFi**，打开日志里的 `http://<本机局域网IP>:5178/ai-fxb/` 即可，界面已按小屏重排。
 
 - 若手机打不开，多半是 Windows 防火墙拦了入站，需要给该端口放行；只想给本机用可以 `set HOST=127.0.0.1 && npm run preview` 收回监听。
 - API Key 存在各设备浏览器自己的 localStorage 里，手机上要重新填一次；局域网里其他设备只能拿到静态页面，拿不到你的 Key。
+- **备课台只能在本机看**（`127.0.0.1` 或线上 `https://3ecat.me/learn`）。解密用的 WebCrypto 只在安全上下文里存在，手机走 `http://192.168.x.x` 时浏览器根本没有 `crypto.subtle`，页面会直接说明这个原因而不是卡在「密码不对」。要在手机上看备课台，走线上地址。
 
 ## 首次使用
 
@@ -114,35 +118,69 @@ Cloudflare 侧需要且只需要两个字段（设置 → 构建 → 构建设�
 - **Node 版本**：仓库根 `.node-version` 已写 `20`，CF 会读它选运行时（构建日志里 `nodejs@20.20.2` 就是它生效）
 - 没有「输出目录」这个字段可填：Workers 项目的资产目录只认 `wrangler.jsonc`
 
-`scripts/assemble.mjs` 把两个 app 的产物拼成发布目录：`apps/resume/dist` → `dist/`（根路由），`apps/console/dist` → `dist/ai-fxb/`，并带上根目录的 `_headers`。产物不入库（`.gitignore` 已忽略 `dist/`）。
+`scripts/assemble.mjs` 把三个 app 的产物拼成发布目录：`apps/resume/dist` → `dist/`（根路由），`apps/console/dist` → `dist/ai-fxb/`，`apps/learn/dist` → `dist/learn/`，并带上根目录的 `_headers`。产物不入库（`.gitignore` 已忽略 `dist/`）。子路径完全由各 app 的 vite `base` 决定，`wrangler.jsonc` 不用改。
+
+## 备课台（`/learn`）的密码是怎么生效的
+
+仓库是**公开的**，而且这站没有后端，所以「输密码才能看」不能写成前端判断——那样密码和答案都在 JS 里，等于没锁。这里的做法是**构建时加密**：
+
+- 明文只存在本地：`apps/learn/content/*.json`（五个板块各一份），已被 `.gitignore` 忽略，永远不会进仓库。
+- `tools/build-learn-content.mjs` 读这五个文件，用密码派生密钥（PBKDF2-SHA256，210 000 次迭代）后以 AES-256-GCM 加密，写出唯一入库的产物 `apps/learn/public/data/content.json` —— 里面只有密文和 salt/iv。
+- 浏览器端 `src/lib/crypto.ts` 做同样的派生再解密。**密码不对时 GCM 认证标签校验失败，什么都解不出来**，页面只会显示一句「密码不对。」；密文本身不含任何可读的标题或片段。
+- 210 000 次迭代是故意的：让离线爆破密码的代价高，代价是解锁要等约一秒。
+- 密码只从环境变量 `AIFXB_LEARN_PASSWORD` 读，命令行给一次即可，**不写进任何文件、不设 CI Secret**：`npm run build` 里不包含加密步骤，云端构建只搬运已经加密好的 `content.json`，所以 Cloudflare 和 Actions 都不需要知道密码。
+- 解锁状态放 `sessionStorage`（`learn-pw-v1`），关掉标签页就没了，点「退出」立即清掉并回到锁屏；不落 localStorage、不进 cookie。
+
+改内容的工作流（本地，一次搞定）：
+
+```bash
+cd /d D:\ai-fxb
+# 1. 改 apps/learn/content/*.json（纯 JSON，改完不用改代码）
+set AIFXB_LEARN_PASSWORD=<你的密码> && npm run learn:data   # 重新加密
+npm run build && npm run preview                             # 本地验证 http://127.0.0.1:5178/learn/
+git add apps/learn/public/data/content.json && git commit && git push
+```
+
+忘了跑 `learn:data` 是最容易踩的坑：构建和推送都成功，但线上还是旧内容——因为入库的密文没变。`learn:data` 会打印明文/密文字节数与 `builtAt`，对不上就是没跑。
+
+另外：解密用的 `crypto.subtle` 只在安全上下文存在（https 或 `127.0.0.1`），所以局域网 IP 打不开备课台，页面上会直接说明原因。
 
 ## 目录结构
 
 ```
 ai-fxb/
-├─ package.json               # workspace 根:build / dev:resume / dev:console / preview / typecheck
+├─ package.json               # workspace 根:build / build:learn / learn:data / dev:* / preview / typecheck
 ├─ _headers                   # Workers 静态资产响应头:缓存策略(注意 CF 按顺序匹配,后写的同头规则覆盖前面的)
 ├─ wrangler.jsonc             # Cloudflare Workers 部署配置:资产目录 = dist
 ├─ 启动.bat                    # Windows 双击:装依赖 → 构建 → 起本地服务器 → 开浏览器
 ├─ scripts/
-│  ├─ assemble.mjs            # 两个 app 的 dist 拼装成发布目录 dist/
+│  ├─ assemble.mjs            # 三个 app 的 dist 拼装成发布目录 dist/
 │  └─ preview.mjs             # 本地静态服务器(服务 dist/,默认 0.0.0.0:5178)
 ├─ packages/
 │  └─ core/                   # @ai-fxb/core:提示词、归一化、稳定 id、合并规则(浏览器与快照脚本共用)
 ├─ apps/
 │  ├─ resume/                 # 简历站(Vite + React,base = /)
-│  └─ console/                # AI 窗口(Vite + React + TS,base = /ai-fxb/)
-│     ├─ index.html
-│     ├─ public/data/snapshot.json    # 公开快照(由 Actions 生成,不手工编辑)
+│  ├─ console/                # AI 窗口(Vite + React + TS,base = /ai-fxb/)
+│  │  ├─ index.html
+│  │  ├─ public/data/snapshot.json    # 公开快照(由 Actions 生成,不手工编辑)
+│  │  └─ src/
+│  │     ├─ main.tsx          # 入口:?admit=true 时给 <html> 加 .admit
+│  │     ├─ components/       # 外壳、各板块面板(含已下线的 NewsPanel)、三个弹窗
+│  │     ├─ lib/              # settings/store/api/generate/snapshot/demo
+│  │     ├─ net/              # 情报蛛网页签 + vendor/spider(MIT 第三方动画层)
+│  │     ├─ three/            # 3D 背景(three.js 从 npm 取,动态 import)
+│  │     └─ styles/console.css
+│  └─ learn/                  # 备课台(Vite + React + TS,base = /learn/,不依赖 @ai-fxb/core)
+│     ├─ content/*.json       # 明文知识内容:trial / python / students / map / cert —— 已 gitignore,不入库
+│     ├─ public/data/content.json    # 上面五个文件加密后的唯一入库产物,浏览器用它解密
 │     └─ src/
-│        ├─ main.tsx          # 入口:?admit=true 时给 <html> 加 .admit
-│        ├─ components/       # 外壳、各板块面板(含已下线的 NewsPanel)、三个弹窗
-│        ├─ lib/              # settings/store/api/generate/snapshot/demo
-│        ├─ net/              # 情报蛛网页签 + vendor/spider(MIT 第三方动画层)
-│        ├─ three/            # 3D 背景(three.js 从 npm 取,动态 import)
-│        └─ styles/console.css
+│        ├─ components/       # Lab(格式化演练场)、diagrams(图解)、Code(Python 高亮)、ui、Gate(锁屏)
+│        ├─ views/            # 四个页签的页面
+│        ├─ lib/              # crypto(解密)/store(状态机)/text(按 len() 模拟格式化)/types
+│        └─ styles/learn.css
 ├─ tools/
-│  └─ generate-snapshot.mjs   # 每日快照生成脚本(GitHub Actions 调用)
+│  ├─ generate-snapshot.mjs   # 每日快照生成脚本(GitHub Actions 调用)
+│  └─ build-learn-content.mjs # 把 content/*.json 加密成 public/data/content.json(本地跑,不进 CI)
 └─ .github/workflows/
    └─ update-snapshot.yml     # 每日定时生成快照并提交
 ```
@@ -152,5 +190,5 @@ ai-fxb/
 - 请通过 `http://127.0.0.1:5178` 访问，不要用 `file://` 直接打开 HTML，否则浏览器跨域限制会导致接口调用失败。
 - 本项目为个人本地工具，API 调用按你自己的千问 token 计费。
 - **首屏只加载正文**：`three.js`(172KB gzip)只为装饰性 3D 背景服务，不在首屏请求——页面 `load` 后走空闲队列才动态 `import`；关掉 3D 时完全不下载。蛛网动画层(`net`)是独立懒加载 chunk，它那个页签目前下线（`SHOW_NET_TAB=false`），正常情况下访客不会拉到。构建按 `react`/`three` 拆了 chunk，两个 app 的 React chunk 内容一致、哈希相同，跨路由只下载一次。
-- `_headers` 负责缓存策略：`/assets/*` 与 `/ai-fxb/assets/*` 带 content-hash，给一年 `immutable`；首页与 `/ai-fxb/data/snapshot.json` 每次回源（保证当天快照可见）；其余 5 分钟 + `stale-while-revalidate`（国内到边缘节点一次往返 1~8 秒，能不回源就不回源）。
+- `_headers` 负责缓存策略：`/assets/*` 与 `/ai-fxb/assets/*`、`/learn/assets/*` 带 content-hash，给一年 `immutable`；首页与 `/ai-fxb/data/snapshot.json`、`/learn/data/content.json` 每次回源（保证当天快照与最新内容可见）；其余 5 分钟 + `stale-while-revalidate`（国内到边缘节点一次往返 1~8 秒，能不回源就不回源）。
 - localStorage 键名沿用旧版（`ai-fxb-settings-v1` / `ai-fxb-cache-v4` / `ai-fxb-models-v1` / `ai-fxb-usage-v1` / `ai-fxb-3d`），改造前配好的 Key、缓存与用量统计不会丢。
