@@ -253,6 +253,45 @@ p.small{margin:12px 0 0;font-size:12.4px;color:var(--txt-3);line-height:1.7}
 
 .foot{margin-top:26px;font-size:11.8px;color:var(--txt-3);line-height:1.8;border-top:1px solid var(--line);padding-top:16px}
 .foot a{color:var(--txt-2)}
+a.chip-i{color:var(--txt-2);text-decoration:none}
+a.chip-i:hover{color:var(--txt);border-color:var(--line-2)}
+
+/* 页头:章节 → 课题,右边放跳转按钮 */
+.lhead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.lhead h2{margin:4px 0 6px;font-size:20px;font-weight:750;letter-spacing:.3px;line-height:1.4}
+.lhead__go{display:flex;gap:9px;flex-wrap:wrap}
+.tiny{margin:0;font-size:11.5px;color:var(--txt-3);letter-spacing:.5px}
+
+/* 章节目录里的一课 */
+.lsn{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;
+  background:var(--panel-2);border:1px solid var(--line);border-left:2px solid var(--acc);
+  border-radius:11px;padding:12px 15px;margin-bottom:10px}
+.lsn:last-child{margin-bottom:0}
+.lsn__t{min-width:0}
+.lsn h4{margin:0 0 4px;font-size:14px;font-weight:700}
+.lsn p{margin:0;font-size:12.9px;color:var(--txt-2);line-height:1.7}
+.lsn .small{margin-top:6px}
+.lsn__go{display:flex;gap:8px;flex-wrap:wrap}
+
+/* 学生版:同一批图解,字号往上抬一档——投影后排也读得清 */
+.stu .lead{font-size:15.6px;line-height:1.85}
+.stu .blk h3{font-size:17.5px}
+.stu .dtable{font-size:14.2px}
+.stu .dtable th{font-size:11.8px}
+.stu .code{font-size:14.2px}
+.stu .cells .cell{font-size:15px}
+.stu p.small{font-size:13.4px;color:var(--txt-2)}
+.stu .flow__n{font-size:15px}
+.stu .flow__d{font-size:14px}
+.stu .drill h4{font-size:15.2px}
+.stu .drill__got{font-size:14.2px}
+.stu .drill__ans{font-size:13.6px;padding:8px 15px}
+.stu .anat__c{font-size:16.5px}
+.stu .anat__l{font-size:11.6px}
+.stu .lab__f label{font-size:12.8px}
+.stu .lab__f input[type=text],.stu .lab__f input[type=number]{font-size:14.6px;padding:8px 9px}
+.stu .lab__range span{font-size:11.8px}
+.stu .lab__al button{font-size:13px;padding:6px 0}
 
 .err{background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.28);border-radius:var(--radius);
   padding:18px 20px;color:#fda4af;font-size:13.2px;line-height:1.8}
@@ -266,4 +305,8 @@ p.small{margin:12px 0 0;font-size:12.4px;color:var(--txt-3);line-height:1.7}
   .brand h1{font-size:19px}
   .dtable{font-size:12.2px}
   .gate__form{flex-direction:column}
+  .lhead{align-items:flex-start}
+  .lhead h2{font-size:18px}
+  .lsn{grid-template-columns:minmax(0,1fr)}
+  .lsn__go .btn{flex:1;justify-content:center}
 }

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "备课台 · 教学准备与知识沉淀(3ecat.me/learn)",
+  "description": "教案与课件 · 公开课件按章节存放,私密区(试讲/学生/地图/教资)构建时加密(3ecat.me/learn)",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

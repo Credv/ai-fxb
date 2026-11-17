@@ -1,19 +1,15 @@
 import { useState } from 'react';
-import { enter } from '../lib/store';
+import { enter, state, useVersion } from '../lib/store';
 
 export function Gate() {
+  useVersion();
   const [pw, setPw] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState('');
+  const busy = state.gate === 'opening';
 
-  async function go(e: React.FormEvent) {
+  function go(e: React.FormEvent) {
     e.preventDefault();
     if (!pw.trim() || busy) return;
-    setBusy(true);
-    setErr('');
-    const msg = await enter(pw.trim());
-    setBusy(false);
-    if (msg) setErr(msg);
+    void enter(pw.trim());
   }
 
   return (
@@ -26,7 +22,7 @@ export function Gate() {
             <path d="M12 14.2v2.4" />
           </svg>
         </div>
-        <h2>备课台</h2>
+        <h2>私密区</h2>
         <div className="gate__form">
           <input
             className="gate__input"
@@ -34,17 +30,14 @@ export function Gate() {
             inputMode="numeric"
             autoComplete="off"
             value={pw}
-            onChange={(e) => {
-              setPw(e.target.value);
-              if (err) setErr('');
-            }}
+            onChange={(e) => setPw(e.target.value)}
             aria-label="密码"
           />
           <button className="btn btn--primary" type="submit" disabled={!pw.trim() || busy}>
             {busy ? '解开中' : '进入'}
           </button>
         </div>
-        {err ? <p className="gate__err">{err}</p> : null}
+        {state.error ? <p className="gate__err">{state.error}</p> : null}
         <p className="gate__note">关掉标签页要重新输一次；密码不进任何长期存储。</p>
       </form>
     </div>

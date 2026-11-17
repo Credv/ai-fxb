@@ -1,14 +1,18 @@
-import { useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import { cellSpans, dw, pad, plen } from '../lib/text';
 import type { Cell, SpecToken } from '../lib/types';
+
+/** 学生版只留图解本身：教师向的旁白（为什么这么讲、课堂上怎么处理）在这一档里一律不出现。 */
+export const PlainCtx = createContext(false);
 
 /** 把一行格式说明符拆成可以点的小块:哪一段管什么,点一下才说得清。 */
 export function SpecAnatomy({ spec, title, why, tokens }: { spec: string; title: string; why: string; tokens: SpecToken[] }) {
   const [sel, setSel] = useState<number>(-1);
+  const stu = useContext(PlainCtx);
   return (
     <div className="blk">
       <h3>{title}</h3>
-      <p className="lead">{why}</p>
+      {stu ? null : <p className="lead">{why}</p>}
       <div className="anat">
         {tokens.map((t, i) => (
           <button
@@ -59,41 +63,44 @@ export function CellRow({ cells }: { cells: Cell[] }) {
   );
 }
 
-export function GridTable({ title, code, note, cols, rows }: { title: string; code: string; note: string; cols: string[]; rows: Cell[][] }) {
-  // 一列里所有格子必须同宽:内容只写各自的对齐方式,宽度由这一列最宽的那个声明值统一。
+export function GridTable({ title, code, note, head, rows }: { title: string; code: string; note: string; head: Cell[]; rows: Cell[][] }) {
+  const stu = useContext(PlainCtx);
+  // 表头和竖线本身也是格子:代码里那行 print 打出来的就是它们,少算一格这一列的宽度就对不上。
   const want = (c: Cell) => (c.w > 0 ? c.w : plen(c.text));
-  const colW = cols.map((_, j) => Math.max(plen(cols[j]), ...rows.map((r) => (r[j] ? want(r[j]) : 0))));
+  const all = [...(head.length ? [head] : []), ...rows];
+  const colW = Array.from({ length: Math.max(...all.map((r) => r.length)) }, (_, j) =>
+    Math.max(...all.map((r) => (r[j] ? want(r[j]) : 0)))
+  );
   const fill = (text: string, w: number, align: Cell['align']) => {
     const p = pad(text, w, align);
     return ' '.repeat(p.left) + text + ' '.repeat(p.right);
   };
-  const body = rows.map((r) => r.map((c, j) => ({ text: c.kind === 'pad' ? '' : c.text, w: c.w > 0 ? c.w : colW[j], align: c.align, kind: c.kind })));
-  const head = cols.map((c, j) => ({ text: c, w: colW[j], align: 'c' as const, kind: 'lit' as const }));
-  const plain = [head, ...body].map((row) => row.map((c) => fill(c.text, c.w, c.align)).join(''));
+  const laid = all.map((r) => r.map((c, j) => ({ ...c, text: c.kind === 'pad' ? '' : c.text, w: c.w > 0 ? c.w : colW[j] })));
+  const plain = laid.map((row) => row.map((c) => fill(c.text, c.w, c.align)).join(''));
   return (
     <div className="blk">
       <h3>{title}</h3>
       <pre className="code" style={{ marginBottom: 12 }}>{code}</pre>
       <div style={{ marginBottom: 10 }}>
-        {body.map((row, i) => (
+        {laid.map((row, i) => (
           <div key={i} style={{ marginBottom: 6 }}>
-            {i === 0 ? <CellRow cells={head} /> : null}
             <CellRow cells={row} />
           </div>
         ))}
       </div>
       <p className="small">上面把补出来的空格画成了 <code>·</code>；打印到屏幕上其实长这样（空格用 <code>␣</code> 标出）：</p>
       <pre className="code">{plain.map((l) => l.replace(/ /g, '␣')).join('\n')}</pre>
-      <p className="small">{note}</p>
+      {stu ? null : <p className="small">{note}</p>}
     </div>
   );
 }
 
 export function FlowStages({ title, desc, list }: { title: string; desc: string; list: { name: string; data: string; hint: string }[] }) {
+  const stu = useContext(PlainCtx);
   return (
     <div className="blk">
       <h3>{title}</h3>
-      <p className="lead">{desc}</p>
+      {stu ? null : <p className="lead">{desc}</p>}
       <div className="flow">
         {list.map((s, i) => (
           <div key={i} className="flow__s">
@@ -102,7 +109,7 @@ export function FlowStages({ title, desc, list }: { title: string; desc: string;
               {s.name}
             </div>
             <div className="flow__d">{s.data}</div>
-            <div className="flow__h">{s.hint}</div>
+            {stu ? null : <div className="flow__h">{s.hint}</div>}
           </div>
         ))}
       </div>
@@ -113,6 +120,7 @@ export function FlowStages({ title, desc, list }: { title: string; desc: string;
 /** 先猜再看:课堂可以直接拿去问学生。 */
 export function Drill({ title, code, guess, out, note }: { title: string; code: string; guess: string; out: string; note: string }) {
   const [shown, setShown] = useState(false);
+  const stu = useContext(PlainCtx);
   return (
     <div className="drill">
       <h4>{title}</h4>
@@ -122,7 +130,7 @@ export function Drill({ title, code, guess, out, note }: { title: string; code: 
         <button type="button" className="drill__ans" onClick={() => setShown(!shown)}>{shown ? '收回答案' : '看输出'}</button>
         {shown ? <span className="drill__got">{out.replace(/ /g, '␣')}</span> : null}
       </div>
-      {shown ? <p className="drill__note">{note}</p> : null}
+      {shown && !stu ? <p className="drill__note">{note}</p> : null}
     </div>
   );
 }
@@ -137,6 +145,7 @@ export function Tips({ items }: { items: string[] }) {
 
 /** Python 补的是"字符个数"，终端量的是"显示列数"；中文一多，两张尺就对不上了。 */
 export function CJKTrap({ text, w, note }: { text: string; w: number; note: string }) {
+  const stu = useContext(PlainCtx);
   const py = pad(text, w, 'l');
   const cols = dw(text);
   const need = Math.max(0, w - cols);
@@ -169,7 +178,7 @@ export function CJKTrap({ text, w, note }: { text: string; w: number; note: stri
           </tr>
         </tbody>
       </table>
-      <p className="drill__note">{note}</p>
+      {stu ? null : <p className="drill__note">{note}</p>}
     </div>
   );
 }

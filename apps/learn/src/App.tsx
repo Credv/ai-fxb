@@ -1,10 +1,14 @@
 import { useEffect } from 'react';
 import { Gate } from './components/Gate';
-import { boot, daysLeft, leave, setView, state, useVersion, VIEWS } from './lib/store';
+import { COURSEWARE, findLesson } from './lib/courseware';
+import { applyRoute, boot, daysLeft, go, leave, parseHash, PRIVATE_VIEWS, state, useVersion } from './lib/store';
+import { CatalogView } from './views/Catalog';
 import { CertView } from './views/Cert';
+import { CourseView } from './views/Course';
 import { MapView } from './views/Map';
+import { PrepView } from './views/Prep';
+import { StudentLab } from './views/StudentLab';
 import { StudentsView } from './views/Students';
-import { TrialView } from './views/Trial';
 
 function Bg() {
   return (
@@ -16,103 +20,151 @@ function Bg() {
   );
 }
 
+function Masthead({ title, sub, right }: { title: string; sub: string; right?: React.ReactNode }) {
+  return (
+    <header className="masthead">
+      <div className="brand">
+        <div className="logo">▤</div>
+        <div>
+          <h1>{title}</h1>
+          <p>{sub}</p>
+        </div>
+      </div>
+      <div className="mh-right">{right}</div>
+    </header>
+  );
+}
+
+function NotFound({ id }: { id: string }) {
+  return (
+    <div className="err">
+      <h3>这一课不在这儿</h3>
+      <p>链接里的课件编号是 <code>{id || '（空）'}</code>，当前章节里没有它——可能这一课还没备好，也可能链接少了一位。</p>
+      <p style={{ marginTop: 12 }}>
+        <button type="button" className="btn btn--ghost" onClick={() => go('catalog')}>
+          回章节目录
+        </button>
+      </p>
+    </div>
+  );
+}
+
+function PublicShell() {
+  const lesson = state.sec === 'course' || state.sec === 'student' ? findLesson(state.id) : null;
+  return (
+    <div className="shell">
+      <Masthead
+        title={COURSEWARE.course}
+        sub={state.sec === 'student' ? '图解和参数，自己动手看' : '教案 · 板书 · 图解 —— 按章节存放'}
+        right={
+          <>
+            <a className="chip-i" href="/ai-fxb/">
+              AI 窗口 ↗
+            </a>
+            <a className="chip-i" href="#/">
+              章节目录
+            </a>
+          </>
+        }
+      />
+      {state.sec === 'catalog' ? <CatalogView /> : null}
+      {state.sec === 'course' ? (lesson ? <CourseView lesson={lesson} /> : <NotFound id={state.id} />) : null}
+      {state.sec === 'student' ? (lesson ? <StudentLab lesson={lesson} /> : <NotFound id={state.id} />) : null}
+      <footer className="foot">
+        <div>
+          <a href="/">← 3ecat.me</a>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function PrivateShell() {
+  if (state.gate === 'loading') {
+    return (
+      <div className="gate">
+        <p className="chip-i">读内容…</p>
+      </div>
+    );
+  }
+  if (state.gate === 'error') {
+    return (
+      <div className="shell">
+        <div className="err">
+          <h3>打不开</h3>
+          <p>{state.error}</p>
+        </div>
+      </div>
+    );
+  }
+  if (state.gate !== 'open' || !state.parts) {
+    return <Gate />;
+  }
+
+  const p = state.parts;
+  const left = daysLeft(p.prep.date);
+  const hot = left >= 0 && left <= 7;
+  const v = (state.id || 'prep') as (typeof PRIVATE_VIEWS)[number]['id'];
+
+  return (
+    <div className="shell">
+      <Masthead
+        title="备课台"
+        sub="我自己看的那几页"
+        right={
+          <>
+            <span className={'chip-i' + (hot ? ' chip-i--hot' : '')}>
+              试讲{left > 1 ? '还有 ' + left + ' 天' : left === 1 ? '就在明天' : left === 0 ? '就是今天' : '已经过了'}
+            </span>
+            <a className="chip-i" href="#/">
+              课件
+            </a>
+            <button type="button" className="btn btn--ghost" onClick={leave}>
+              退出
+            </button>
+          </>
+        }
+      />
+      <nav className="tabs">
+        {PRIVATE_VIEWS.map((x) => (
+          <button
+            key={x.id}
+            type="button"
+            className={'tab' + (v === x.id ? ' is-active' : '')}
+            onClick={() => go('private', x.id)}
+            title={x.hint}
+          >
+            <span className="tab__ico">{x.ico}</span>
+            {x.label}
+          </button>
+        ))}
+      </nav>
+      {v === 'prep' ? <PrepView d={p.prep} /> : null}
+      {v === 'students' ? <StudentsView d={p.students} /> : null}
+      {v === 'map' ? <MapView d={p.map} /> : null}
+      {v === 'cert' ? <CertView d={p.cert} /> : null}
+    </div>
+  );
+}
+
 export default function App() {
   useVersion();
   useEffect(() => {
     boot();
     const onHash = () => {
-      const h = location.hash.replace('#', '') as (typeof VIEWS)[number]['id'];
-      if (VIEWS.some((v) => v.id === h) && state.view !== h) setView(h);
+      const r = parseHash();
+      if (r.sec !== state.sec || r.id !== state.id) applyRoute(r.sec, r.id);
     };
     addEventListener('hashchange', onHash);
     return () => removeEventListener('hashchange', onHash);
   }, []);
 
-  if (state.status === 'booting') {
-    return (
-      <>
-        <Bg />
-        <div className="gate">
-          <p className="chip-i">读内容…</p>
-        </div>
-      </>
-    );
-  }
-
-  if (state.status === 'error') {
-    return (
-      <>
-        <Bg />
-        <div className="shell">
-          <div className="err">
-            <h3>打不开</h3>
-            <p>{state.error}</p>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  if (!state.parts) {
-    return (
-      <>
-        <Bg />
-        <Gate />
-      </>
-    );
-  }
-
-  const p = state.parts;
-  const left = daysLeft(p.trial.date);
-  const hot = left >= 0 && left <= 7;
-
+  // 公开页面前面的 <a href="#/"> 只是改了 hash；hashchange 会把它落到 state.sec。
+  const isPrivate = state.sec === 'private';
   return (
     <>
       <Bg />
-      <div className="shell">
-        <header className="masthead">
-          <div className="brand">
-            <div className="logo">▤</div>
-            <div>
-              <h1>备课台</h1>
-              <p>
-                {p.trial.date} · {p.trial.school}
-              </p>
-            </div>
-          </div>
-          <div className="mh-right">
-            <span className={'chip-i' + (hot ? ' chip-i--hot' : '')}>
-              试讲{left > 1 ? '还有 ' + left + ' 天' : left === 1 ? '就在明天' : left === 0 ? '就是今天' : '已经过了'}
-            </span>
-            <a className="chip-i" href="/ai-fxb/">
-              AI 窗口 ↗
-            </a>
-            <button type="button" className="btn btn--ghost" onClick={leave}>
-              退出
-            </button>
-          </div>
-        </header>
-
-        <nav className="tabs">
-          {VIEWS.map((v) => (
-            <button key={v.id} type="button" className={'tab' + (state.view === v.id ? ' is-active' : '')} onClick={() => setView(v.id)}>
-              <span className="tab__ico">{v.ico}</span>
-              {v.label}
-            </button>
-          ))}
-        </nav>
-
-        {state.view === 'trial' ? <TrialView d={p.trial} py={p.python} /> : null}
-        {state.view === 'students' ? <StudentsView d={p.students} /> : null}
-        {state.view === 'map' ? <MapView d={p.map} /> : null}
-        {state.view === 'cert' ? <CertView d={p.cert} /> : null}
-
-        <footer className="foot">
-          <div>
-            <a href="/">← 3ecat.me</a>
-          </div>
-        </footer>
-      </div>
+      {isPrivate ? <PrivateShell /> : <PublicShell />}
     </>
   );
 }

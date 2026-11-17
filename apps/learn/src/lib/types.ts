@@ -7,29 +7,6 @@ export interface LessonFlow {
   say?: string;
 }
 
-export interface Trial {
-  lesson: string;
-  textbook: string;
-  school: string;
-  date: string;
-  minutes: number;
-  verify: { t: string; d: string }[];
-  plan: {
-    standard: string;
-    learners: string;
-    goals: { dim: string; t: string }[];
-    key: string[];
-    hard: string[];
-    flow: LessonFlow[];
-    board: string;
-    homework: { t: string; d: string }[];
-  };
-  script: { scene: string; lines: string[] }[];
-  ask: { q: string; a: string; note?: string }[];
-  risk: { r: string; fix: string }[];
-  pack: string[];
-}
-
 export interface SpecToken {
   t: string;
   label: string;
@@ -56,16 +33,66 @@ export interface LabField {
   max?: number;
 }
 
-export interface Python {
+/** 一节课的可交互图解部分:学生版只渲染这一块,所以里面的文字必须学生也能看。 */
+export interface PyBlock {
   note: string;
   compare: { head: string[]; rows: string[][] };
   anatomy: { spec: string; title: string; why: string; tokens: SpecToken[] }[];
-  grid: { title: string; code: string; note: string; cols: string[]; rows: Cell[][] }[];
+  grid: { title: string; code: string; note: string; head: Cell[]; rows: Cell[][] }[];
   stages: { title: string; desc: string; list: { name: string; data: string; hint: string }[] }[];
   lab: { title: string; intro: string; sep: string; fields: LabField[] }[];
   drills: { title: string; code: string; guess: string; out: string; note: string }[];
   trap: { text: string; w: number; note: string }[];
   cheats: { k: string; v: string }[];
+}
+
+export interface Lesson {
+  id: string;
+  title: string;
+  minutes: number;
+  textbook: string;
+  summary: string;
+  plan: {
+    standard: string;
+    learners: string;
+    goals: { dim: string; t: string }[];
+    key: string[];
+    hard: string[];
+    flow: LessonFlow[];
+    board: string;
+    homework: { t: string; d: string }[];
+  };
+  ask: { q: string; a: string; note?: string }[];
+  py: PyBlock;
+}
+
+export interface Chapter {
+  id: string;
+  no: string;
+  title: string;
+  lead: string;
+  lessons: Lesson[];
+}
+
+/** 公开课件:直接 import 进 bundle,不加密 —— 它本来就要发给其他老师和学生。 */
+export interface Courseware {
+  course: string;
+  basis: string;
+  chapters: Chapter[];
+}
+
+/* ---- 以下都在加密区(content/private/),浏览器里要靠密码才解得开 ---- */
+
+export interface Prep {
+  subject: string;
+  school: string;
+  date: string;
+  lesson: string;
+  minutes: number;
+  verify: { t: string; d: string }[];
+  script: { scene: string; lines: string[] }[];
+  risk: { r: string; fix: string }[];
+  pack: string[];
 }
 
 export interface Students {
@@ -101,9 +128,8 @@ export interface Cert {
   faq: { q: string; a: string }[];
 }
 
-export interface Parts {
-  trial: Trial;
-  python: Python;
+export interface PrivateParts {
+  prep: Prep;
   students: Students;
   map: KnowledgeMap;
   cert: Cert;

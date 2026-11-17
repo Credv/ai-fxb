@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// 备课台挂在 3ecat.me/learn:资源与 SPA 回落都要带这个前缀。
+// 教案与课件挂在 3ecat.me/learn:资源与 SPA 回落都要带这个前缀。
 export default defineConfig({
   plugins: [react()],
   base: '/learn/',

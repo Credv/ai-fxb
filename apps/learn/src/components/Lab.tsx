@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { cellSpans, fmtValue, pad, plen } from '../lib/text';
+import { cellSpans, fmtValue, pad } from '../lib/text';
 import type { LabField } from '../lib/types';
 import { Code } from './Code';
 
@@ -8,13 +8,21 @@ const AL: { v: LabField['align']; t: string }[] = [
   { v: 'c', t: '^ 中' },
   { v: 'r', t: '> 右' }
 ];
+/** 界面里用 l/c/r 记，写进代码必须是 Python 认的那三个符号——'l8' 是会直接报错的。 */
+const ALCH: Record<LabField['align'], string> = { l: '<', c: '^', r: '>' };
 
-/** Python 的格式说明符:[: [[fill]align][width][.precision]] */
+/** Python 的格式说明符:[: [[fill]align][width][.precision[TYPE]]] */
 function tail(f: LabField): string {
   const parts: string[] = [];
-  if (f.w > 0) parts.push(f.align + f.w);
-  if (f.type === 'num' && f.prec > 0) parts.push('.' + f.prec);
+  // 宽度是「不设」时连对齐符一起不写：没有要摆的余地，写了等于没写。
+  if (f.w > 0) parts.push(ALCH[f.align] + f.w);
+  if (f.type === 'num' && f.prec > 0) parts.push('.' + f.prec + 'f');
   return parts.length ? ':' + parts.join('') : '';
+}
+
+/** 表头那一行也是文字：带上 .Nf 就是给字符串套数字格式，Python 直接 ValueError。 */
+function headTail(f: LabField): string {
+  return f.w > 0 ? ':' + ALCH[f.align] + f.w : '';
 }
 
 /** 改一个参数，屏幕上的列就跟着抖一格——课堂上最能留住学生的那个交互。 */
@@ -23,8 +31,9 @@ export function Lab({ title, intro, sep, fields: init }: { title: string; intro:
   const set = (i: number, patch: Partial<LabField>) => setFs((old) => old.map((f, n) => (n === i ? { ...f, ...patch } : f)));
 
   const disp = (f: LabField) => fmtValue(f.value, f.type, f.prec);
-  // 宽度填 0 就是「不设宽度」：这一列退化成内容自身的宽度，表头和数据都不再补齐。
-  const wOf = (f: LabField) => (f.w > 0 ? f.w : Math.max(plen(f.label), plen(disp(f))));
+  // 宽度填 0 就是「不设宽度」：Python 这时一个空格也不补，所以这里也必须补 0——
+  // 之前按「这一列最宽的内容」补齐，屏幕上摆齐了，代码其实打不出那一行。
+  const wOf = (f: LabField) => f.w;
   const spans = (text: string, f: LabField, cls: string) => {
     const s = cellSpans(text, wOf(f), f.align);
     return (
@@ -40,9 +49,12 @@ export function Lab({ title, intro, sep, fields: init }: { title: string; intro:
     return ' '.repeat(p.left) + text + ' '.repeat(p.right);
   };
 
+  const q = (s: string) => "'" + s.replace(/'/g, "\\'") + "'";
   const sepSrc = sep.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const fLine = 'f"' + fs.map((f) => '{' + f.key + tail(f) + '}').join(sepSrc) + '"';
+  const hLine = 'f"' + fs.map((f) => '{' + q(f.label) + headTail(f) + '}').join(sepSrc) + '"';
   const posLine = '"' + fs.map((f) => '{' + tail(f) + '}').join(sepSrc) + '".format(' + fs.map((f) => literal(f)).join(', ') + ')';
+  const hPosLine = '"' + fs.map((f) => '{' + headTail(f) + '}').join(sepSrc) + '".format(' + fs.map((f) => q(f.label)).join(', ') + ')';
   const decl = fs.map((f) => f.key + ' = ' + literal(f)).join('\n');
   const output = [fs.map((f) => real(f.label, f)).join(sep), fs.map((f) => real(disp(f), f)).join(sep)].join('\n');
 
@@ -88,9 +100,9 @@ export function Lab({ title, intro, sep, fields: init }: { title: string; intro:
 
         <div>
           <p className="small" style={{ marginTop: 0 }}>现在这份参数写出来的代码</p>
-          <Code>{decl + '\n\nprint(' + fLine + ')'}</Code>
-          <p className="small">同一行输出的另一种写法（旧代码、老教材里会遇到，含义完全一样）：</p>
-          <Code>{'print(' + posLine + ')'}</Code>
+          <Code>{decl + '\n\nprint(' + hLine + ')\nprint(' + fLine + ')'}</Code>
+          <p className="small">同一份输出的另一种写法（旧代码、老教材里会遇到，含义完全一样）：</p>
+          <Code>{'print(' + hPosLine + ')\nprint(' + posLine + ')'}</Code>
         </div>
 
         <div>

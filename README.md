@@ -6,7 +6,7 @@
 
 - `/` —— 个人简历站（`apps/resume`）
 - `/ai-fxb/` —— 本控制台（`apps/console`）
-- `/learn` —— 备课台（`apps/learn`，看内容要密码）
+- `/learn` —— 教案与课件（`apps/learn`，一进来看见公开课件，私密区要密码）
 
 三者共用一个仓库、一次构建、一个域名（Cloudflare Workers 静态资产托管，push 即部署）。
 
@@ -14,6 +14,7 @@
 
 - **无后端**：只有静态产物。构建工具是 Vite + React 18 + TypeScript（npm workspaces 单仓库：`packages/core` 共享核心 + `apps/resume` + `apps/console` + `apps/learn`）。three.js 从 npm 取，按需动态加载，不再 vendored 进仓库。`apps/learn` 不依赖 `@ai-fxb/core`，它没有 API 调用，是纯内容站。
 - **公开快照模式**：站长每天定时用自己的 Key 生成一次数据快照（GitHub Actions → `apps/console/public/data/snapshot.json` → 站点自动部署），任何访客打开 https://3ecat.me/ai-fxb/ 无需配置即可查看，页面显示「数据截至」时间；访客自己的 Key 永不参与。
+- **`/learn` 拆成两半**：首页一进来就是**公开课件区**——按章节排的教案、板书、图解，不用密码，链接可以直接发给其他老师和学生；只有「怎么和学生相处」「教资怎么考」这类自己的东西留在**私密区**，靠 `#/private` 直达链接进去，要密码。课件页给学生另有一版：只剩图解和能拖的参数。详见「教案与课件」。
 - 浏览器直接调用大模型 API（可选，自选 Key 才启用）：内置千问(阿里云百炼)、DeepSeek、OpenAI、Claude(Anthropic) 与自定义 OpenAI 兼容网关五档预设，切换即自动填地址与默认模型；千问档支持 `enable_search` 联网检索。
 - **API Key 只保存在你自己浏览器的 localStorage**，不进入代码、不进入构建产物、不上传任何服务器；站长的 Key 只存在 GitHub Actions Secret 里。
 - **历史保留 + NEW 标记**：每次拉取与缓存按稳定 id 合并，未见过的条目标 NEW 并置顶，历史保留 21 天。
@@ -39,17 +40,20 @@ npm run preview        # 起本地静态服务器,默认 0.0.0.0:5178
 
 - 简历 → http://127.0.0.1:5178/
 - AI 窗口 → http://127.0.0.1:5178/ai-fxb/
-- 备课台 → http://127.0.0.1:5178/learn/ （内容改动后先 `npm run learn:data`，见「备课台」）
+- 教案与课件 → http://127.0.0.1:5178/learn/ （公开区直接就能看；私密区 `http://127.0.0.1:5178/learn/#/private` 要密码。改私密内容后先 `npm run learn:data`，见「教案与课件」）
 
 或直接双击 `启动.bat`（Windows），自动装依赖、构建、起服务并打开浏览器。
 
 改代码时不必每次全量构建，用开发服务器（带热更新）：
 
 ```bash
-npm run dev:console    # 控制台 http://127.0.0.1:5178/ai-fxb/
-npm run dev:resume     # 简历   http://127.0.0.1:3000/
-npm run dev:learn      # 备课台 http://127.0.0.1:5178/learn/
+npm run dev:console         # 控制台 http://127.0.0.1:5178/ai-fxb/
+npm run dev:resume          # 简历   http://127.0.0.1:3000/
+npm run dev:learn           # 课件区 http://127.0.0.1:5179/learn/  (首页就是公开课件,起服务不要密码)
+AIFXB_LEARN_PASSWORD=xxx npm run dev:learn:private   # 先重加密私密内容再起服务,要验私密区时用这条
 ```
+
+> 三条 dev 服务的端口各不相同（5178 / 3000 / 5179，写在各自 app 的 `vite.config.ts` 里），且都只服务自己那个 app——`/learn` 的开发地址不带 5178。要走**和线上一样的三条路由**（简历在 `/`、控制台在 `/ai-fxb/`、课件在 `/learn/`），用 `npm run build && npm run preview`。
 
 `packages/core` 被两个 app 直接引用源码之外的编译产物，改动后先 `npm run build:core`。
 
@@ -59,7 +63,7 @@ npm run dev:learn      # 备课台 http://127.0.0.1:5178/learn/
 
 - 若手机打不开，多半是 Windows 防火墙拦了入站，需要给该端口放行；只想给本机用可以 `set HOST=127.0.0.1 && npm run preview` 收回监听。
 - API Key 存在各设备浏览器自己的 localStorage 里，手机上要重新填一次；局域网里其他设备只能拿到静态页面，拿不到你的 Key。
-- **备课台只能在本机看**（`127.0.0.1` 或线上 `https://3ecat.me/learn`）。解密用的 WebCrypto 只在安全上下文里存在，手机走 `http://192.168.x.x` 时浏览器根本没有 `crypto.subtle`，页面会直接说明这个原因而不是卡在「密码不对」。要在手机上看备课台，走线上地址。
+- **课件区手机上直接能看**：`http://<局域网IP>:5178/learn/` 发给学生试投屏没问题——公开课件的文字和图片都编译在 JS 里，不需要解密。**私密区不行**（只能 `127.0.0.1` 或线上 https）：解密用的 WebCrypto 只在安全上下文里存在，手机走 `http://192.168.x.x` 时浏览器根本没有 `crypto.subtle`，页面会直接说明这个原因而不是卡在「密码不对」。要在手机上看私密区，走线上地址。
 
 ## 首次使用
 
@@ -120,30 +124,59 @@ Cloudflare 侧需要且只需要两个字段（设置 → 构建 → 构建设�
 
 `scripts/assemble.mjs` 把三个 app 的产物拼成发布目录：`apps/resume/dist` → `dist/`（根路由），`apps/console/dist` → `dist/ai-fxb/`，`apps/learn/dist` → `dist/learn/`，并带上根目录的 `_headers`。产物不入库（`.gitignore` 已忽略 `dist/`）。子路径完全由各 app 的 vite `base` 决定，`wrangler.jsonc` 不用改。
 
-## 备课台（`/learn`）的密码是怎么生效的
+## 教案与课件（`/learn`）
 
-仓库是**公开的**，而且这站没有后端，所以「输密码才能看」不能写成前端判断——那样密码和答案都在 JS 里，等于没锁。这里的做法是**构建时加密**：
+这个站是**长远的教案存放地**，不是给某一次试讲搭的临时页面。所以它拆成两半，两半的公开性完全不同：
 
-- 明文只存在本地：`apps/learn/content/*.json`（五个板块各一份），已被 `.gitignore` 忽略，永远不会进仓库。
-- `tools/build-learn-content.mjs` 读这五个文件，用密码派生密钥（PBKDF2-SHA256，210 000 次迭代）后以 AES-256-GCM 加密，写出唯一入库的产物 `apps/learn/public/data/content.json` —— 里面只有密文和 salt/iv。
-- 浏览器端 `src/lib/crypto.ts` 做同样的派生再解密。**密码不对时 GCM 认证标签校验失败，什么都解不出来**，页面只会显示一句「密码不对。」；密文本身不含任何可读的标题或片段。
+**公开课件区**（默认首页，不要密码）—— 一进来就是按章节排的目录，每章下面挂已备好的课，点进去两页：
+
+- **课件页** `#/c/<课件号>`：完整的一课 —— 教学设计（课标依据、学情、目标、重难点）、课堂环节、板书、图解、给学生的提问。要发给其他老师看就发这条链接。
+- **学生版页** `#/s/<课件号>`：只剩图解和**能拖的参数**，没有教案正文，教师口吻的旁白也一并收掉（`PlainCtx` 在每个图解组件里控制）。学生自己把宽度拖到「不设」、把小数拖到 1，看输出怎么变——这是这一版存在的唯一理由。
+
+章节骨架按《普通高中信息技术课程标准(2017 年版 2020 年修订)》必修「数据与计算」的内容主线排，**不是某一版教材的单元名**（人教/浙教/教科版的单元名和顺序各不相同）。还没备课件的章照样列出来，标「未备课件」——不编一份看着齐全的目录。拿到学校那本教材后改 `courseware.json` 里的章名即可，课件本身不用动。
+
+这一半的明文**直接入库**：`apps/learn/content/courseware.json`，被 `src/lib/courseware.ts` 编译进 bundle。它本来就要给别人看，加密只会让分享变麻烦，不会带来任何保护。
+
+**私密区** `#/private/<视图>` —— 试讲准备、学生相处、知识地图、教师资格证四页。首页**不放任何入口**，只有知道这条直达链接并且有密码的人进得去。这一半走**构建时加密**：
+
+- 仓库是 **public** 的，而这站没有后端，所以「输密码才能看」不能写成前端判断——那样密码和答案都在 JS 里，等于没锁。
+- 明文只存在本地：`apps/learn/content/private/*.json`（四份，已被 `.gitignore` 忽略，永远不会进仓库）。
+- `tools/build-learn-content.mjs` 读这几份文件，用密码派生密钥（PBKDF2-SHA256，210 000 次迭代）后以 AES-256-GCM 加密，写出唯一入库的产物 `apps/learn/public/data/content.json` —— 里面只有密文和 salt/iv。
+- 浏览器端 `src/lib/crypto.ts` 做同样的派生再解密。**密码不对时 GCM 认证标签校验失败，什么都解不出来**，页面只会显示一句「密码不对。」
 - 210 000 次迭代是故意的：让离线爆破密码的代价高，代价是解锁要等约一秒。
+- 密文**只在真的走到 `#/private` 时才去取**（`store.ts` 的 `ensurePrivate`）。看课件区的访客——包括学生——一个字节都不会下载，公开页的首屏因此不掺密文。
 - 密码只从环境变量 `AIFXB_LEARN_PASSWORD` 读，命令行给一次即可，**不写进任何文件、不设 CI Secret**：`npm run build` 里不包含加密步骤，云端构建只搬运已经加密好的 `content.json`，所以 Cloudflare 和 Actions 都不需要知道密码。
 - 解锁状态放 `sessionStorage`（`learn-pw-v1`），关掉标签页就没了，点「退出」立即清掉并回到锁屏；不落 localStorage、不进 cookie。
 
-改内容的工作流（本地，一次搞定）：
+> **已知的边界（诚实版）**：加密的是私密区的**内容**，不是它的**存在**。四个视图的标题（「试讲准备」「知识地图」这种）和页面骨架写在 `src/lib/store.ts` 与 `src/views/*.tsx` 里，是入库的、能读到的。别人知道"有这么几页"，但读不到里面写了什么。要把这一层也遮掉，就得把这些标签挪进加密载荷——目前没做。
+
+改内容的工作流分两条，**别走错**：
 
 ```bash
+# A. 改公开课件(加一课、调图解参数)——改完直接构建,不用加密
 cd /d D:\ai-fxb
-# 1. 改 apps/learn/content/*.json（纯 JSON，改完不用改代码）
+# 1. 改 apps/learn/content/courseware.json
+npm run build:learn && node scripts/assemble.mjs && npm run preview
+git add apps/learn/content/courseware.json && git commit && git push
+
+# B. 改私密区——多一步重新加密,漏了等于没改
+# 1. 改 apps/learn/content/private/*.json
 set AIFXB_LEARN_PASSWORD=<你的密码> && npm run learn:data   # 重新加密
-npm run build && npm run preview                             # 本地验证 http://127.0.0.1:5178/learn/
+npm run build && npm run preview                             # 本地验证 /learn/#/private
 git add apps/learn/public/data/content.json && git commit && git push
 ```
 
-忘了跑 `learn:data` 是最容易踩的坑：构建和推送都成功，但线上还是旧内容——因为入库的密文没变。`learn:data` 会打印明文/密文字节数与 `builtAt`，对不上就是没跑。
+忘了跑 `learn:data` 是最容易踩的坑：构建和推送都成功，但线上还是旧内容——因为入库的密文没变。`learn:data` 会打印明文/密文字节数与 `builtAt`，对不上就是没跑。`npm run build` 只产出 `apps/learn/dist`，`/learn/` 走的是 `dist/learn/`，所以本地验证还得跟一条 `node scripts/assemble.mjs`。
 
-另外：解密用的 `crypto.subtle` 只在安全上下文存在（https 或 `127.0.0.1`），所以局域网 IP 打不开备课台，页面上会直接说明原因。
+**加一课**：往 `courseware.json` 对应章的 `lessons` 里加一项（`id` 就是链接里的课件号，定了就别改，已经发出去的链接指着它）。目录顶上「章节 / 已备课件 / 可拖参数的实验」三个数是现算的，不用手改。
+
+**课件里的 Python 输出必须和真 Python 一样**——学生就是来拖参数看输出的，错了这一页就没有意义。所以现在有这些约定，改动 `Lab.tsx` / `diagrams.tsx` / `lib/text.ts` 时不要绕过：
+
+- 补位按 `len()`（一个中文算 1），不是按显示列宽；屏上占几列只在讲「表为什么歪了」那条陷阱时提。
+- 宽度填 0 = **不设宽度**，一个空格也不补。早先这里按「本列最宽内容」补齐，屏幕上摆齐了，但那行代码其实打不出那一行。
+- 表头那一行也是页面真实输出，所以代码块必须连表头的 `print` 一起给；且表头是字符串，格式串只能带对齐和宽度，带上 `.Nf` 真 Python 直接 `ValueError`。
+- 舍入是**四舍六入五成双**（`fmtValue` 里的 `pyFixed`）：`1.25` 留一位小数 Python 给 `1.2`，JS 的 `toFixed` 给 `1.3`，而这个值学生敲得出来。
+- 这三条都拿真 CPython 对过：两个网格 + 演练场共 10 个状态（含三个正好落在中间的值）逐行比过 DOM 与 `python` 的 stdout；`pyFixed` 跑了 542 个用例与 Python `format()` 对比，0 处不一致。图解文案里每条声称"会输出 X"的句子也都真跑过。
 
 ## 目录结构
 
@@ -170,17 +203,18 @@ ai-fxb/
 │  │     ├─ net/              # 情报蛛网页签 + vendor/spider(MIT 第三方动画层)
 │  │     ├─ three/            # 3D 背景(three.js 从 npm 取,动态 import)
 │  │     └─ styles/console.css
-│  └─ learn/                  # 备课台(Vite + React + TS,base = /learn/,不依赖 @ai-fxb/core)
-│     ├─ content/*.json       # 明文知识内容:trial / python / students / map / cert —— 已 gitignore,不入库
-│     ├─ public/data/content.json    # 上面五个文件加密后的唯一入库产物,浏览器用它解密
+│  └─ learn/                  # 教案与课件(Vite + React + TS,base = /learn/,不依赖 @ai-fxb/core)
+│     ├─ content/courseware.json       # 公开课件明文:章节骨架 + 每课(教案/板书/图解/lab) —— 入库
+│     ├─ content/private/*.json        # 私密区明文:prep / students / map / cert —— 已 gitignore,只留本机
+│     ├─ public/data/content.json      # 上面四份加密后的唯一入库产物,浏览器用它解密(只有走 #/private 才取)
 │     └─ src/
-│        ├─ components/       # Lab(格式化演练场)、diagrams(图解)、Code(Python 高亮)、ui、Gate(锁屏)
-│        ├─ views/            # 四个页签的页面
-│        ├─ lib/              # crypto(解密)/store(状态机)/text(按 len() 模拟格式化)/types
+│        ├─ components/       # Lab(格式化演练场)、diagrams(图解,含 PlainCtx 收教师旁白)、Code(Python 高亮)、ui、Gate(锁屏)
+│        ├─ views/            # Catalog(章节目录) / Course(课件页) / StudentLab(学生版) + 私密区四页
+│        ├─ lib/              # courseware(读公开明文)/crypto(解密)/store(路由+门禁)/text(按 len() 模拟格式化、Python 舍入)/types
 │        └─ styles/learn.css
 ├─ tools/
 │  ├─ generate-snapshot.mjs   # 每日快照生成脚本(GitHub Actions 调用)
-│  └─ build-learn-content.mjs # 把 content/*.json 加密成 public/data/content.json(本地跑,不进 CI)
+│  └─ build-learn-content.mjs # 把 content/private/*.json 加密成 public/data/content.json(本地跑,不进 CI)
 └─ .github/workflows/
    └─ update-snapshot.yml     # 每日定时生成快照并提交
 ```
@@ -191,4 +225,5 @@ ai-fxb/
 - 本项目为个人本地工具，API 调用按你自己的千问 token 计费。
 - **首屏只加载正文**：`three.js`(172KB gzip)只为装饰性 3D 背景服务，不在首屏请求——页面 `load` 后走空闲队列才动态 `import`；关掉 3D 时完全不下载。蛛网动画层(`net`)是独立懒加载 chunk，它那个页签目前下线（`SHOW_NET_TAB=false`），正常情况下访客不会拉到。构建按 `react`/`three` 拆了 chunk，两个 app 的 React chunk 内容一致、哈希相同，跨路由只下载一次。
 - `_headers` 负责缓存策略：`/assets/*` 与 `/ai-fxb/assets/*`、`/learn/assets/*` 带 content-hash，给一年 `immutable`；首页与 `/ai-fxb/data/snapshot.json`、`/learn/data/content.json` 每次回源（保证当天快照与最新内容可见）；其余 5 分钟 + `stale-while-revalidate`（国内到边缘节点一次往返 1~8 秒，能不回源就不回源）。
+- `/learn` 的四类页面（`#/`、`#/c/<id>`、`#/s/<id>`、`#/private/<视图>`）全走 hash 路由，静态托管不用配任何重写规则；课件号写在链接里，发出去的链接不会因为这站改版而失效。
 - localStorage 键名沿用旧版（`ai-fxb-settings-v1` / `ai-fxb-cache-v4` / `ai-fxb-models-v1` / `ai-fxb-usage-v1` / `ai-fxb-3d`），改造前配好的 Key、缓存与用量统计不会丢。

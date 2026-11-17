@@ -1,0 +1,64 @@
+import { Collapsible, OpenAll, StatBar } from '../components/ui';
+import { COURSEWARE, stats } from '../lib/courseware';
+import { hashFor, setGroup } from '../lib/store';
+import type { Chapter, Lesson } from '../lib/types';
+
+const KEY = 'cat:';
+
+function LessonRow({ l }: { l: Lesson }) {
+  return (
+    <div className="lsn">
+      <div className="lsn__t">
+        <h4>{l.title}</h4>
+        <p>{l.summary}</p>
+        <p className="small">
+          {l.minutes} 分钟 · {l.textbook}
+        </p>
+      </div>
+      <div className="lsn__go">
+        <a className="btn btn--primary" href={hashFor('course', l.id)}>
+          课件
+        </a>
+        <a className="btn btn--ghost" href={hashFor('student', l.id)}>
+          学生版
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function ChapterBlock({ c }: { c: Chapter }) {
+  return (
+    <Collapsible
+      id={KEY + c.id}
+      no={c.no}
+      title={c.title}
+      defaultOpen={c.lessons.length > 0}
+      meta={c.lessons.length ? c.lessons.length + ' 课' : '未备课件'}
+    >
+      <p className="lead" style={{ marginBottom: 13 }}>
+        {c.lead}
+      </p>
+      {c.lessons.length ? c.lessons.map((l) => <LessonRow key={l.id} l={l} />) : <p className="small">这一章还没有课件。</p>}
+    </Collapsible>
+  );
+}
+
+export function CatalogView() {
+  const ids = COURSEWARE.chapters.map((c) => KEY + c.id);
+  return (
+    <>
+      <StatBar items={stats()} />
+      <p className="lead">
+        每课两页：<b>课件</b>是完整的教案、板书和图解；<b>学生版</b>只剩图解和能拖的参数，那个链接可以直接发给学生。
+      </p>
+      <p className="small" style={{ marginBottom: 16 }}>
+        {COURSEWARE.basis}
+      </p>
+      <OpenAll expand={() => setGroup(ids, true)} collapse={() => setGroup(ids, false)} />
+      {COURSEWARE.chapters.map((c) => (
+        <ChapterBlock key={c.id} c={c} />
+      ))}
+    </>
+  );
+}

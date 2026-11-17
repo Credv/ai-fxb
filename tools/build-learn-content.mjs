@@ -1,8 +1,11 @@
-/* 把 apps/learn/content/*.json 的明文备课内容加密成 apps/learn/public/data/content.json。
+/* 把 apps/learn/content/private/*.json 的明文加密成 apps/learn/public/data/content.json。
  *
- * 为什么要绕这一圈:仓库是 public 的,而内容里有校长的任职要求、我自己的转型计划。
+ * 备课台分两半:公开课件(content/courseware.json,直接 import 进 bundle,不加密——它本来就要
+ * 发给其他老师和学生)与私密区(试讲准备、学生相处、知识地图、教资)。这一脚本只管后者。
+ *
+ * 为什么要绕这一圈:仓库是 public 的,而私密区里写着学校、日期、任职要求逐条对照和我的缺口。
  * 前端静态站没有后端,拿密码校验等于把密码写进 JS——谁都能翻出来,那种「密码框」是假的。
- * 所以改成:明文只留本机(content/ 已 gitignore),入库的只有这一份 AES-256-GCM 密文;
+ * 所以改成:明文只留本机(content/private/ 已 gitignore),入库的只有这一份 AES-256-GCM 密文;
  * 浏览器里用输入的密码 PBKDF2 派生同一把密钥去解,密码错了 GCM 校验直接失败,拿不到任何内容。
  *
  * 用法(密码只出现在这一行命令里,不写进任何文件):
@@ -16,7 +19,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const contentDir = join(root, 'apps', 'learn', 'content');
+const contentDir = join(root, 'apps', 'learn', 'content', 'private');
 const outFile = join(root, 'apps', 'learn', 'public', 'data', 'content.json');
 
 const ITERATIONS = 210000;
@@ -35,8 +38,8 @@ if (password.length < 6) {
 }
 
 if (!existsSync(contentDir)) {
-  console.error('明文内容目录不存在:' + contentDir);
-  console.error('备课内容是本机的私有资料,不入库;丢了就只剩密文,写不进新东西。');
+  console.error('私密内容目录不存在:' + contentDir);
+  console.error('私密区的明文只在本机、不入库;丢了就只剩旧密文,写不进新东西。');
   process.exit(1);
 }
 
@@ -104,7 +107,8 @@ console.log(
   '明文 ' + kb(plainBytes.length) + ' → 密文 ' + kb(ct.length) +
   ' · ' + ITERATIONS + ' 轮 PBKDF2-' + HASH + ' · 内容片段 ' + Object.keys(parts).join('/')
 );
-console.log('下一步:content/ 的明文别提交(已在 .gitignore),把 ' + outFile.replace(root, '.') + ' 一起提交上去。');
+console.log('下一步:content/private/ 的明文别提交(已在 .gitignore),把 ' + outFile.replace(root, '.') + ' 一起提交上去。');
+console.log('公开课件不走这一步:改 content/courseware.json 直接构建即可。');
 
 function kb(n) {
   return (n / 1024).toFixed(1) + ' KB';
