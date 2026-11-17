@@ -37,21 +37,31 @@ export interface LabField {
 export interface PyBlock {
   note: string;
   compare: { head: string[]; rows: string[][] };
-  anatomy: { spec: string; title: string; why: string; tokens: SpecToken[] }[];
-  grid: { title: string; code: string; note: string; head: Cell[]; rows: Cell[][] }[];
-  stages: { title: string; desc: string; list: { name: string; data: string; hint: string }[] }[];
-  lab: { title: string; intro: string; sep: string; fields: LabField[] }[];
+  anatomy: { spec: string; title: string; why: string; look?: string; tokens: SpecToken[] }[];
+  grid: { title: string; code: string; note: string; look?: string; head: Cell[]; rows: Cell[][] }[];
+  stages: { title: string; desc: string; look?: string; list: { name: string; data: string; hint: string }[] }[];
+  lab: { title: string; intro: string; look?: string; sep: string; fields: LabField[] }[];
   drills: { title: string; code: string; guess: string; out: string; note: string }[];
-  trap: { text: string; w: number; note: string }[];
+  trap: { text: string; w: number; note: string; look?: string }[];
   cheats: { k: string; v: string }[];
+}
+
+/** 这一页怎么读:三步 + 符号图例 + 名词翻成大白话。缺任何一项都不影响渲染。 */
+export interface ReadGuide {
+  steps: { t: string; d: string }[];
+  legend: { sym: string; means: string }[];
+  terms: { t: string; say: string }[];
 }
 
 export interface Lesson {
   id: string;
   title: string;
+  /** 导航那一行用的短标题;没写就从 title 里取破折号前那半句。 */
+  short?: string;
   minutes: number;
   textbook: string;
   summary: string;
+  guide?: ReadGuide;
   plan: {
     standard: string;
     learners: string;

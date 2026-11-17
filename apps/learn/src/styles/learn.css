@@ -165,6 +165,9 @@ p.small{margin:12px 0 0;font-size:12.4px;color:var(--txt-3);line-height:1.7}
 .code .c-num{color:#fcd34d}
 .code .c-cm{color:#6b7c9c;font-style:italic}
 .code .c-fn{color:#fda4af}
+/* 刚拖过的那个旋钮,在代码里对应这一段 */
+.c-hot{background:var(--acc);color:#04211d;border-radius:4px;padding:0 1px;box-shadow:0 0 14px -2px rgba(79,209,197,.9);animation:hotfade 1.4s ease-out}
+@keyframes hotfade{0%{background:#a7f3d0}100%{background:var(--acc)}}
 .board{font-family:var(--mono);font-size:12.2px;line-height:1.6;white-space:pre;overflow-x:auto;margin:0;
   background:linear-gradient(180deg,rgba(6,24,20,.7),rgba(6,20,24,.7));border:1px solid rgba(79,209,197,.2);
   border-radius:12px;padding:15px 17px;color:#b9f2e4}
@@ -187,6 +190,8 @@ p.small{margin:12px 0 0;font-size:12.4px;color:var(--txt-3);line-height:1.7}
 .cell--val{background:rgba(79,209,197,.16);color:#c7fff3;text-shadow:0 0 8px rgba(79,209,197,.4)}
 .cell--lit{background:rgba(167,139,250,.16);color:#e2d9ff}
 .cell__dot{opacity:.4}
+.cell.is-flash{box-shadow:0 0 0 1px var(--acc),0 0 16px -4px rgba(79,209,197,.9);animation:cellpop 1.4s ease-out}
+@keyframes cellpop{0%{transform:translateY(-2px)}100%{transform:none}}
 .gtable{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.6px}
 .gtable th{font-size:10.5px;letter-spacing:.5px;color:var(--txt-3);text-align:left;font-weight:600;padding:0 8px 7px 0;border-bottom:1px solid var(--line)}
 .gtable td{padding:7px 8px 7px 0;border-bottom:1px dashed var(--line);white-space:pre;color:var(--txt-2);vertical-align:top}
@@ -209,6 +214,7 @@ p.small{margin:12px 0 0;font-size:12.4px;color:var(--txt-3);line-height:1.7}
 .lab__fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
 /* min-width:0 必需:输入框有固有宽度,否则网格轨道被撑到 600px 以外,手机上右半截直接看不见 */
 .lab__f{min-width:0;background:var(--panel-2);border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+.lab__f.is-hot{border-color:rgba(79,209,197,.55);background:rgba(79,209,197,.07)}
 .lab__f label{display:block;font-size:11.5px;color:var(--txt-3);letter-spacing:.4px;margin-bottom:6px}
 .lab__f input[type=text],.lab__f input[type=number]{width:100%;min-width:0;font-family:var(--mono);font-size:12.8px;color:var(--txt);
   background:rgba(0,0,0,.3);border:1px solid var(--line-2);border-radius:8px;padding:6px 8px;outline:none}
@@ -256,6 +262,93 @@ p.small{margin:12px 0 0;font-size:12.4px;color:var(--txt-3);line-height:1.7}
 a.chip-i{color:var(--txt-2);text-decoration:none}
 a.chip-i:hover{color:var(--txt);border-color:var(--line-2)}
 
+/* 页内导航:公开区任何一个页面都能跳到任何一个页面 */
+.lnav{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+  margin:16px 0 18px;padding:9px 11px;background:rgba(9,14,26,.88);border:1px solid var(--line);
+  border-radius:13px;backdrop-filter:blur(9px)}
+.lnav__home{font-size:12.8px;font-weight:650;color:var(--txt-2);text-decoration:none;
+  border:1px solid var(--line-2);border-radius:9px;padding:6px 11px;background:var(--panel)}
+.lnav__home:hover{color:var(--txt);border-color:rgba(255,255,255,.3)}
+.lnav__home.is-on{color:#04211d;background:var(--acc);border-color:transparent;font-weight:750}
+.lnav__pick{position:relative}
+.lnav__btn{font-family:inherit;font-size:12.8px;font-weight:650;color:var(--txt-2);cursor:pointer;
+  border:1px solid var(--line-2);border-radius:9px;padding:6px 11px;background:var(--panel);display:inline-flex;align-items:center;gap:7px}
+.lnav__btn:hover{color:var(--txt);border-color:rgba(255,255,255,.3)}
+.lnav__btn.is-on{color:var(--txt);border-color:rgba(79,209,197,.5);background:rgba(79,209,197,.1)}
+.lnav__n{font-family:var(--mono);font-size:11.5px;color:var(--acc)}
+.lnav__mask{position:fixed;inset:0;z-index:6}
+.lnav__pop{position:absolute;z-index:7;top:calc(100% + 7px);left:0;width:min(460px,86vw);
+  max-height:min(62vh,460px);overflow:auto;padding:11px 12px;text-align:left;
+  background:linear-gradient(180deg,rgba(20,28,48,.99),rgba(11,17,32,.99));
+  border:1px solid var(--line-2);border-radius:13px;box-shadow:var(--shadow)}
+.lnav__chT{margin:0 0 6px;font-size:11.4px;letter-spacing:.6px;color:var(--acc-2);font-weight:700}
+.lnav__chT:not(:first-child){margin-top:13px;padding-top:11px;border-top:1px dashed var(--line)}
+.lnav__none{margin-left:8px;font-weight:500;color:var(--txt-3)}
+.lnav__ch.is-empty .lnav__chT{color:var(--txt-3)}
+.lnav__row{display:flex;align-items:center;justify-content:space-between;gap:11px;padding:3px 0}
+.lnav__row.is-here{background:rgba(79,209,197,.1);box-shadow:inset 2px 0 0 var(--acc);padding-left:8px;border-radius:4px}
+.lnav__rowT{min-width:0;font-size:12.8px;color:var(--txt);line-height:1.5}
+.lnav__rowG{display:flex;gap:6px;flex:none}
+.lnav__rowG a{font-size:11.6px;color:var(--txt-2);text-decoration:none;border:1px solid var(--line-2);
+  border-radius:7px;padding:3px 8px;white-space:nowrap}
+.lnav__rowG a:hover{color:#04211d;background:var(--acc);border-color:transparent}
+.lnav__seg{display:flex;border:1px solid var(--line-2);border-radius:9px;overflow:hidden}
+.lnav__seg a{font-size:12.6px;font-weight:600;color:var(--txt-2);text-decoration:none;padding:6px 12px}
+.lnav__seg a+ a{border-left:1px solid var(--line-2)}
+.lnav__seg a.is-on{color:#04211d;background:var(--acc);font-weight:750}
+.lnav__step{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.lnav__step a{font-size:12.4px;color:var(--txt-2);text-decoration:none;border:1px solid var(--line);
+  border-radius:8px;padding:5px 10px;background:var(--panel);white-space:nowrap}
+.lnav__step a:hover{color:var(--txt);border-color:rgba(79,209,197,.5)}
+.lnav__step .is-off{font-size:12.4px;color:var(--txt-3);opacity:.55;padding:5px 10px;white-space:nowrap}
+
+/* 页尾那一条:读到一半想跳别处,不用滚回顶上 */
+.lfoot{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px;padding-top:15px;border-top:1px dashed var(--line)}
+
+/* 每个图解块顶上那句「盯这里」 */
+.look{margin:0 0 11px;font-size:12.9px;color:var(--txt-2);line-height:1.75;
+  border-left:2px solid var(--acc);background:rgba(79,209,197,.07);border-radius:0 9px 9px 0;padding:8px 12px}
+.look code{font-size:.92em}
+.look__k{display:inline-block;margin-right:9px;font-size:10.5px;font-weight:800;letter-spacing:1px;
+  color:#04211d;background:var(--acc);border-radius:5px;padding:2px 6px;vertical-align:1px}
+
+/* 这一页怎么读 */
+.guide__steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:11px;margin-bottom:13px}
+.guide__s{display:flex;gap:10px;background:var(--panel-2);border:1px solid var(--line);border-radius:11px;padding:11px 13px}
+.guide__s i{flex:none;font-style:normal;font-family:var(--mono);font-size:11.5px;font-weight:700;color:#04211d;
+  background:var(--acc);border-radius:6px;padding:1px 7px;height:fit-content}
+.guide__s b{display:block;font-size:13.2px;margin-bottom:4px}
+.guide__s p{margin:0;font-size:12.5px;color:var(--txt-2);line-height:1.7}
+.guide__legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.guide__lg{display:flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid var(--line);
+  border-radius:9px;padding:6px 11px;font-size:12.2px;color:var(--txt-2)}
+.guide__lg code{font-size:12.4px}
+.guide__terms{margin-top:2px}
+.guide__terms td{font-size:12.5px}
+
+/* 标尺:每一列占几个字符 */
+.gt__tools{margin:0 0 11px}
+.gt__ruler{font-family:inherit;font-size:12.2px;color:var(--txt-2);cursor:pointer;background:var(--panel-2);
+  border:1px solid var(--line-2);border-radius:8px;padding:5px 11px;transition:.14s}
+.gt__ruler:hover{color:var(--txt);border-color:rgba(79,209,197,.5)}
+.gt__ruler.is-on{color:#04211d;background:var(--acc);border-color:transparent;font-weight:650}
+.ruler{display:flex;gap:4px;margin:-2px 0 12px}
+.ruler__c{display:grid;place-items:center;font-family:var(--mono);font-size:11.6px;color:var(--acc);
+  border:1px dashed rgba(79,209,197,.45);border-radius:6px;padding:3px 0;background:rgba(79,209,197,.07)}
+.ruler__c b{font-size:12.4px}
+.ruler__cap{margin:7px 0 0;font-size:11.9px;color:var(--txt-3);line-height:1.7}
+
+/* 链接里那一课找不到时的列表 */
+.err__list{margin-top:11px;display:grid;gap:7px}
+.err__row{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:7px 11px;background:rgba(255,255,255,.035)}
+.err__t{font-family:var(--font);font-size:12.8px;color:var(--txt)}
+.err__go{display:flex;gap:7px;flex:none}
+.err__go a{font-family:var(--font);font-size:11.8px;color:#c7fff3;text-decoration:none;
+  border:1px solid rgba(79,209,197,.4);border-radius:7px;padding:3px 9px}
+.err__go a:hover{background:rgba(79,209,197,.2)}
+.err .small,.err button{font-family:var(--font)}
+
 /* 页头:章节 → 课题,右边放跳转按钮 */
 .lhead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
 .lhead h2{margin:4px 0 6px;font-size:20px;font-weight:750;letter-spacing:.3px;line-height:1.4}
@@ -292,11 +385,19 @@ a.chip-i:hover{color:var(--txt);border-color:var(--line-2)}
 .stu .lab__f input[type=text],.stu .lab__f input[type=number]{font-size:14.6px;padding:8px 9px}
 .stu .lab__range span{font-size:11.8px}
 .stu .lab__al button{font-size:13px;padding:6px 0}
+.stu .look{font-size:14.6px;padding:10px 14px}
+.stu .look__k{font-size:11.5px}
+.stu .guide__s b{font-size:14.6px}
+.stu .guide__s p{font-size:13.8px}
+.stu .guide__lg{font-size:13.2px}
+.stu .guide__terms td{font-size:13.4px}
+.stu .ruler__cap{font-size:13px}
+.stu .gt__ruler{font-size:13.4px;padding:7px 13px}
 
 .err{background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.28);border-radius:var(--radius);
   padding:18px 20px;color:#fda4af;font-size:13.2px;line-height:1.8}
 .err h3{margin:0 0 8px;color:#ffd7de;font-size:15px}
-.err p{margin:0;font-family:var(--mono);font-size:12.2px;color:#fecdd3}
+.err p{margin:0;font-size:12.8px;color:#fecdd3;line-height:1.8}
 
 @media (max-width:640px){
   .shell{padding:20px 14px 50px}
@@ -309,4 +410,10 @@ a.chip-i:hover{color:var(--txt);border-color:var(--line-2)}
   .lhead h2{font-size:18px}
   .lsn{grid-template-columns:minmax(0,1fr)}
   .lsn__go .btn{flex:1;justify-content:center}
+  .lnav{padding:8px 9px;gap:7px}
+  .lnav__step{margin-left:0}
+  .lnav__pop{width:min(360px,92vw)}
+  .lnav__row{align-items:flex-start;gap:9px}
+  .guide__steps{grid-template-columns:minmax(0,1fr)}
+  .ruler{overflow-x:auto;padding-bottom:3px}
 }

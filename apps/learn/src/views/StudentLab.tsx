@@ -1,6 +1,6 @@
 import { CJKTrap, Drill, FlowStages, GridTable, PlainCtx, SpecAnatomy } from '../components/diagrams';
 import { Lab } from '../components/Lab';
-import { Block } from '../components/ui';
+import { Block, Guide } from '../components/ui';
 import { hashFor } from '../lib/store';
 import type { Lesson } from '../lib/types';
 
@@ -21,6 +21,8 @@ export function StudentLab({ lesson: l }: { lesson: Lesson }) {
             </a>
           </div>
         </div>
+
+        <Guide {...(l.guide || {})} />
 
         <Block title="三种写法">
           <table className="dtable">

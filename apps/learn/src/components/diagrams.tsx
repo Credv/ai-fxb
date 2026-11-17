@@ -1,17 +1,40 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { cellSpans, dw, pad, plen } from '../lib/text';
 import type { Cell, SpecToken } from '../lib/types';
+import { Look } from './ui';
 
 /** 学生版只留图解本身：教师向的旁白（为什么这么讲、课堂上怎么处理）在这一档里一律不出现。 */
 export const PlainCtx = createContext(false);
 
+/** 标尺:每一段宽 = 代码里声明的字符数,竖线正好落在段的边界上。 */
+function Ruler({ colW }: { colW: number[] }) {
+  let start = 0;
+  return (
+    <div className="ruler">
+      {colW.map((w, j) => {
+        const from = start + 1;
+        start += w;
+        return (
+          <span key={j} className="ruler__c" style={{ width: w + 'ch' }} title={'第 ' + (j + 1) + ' 段:从第 ' + from + ' 个字符起,占 ' + w + ' 个字符'}>
+            <b>{w}</b>
+          </span>
+        );
+      })}
+      <p className="ruler__cap">
+        每一段里的数字 = 这一段声明了几个字符（Python 数的就是这个）。段与段之间那 4px 的缝是页面画的间隔，不是空格。
+      </p>
+    </div>
+  );
+}
+
 /** 把一行格式说明符拆成可以点的小块:哪一段管什么,点一下才说得清。 */
-export function SpecAnatomy({ spec, title, why, tokens }: { spec: string; title: string; why: string; tokens: SpecToken[] }) {
+export function SpecAnatomy({ spec, title, why, look, tokens }: { spec: string; title: string; why: string; look?: string; tokens: SpecToken[] }) {
   const [sel, setSel] = useState<number>(-1);
   const stu = useContext(PlainCtx);
   return (
     <div className="blk">
       <h3>{title}</h3>
+      <Look text={look} />
       {stu ? null : <p className="lead">{why}</p>}
       <div className="anat">
         {tokens.map((t, i) => (
@@ -63,8 +86,9 @@ export function CellRow({ cells }: { cells: Cell[] }) {
   );
 }
 
-export function GridTable({ title, code, note, head, rows }: { title: string; code: string; note: string; head: Cell[]; rows: Cell[][] }) {
+export function GridTable({ title, code, note, look, head, rows }: { title: string; code: string; note: string; look?: string; head: Cell[]; rows: Cell[][] }) {
   const stu = useContext(PlainCtx);
+  const [ruler, setRuler] = useState(false);
   // 表头和竖线本身也是格子:代码里那行 print 打出来的就是它们,少算一格这一列的宽度就对不上。
   const want = (c: Cell) => (c.w > 0 ? c.w : plen(c.text));
   const all = [...(head.length ? [head] : []), ...rows];
@@ -80,7 +104,14 @@ export function GridTable({ title, code, note, head, rows }: { title: string; co
   return (
     <div className="blk">
       <h3>{title}</h3>
+      <Look text={look} />
       <pre className="code" style={{ marginBottom: 12 }}>{code}</pre>
+      <div className="gt__tools">
+        <button type="button" className={'gt__ruler' + (ruler ? ' is-on' : '')} onClick={() => setRuler(!ruler)}>
+          {ruler ? '收起标尺' : '看标尺：每一列占几个字符'}
+        </button>
+      </div>
+      {ruler ? <Ruler colW={colW} /> : null}
       <div style={{ marginBottom: 10 }}>
         {laid.map((row, i) => (
           <div key={i} style={{ marginBottom: 6 }}>
@@ -95,11 +126,12 @@ export function GridTable({ title, code, note, head, rows }: { title: string; co
   );
 }
 
-export function FlowStages({ title, desc, list }: { title: string; desc: string; list: { name: string; data: string; hint: string }[] }) {
+export function FlowStages({ title, desc, look, list }: { title: string; desc: string; look?: string; list: { name: string; data: string; hint: string }[] }) {
   const stu = useContext(PlainCtx);
   return (
     <div className="blk">
       <h3>{title}</h3>
+      <Look text={look} />
       {stu ? null : <p className="lead">{desc}</p>}
       <div className="flow">
         {list.map((s, i) => (
@@ -144,7 +176,7 @@ export function Tips({ items }: { items: string[] }) {
 }
 
 /** Python 补的是"字符个数"，终端量的是"显示列数"；中文一多，两张尺就对不上了。 */
-export function CJKTrap({ text, w, note }: { text: string; w: number; note: string }) {
+export function CJKTrap({ text, w, note, look }: { text: string; w: number; note: string; look?: string }) {
   const stu = useContext(PlainCtx);
   const py = pad(text, w, 'l');
   const cols = dw(text);
@@ -155,6 +187,7 @@ export function CJKTrap({ text, w, note }: { text: string; w: number; note: stri
       <h4>
         <code>{'{:' + w + '}'}</code> 套在 <code>{'"' + text + '"'}</code> 上
       </h4>
+      <Look text={look} />
       <div className="cells" style={{ marginTop: 9 }}>
         <span className="cell cell--val">
           {s.left ? <span className="cell__dot">{s.left}</span> : null}

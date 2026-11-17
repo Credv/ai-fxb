@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { cellSpans, fmtValue, pad } from '../lib/text';
 import type { LabField } from '../lib/types';
 import { Code } from './Code';
+import { Look } from './ui';
 
 const AL: { v: LabField['align']; t: string }[] = [
   { v: 'l', t: '< 左' },
@@ -26,18 +27,26 @@ function headTail(f: LabField): string {
 }
 
 /** 改一个参数，屏幕上的列就跟着抖一格——课堂上最能留住学生的那个交互。 */
-export function Lab({ title, intro, sep, fields: init }: { title: string; intro: string; sep: string; fields: LabField[] }) {
+export function Lab({ title, intro, look, sep, fields: init }: { title: string; intro: string; look?: string; sep: string; fields: LabField[] }) {
   const [fs, setFs] = useState<LabField[]>(() => init.map((f) => ({ ...f })));
-  const set = (i: number, patch: Partial<LabField>) => setFs((old) => old.map((f, n) => (n === i ? { ...f, ...patch } : f)));
+  const [hot, setHot] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 动哪个旋钮,下面那条格式串里对应的那一段就亮一下:不然滑块和代码是两张皮,得自己数花括号。
+  const set = (i: number, patch: Partial<LabField>) => {
+    setHot(i + ':' + Object.keys(patch)[0]);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setHot(null), 1400);
+    setFs((old) => old.map((f, n) => (n === i ? { ...f, ...patch } : f)));
+  };
 
   const disp = (f: LabField) => fmtValue(f.value, f.type, f.prec);
   // 宽度填 0 就是「不设宽度」：Python 这时一个空格也不补，所以这里也必须补 0——
   // 之前按「这一列最宽的内容」补齐，屏幕上摆齐了，代码其实打不出那一行。
   const wOf = (f: LabField) => f.w;
-  const spans = (text: string, f: LabField, cls: string) => {
+  const spans = (text: string, f: LabField, cls: string, i: number) => {
     const s = cellSpans(text, wOf(f), f.align);
     return (
-      <span key={f.key} className={'cell cell--' + cls}>
+      <span key={f.key} className={'cell cell--' + cls + (i === hotIdx ? ' is-flash' : '')}>
         {s.left ? <span className="cell__dot">{s.left}</span> : null}
         {s.body}
         {s.right ? <span className="cell__dot">{s.right}</span> : null}
@@ -48,6 +57,20 @@ export function Lab({ title, intro, sep, fields: init }: { title: string; intro:
     const p = pad(text, wOf(f), f.align);
     return ' '.repeat(p.left) + text + ' '.repeat(p.right);
   };
+
+  /** 刚动的旋钮对应格式串里的哪一段:值 → 整个 {name:<8},宽度/对齐 → :<8,小数 → .1f。
+   *  拖到「不设」时代码里根本没有那一段,这时只点亮下面那一列。 */
+  const segOf = (i: number): string => {
+    if (!hot) return '';
+    const [idx, kind] = hot.split(':');
+    if (Number(idx) !== i) return '';
+    const f = fs[i];
+    if (kind === 'value') return '{' + f.key + tail(f) + '}';
+    if (kind === 'prec') return f.prec > 0 ? '.' + f.prec + 'f' : '';
+    return f.w > 0 ? ':' + ALCH[f.align] + f.w : '';
+  };
+  const hotIdx = hot ? Number(hot.split(':')[0]) : -1;
+  const mark = fs.map((_, i) => segOf(i)).find(Boolean) || '';
 
   const q = (s: string) => "'" + s.replace(/'/g, "\\'") + "'";
   const sepSrc = sep.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -61,11 +84,12 @@ export function Lab({ title, intro, sep, fields: init }: { title: string; intro:
   return (
     <div className="blk">
       <h3>{title}</h3>
+      <Look text={look} />
       <p className="lead">{intro}</p>
       <div className="lab">
         <div className="lab__fields">
           {fs.map((f, i) => (
-            <div key={f.key} className="lab__f">
+            <div key={f.key} className={'lab__f' + (i === hotIdx ? ' is-hot' : '')}>
               <label>
                 {f.label} <code>{f.key}</code>
               </label>
@@ -100,15 +124,15 @@ export function Lab({ title, intro, sep, fields: init }: { title: string; intro:
 
         <div>
           <p className="small" style={{ marginTop: 0 }}>现在这份参数写出来的代码</p>
-          <Code>{decl + '\n\nprint(' + hLine + ')\nprint(' + fLine + ')'}</Code>
+          <Code mark={mark}>{decl + '\n\nprint(' + hLine + ')\nprint(' + fLine + ')'}</Code>
           <p className="small">同一份输出的另一种写法（旧代码、老教材里会遇到，含义完全一样）：</p>
-          <Code>{'print(' + hPosLine + ')\nprint(' + posLine + ')'}</Code>
+          <Code mark={mark}>{'print(' + hPosLine + ')\nprint(' + posLine + ')'}</Code>
         </div>
 
         <div>
           <p className="small" style={{ marginTop: 0 }}>屏幕上真实的列</p>
-          <div className="cells">{fs.map((f) => spans(f.label, f, 'lit'))}</div>
-          <div className="cells">{fs.map((f) => spans(disp(f), f, 'val'))}</div>
+          <div className="cells">{fs.map((f, i) => spans(f.label, f, 'lit', i))}</div>
+          <div className="cells">{fs.map((f, i) => spans(disp(f), f, 'val', i))}</div>
           <p className="small">
             补出来的空格画成 <code>·</code>。把「宽度」拖到 <b>不设</b>，列就散了——那正是没做格式化的周报长什么样。
           </p>

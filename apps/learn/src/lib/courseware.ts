@@ -21,3 +21,17 @@ export function stats() {
     { label: '可拖参数的实验', value: String(LESSONS.reduce((n, l) => n + l.py.lab.length, 0)) }
   ];
 }
+
+/** 导航那一行放不下整课标题:优先用数据里写好的 short,没有就取破折号前面那半句。 */
+export function shortTitle(l: Lesson): string {
+  return l.short || l.title.split(/[——(（]/)[0].trim() || l.title;
+}
+
+/** 上一课 / 下一课按 LESSONS 的顺序走(也就是上课的顺序),不按 id 字母序。 */
+export function neighbors(id?: string): { prev: Lesson | null; next: Lesson | null } {
+  const i = LESSONS.findIndex((l) => l.id === id);
+  return {
+    prev: i > 0 ? LESSONS[i - 1] : null,
+    next: i >= 0 && i < LESSONS.length - 1 ? LESSONS[i + 1] : null
+  };
+}

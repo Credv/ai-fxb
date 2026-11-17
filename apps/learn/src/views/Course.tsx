@@ -1,6 +1,6 @@
 import { CJKTrap, Drill, FlowStages, GridTable, SpecAnatomy, Tips } from '../components/diagrams';
 import { Lab } from '../components/Lab';
-import { Block, Collapsible, StatBar } from '../components/ui';
+import { Block, Collapsible, Guide, StatBar } from '../components/ui';
 import { chapterOf } from '../lib/courseware';
 import { hashFor } from '../lib/store';
 import type { Lesson } from '../lib/types';
@@ -35,6 +35,8 @@ export function CourseView({ lesson: l }: { lesson: Lesson }) {
           { label: '可拖参数的实验', value: String(py.lab.length) }
         ]}
       />
+
+      <Guide {...(l.guide || {})} />
 
       <Block title="教学设计" n="01" lead={l.plan.standard}>
         <div className="mini" style={{ marginBottom: 14 }}>

@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { Gate } from './components/Gate';
-import { COURSEWARE, findLesson } from './lib/courseware';
-import { applyRoute, boot, daysLeft, go, leave, parseHash, PRIVATE_VIEWS, state, useVersion } from './lib/store';
+import { LessonNav, PageFoot } from './components/Nav';
+import { COURSEWARE, LESSONS, findLesson } from './lib/courseware';
+import { applyRoute, boot, daysLeft, go, hashFor, leave, parseHash, PRIVATE_VIEWS, state, useVersion } from './lib/store';
 import { CatalogView } from './views/Catalog';
 import { CertView } from './views/Cert';
 import { CourseView } from './views/Course';
@@ -40,6 +41,18 @@ function NotFound({ id }: { id: string }) {
     <div className="err">
       <h3>这一课不在这儿</h3>
       <p>链接里的课件编号是 <code>{id || '（空）'}</code>，当前章节里没有它——可能这一课还没备好，也可能链接少了一位。</p>
+      <p className="small" style={{ marginTop: 14 }}>现在备好的课件一共 {LESSONS.length} 课，直接点进去：</p>
+      <div className="err__list">
+        {LESSONS.map((l) => (
+          <div key={l.id} className="err__row">
+            <span className="err__t">{l.title}</span>
+            <span className="err__go">
+              <a href={hashFor('course', l.id)}>课件</a>
+              <a href={hashFor('student', l.id)}>学生版</a>
+            </span>
+          </div>
+        ))}
+      </div>
       <p style={{ marginTop: 12 }}>
         <button type="button" className="btn btn--ghost" onClick={() => go('catalog')}>
           回章节目录
@@ -57,19 +70,16 @@ function PublicShell() {
         title={COURSEWARE.course}
         sub={state.sec === 'student' ? '图解和参数，自己动手看' : '教案 · 板书 · 图解 —— 按章节存放'}
         right={
-          <>
-            <a className="chip-i" href="/ai-fxb/">
-              AI 窗口 ↗
-            </a>
-            <a className="chip-i" href="#/">
-              章节目录
-            </a>
-          </>
+          <a className="chip-i" href="/ai-fxb/">
+            AI 窗口 ↗
+          </a>
         }
       />
+      <LessonNav sec={state.sec} lesson={lesson} />
       {state.sec === 'catalog' ? <CatalogView /> : null}
       {state.sec === 'course' ? (lesson ? <CourseView lesson={lesson} /> : <NotFound id={state.id} />) : null}
       {state.sec === 'student' ? (lesson ? <StudentLab lesson={lesson} /> : <NotFound id={state.id} />) : null}
+      <PageFoot lesson={lesson} />
       <footer className="foot">
         <div>
           <a href="/">← 3ecat.me</a>

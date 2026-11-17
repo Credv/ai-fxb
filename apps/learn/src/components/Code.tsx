@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, type ReactNode } from 'react';
 
 const KW = new Set([
   'def', 'return', 'if', 'elif', 'else', 'for', 'while', 'in', 'not', 'and', 'or', 'import', 'from', 'as',
@@ -74,17 +74,33 @@ function scan(src: string): Tok[] {
   return out;
 }
 
+/** 刚被拖的那个旋钮，对应格式串里的哪一段——把它点亮，学生才知道滑块和代码是同一件事。 */
+function markSeg(src: string, mark?: string): ReactNode {
+  if (!mark || !src.includes(mark)) return src;
+  const out: ReactNode[] = [];
+  let i = 0;
+  for (;;) {
+    const j = src.indexOf(mark, i);
+    if (j < 0) break;
+    if (j > i) out.push(src.slice(i, j));
+    out.push(<span key={'h' + j} className="c-hot">{mark}</span>);
+    i = j + mark.length;
+  }
+  if (i < src.length) out.push(src.slice(i));
+  return out;
+}
+
 /** 字符串里的 {…} 才是这节课的主角,单独点出来。 */
-function renderString(tok: Tok, key: string) {
+function renderString(tok: Tok, key: string, mark?: string) {
   const parts = tok.v.split(/(\{[^{}]*\})/g);
   return (
     <span key={key} className="c-st">
-      {parts.map((p, n) => (p.startsWith('{') ? <span key={n} className="c-fs">{p}</span> : <Fragment key={n}>{p}</Fragment>))}
+      {parts.map((p, n) => (p.startsWith('{') ? <span key={n} className="c-fs">{markSeg(p, mark)}</span> : <Fragment key={n}>{p}</Fragment>))}
     </span>
   );
 }
 
-export function Code({ children }: { children: string }) {
+export function Code({ children, mark }: { children: string; mark?: string | null }) {
   const toks = scan(children);
-  return <pre className="code">{toks.map((t, i) => (t.k === 'c-st' ? renderString(t, 's' + i) : t.k === 'p' ? <Fragment key={'p' + i}>{t.v}</Fragment> : <span key={'k' + i} className={t.k}>{t.v}</span>))}</pre>;
+  return <pre className="code">{toks.map((t, i) => (t.k === 'c-st' ? renderString(t, 's' + i, mark || undefined) : t.k === 'p' ? <Fragment key={'p' + i}>{t.v}</Fragment> : <span key={'k' + i} className={t.k}>{t.v}</span>))}</pre>;
 }
