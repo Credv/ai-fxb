@@ -16,9 +16,9 @@ export function chapterOf(lessonId?: string): Chapter | null {
 /** 章节目录顶上那三个数:全部现算,不写死,加一课就自己变。 */
 export function stats() {
   return [
-    { label: '章节', value: String(COURSEWARE.chapters.length) },
-    { label: '已备课件', value: String(LESSONS.length) },
-    { label: '可拖参数的实验', value: String(LESSONS.reduce((n, l) => n + l.py.lab.length, 0)) }
+    { label: '一共几章', value: String(COURSEWARE.chapters.length) },
+    { label: '备好了几课', value: String(LESSONS.length) },
+    { label: '能动手拖的实验', value: String(LESSONS.reduce((n, l) => n + l.py.lab.length, 0)) }
   ];
 }
 

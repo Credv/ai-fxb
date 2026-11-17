@@ -5,9 +5,9 @@ import { Code } from './Code';
 import { Look } from './ui';
 
 const AL: { v: LabField['align']; t: string }[] = [
-  { v: 'l', t: '< 左' },
-  { v: 'c', t: '^ 中' },
-  { v: 'r', t: '> 右' }
+  { v: 'l', t: '< 靠左' },
+  { v: 'c', t: '^ 居中' },
+  { v: 'r', t: '> 靠右' }
 ];
 /** 界面里用 l/c/r 记，写进代码必须是 Python 认的那三个符号——'l8' 是会直接报错的。 */
 const ALCH: Record<LabField['align'], string> = { l: '<', c: '^', r: '>' };
@@ -27,7 +27,7 @@ function headTail(f: LabField): string {
 }
 
 /** 改一个参数，屏幕上的列就跟着抖一格——课堂上最能留住学生的那个交互。 */
-export function Lab({ title, intro, look, sep, fields: init }: { title: string; intro: string; look?: string; sep: string; fields: LabField[] }) {
+export function Lab({ title, nav, intro, look, sep, fields: init }: { title: string; nav?: string; intro: string; look?: string; sep: string; fields: LabField[] }) {
   const [fs, setFs] = useState<LabField[]>(() => init.map((f) => ({ ...f })));
   const [hot, setHot] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -82,7 +82,7 @@ export function Lab({ title, intro, look, sep, fields: init }: { title: string; 
   const output = [fs.map((f) => real(f.label, f)).join(sep), fs.map((f) => real(disp(f), f)).join(sep)].join('\n');
 
   return (
-    <div className="blk">
+    <div className="blk" data-sec={nav || title}>
       <h3>{title}</h3>
       <Look text={look} />
       <p className="lead">{intro}</p>
@@ -100,15 +100,15 @@ export function Lab({ title, intro, look, sep, fields: init }: { title: string; 
                 onChange={(e) => set(i, { value: e.target.value })}
               />
               <div className="lab__range">
-                <span>宽度</span>
+                <span>占几个字</span>
                 <input type="range" min={0} max={16} value={f.w} onChange={(e) => set(i, { w: Number(e.target.value) })} />
                 <code>{f.w > 0 ? f.w : '不设'}</code>
               </div>
               {f.type === 'num' ? (
                 <div className="lab__range">
-                  <span>小数</span>
+                  <span>小数留几位</span>
                   <input type="range" min={0} max={4} value={f.prec} onChange={(e) => set(i, { prec: Number(e.target.value) })} />
-                  <code>{f.prec > 0 ? f.prec : '不管'}</code>
+                  <code>{f.prec > 0 ? f.prec : '原样'}</code>
                 </div>
               ) : null}
               <div className="lab__al">
@@ -123,18 +123,18 @@ export function Lab({ title, intro, look, sep, fields: init }: { title: string; 
         </div>
 
         <div>
-          <p className="small" style={{ marginTop: 0 }}>现在这份参数写出来的代码</p>
+          <p className="small" style={{ marginTop: 0 }}>照上面这些开关，写出来是这段代码：</p>
           <Code mark={mark}>{decl + '\n\nprint(' + hLine + ')\nprint(' + fLine + ')'}</Code>
-          <p className="small">同一份输出的另一种写法（旧代码、老教材里会遇到，含义完全一样）：</p>
+          <p className="small">同样意思的老写法，旧代码和教材里会遇到，打出来的东西一模一样：</p>
           <Code mark={mark}>{'print(' + hPosLine + ')\nprint(' + posLine + ')'}</Code>
         </div>
 
         <div>
-          <p className="small" style={{ marginTop: 0 }}>屏幕上真实的列</p>
+          <p className="small" style={{ marginTop: 0 }}>这样写排出来是两行：</p>
           <div className="cells">{fs.map((f, i) => spans(f.label, f, 'lit', i))}</div>
           <div className="cells">{fs.map((f, i) => spans(disp(f), f, 'val', i))}</div>
           <p className="small">
-            补出来的空格画成 <code>·</code>。把「宽度」拖到 <b>不设</b>，列就散了——那正是没做格式化的周报长什么样。
+            里面的 <code>·</code> 是补出来的空格，真打印出来看不见。把「占几个字」拖到 <b>不设</b>，这两行就散了——那就是没排版的周报。
           </p>
           <pre className="code">{output.replace(/ /g, '␣')}</pre>
         </div>

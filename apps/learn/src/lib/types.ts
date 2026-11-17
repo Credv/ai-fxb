@@ -33,14 +33,15 @@ export interface LabField {
   max?: number;
 }
 
-/** 一节课的可交互图解部分:学生版只渲染这一块,所以里面的文字必须学生也能看。 */
+/** 一节课的可交互图解部分:学生版只渲染这一块,所以里面的文字必须学生也能看。
+ *  nav 是右侧快速导航用的短名;没写就从 title 截。 */
 export interface PyBlock {
   note: string;
   compare: { head: string[]; rows: string[][] };
-  anatomy: { spec: string; title: string; why: string; look?: string; tokens: SpecToken[] }[];
-  grid: { title: string; code: string; note: string; look?: string; head: Cell[]; rows: Cell[][] }[];
-  stages: { title: string; desc: string; look?: string; list: { name: string; data: string; hint: string }[] }[];
-  lab: { title: string; intro: string; look?: string; sep: string; fields: LabField[] }[];
+  anatomy: { spec: string; title: string; nav?: string; why: string; look?: string; tokens: SpecToken[] }[];
+  grid: { title: string; nav?: string; code: string; note: string; look?: string; head: Cell[]; rows: Cell[][] }[];
+  stages: { title: string; nav?: string; desc: string; look?: string; list: { name: string; data: string; hint: string }[] }[];
+  lab: { title: string; nav?: string; intro: string; look?: string; sep: string; fields: LabField[] }[];
   drills: { title: string; code: string; guess: string; out: string; note: string }[];
   trap: { text: string; w: number; note: string; look?: string }[];
   cheats: { k: string; v: string }[];

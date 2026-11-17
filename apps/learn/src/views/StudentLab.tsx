@@ -24,7 +24,7 @@ export function StudentLab({ lesson: l }: { lesson: Lesson }) {
 
         <Guide {...(l.guide || {})} />
 
-        <Block title="三种写法">
+        <Block title="三种写法，写的是同一件事" nav="三种写法">
           <table className="dtable">
             <thead>
               <tr>
@@ -63,19 +63,19 @@ export function StudentLab({ lesson: l }: { lesson: Lesson }) {
           <Lab key={x.title} {...x} />
         ))}
 
-        <Block title="先猜再看">
+        <Block title="先猜再看" nav="先猜再看">
           {py.drills.map((x) => (
             <Drill key={x.title} {...x} />
           ))}
         </Block>
 
-        <Block title="中文列为什么会歪">
+        <Block title="名字是中文，表格为什么会歪" nav="中文为什么歪">
           {py.trap.map((t) => (
             <CJKTrap key={t.text} {...t} />
           ))}
         </Block>
 
-        <Block title="一页速查">
+        <Block title="全部写法，一张表查完" nav="速查表">
           <table className="dtable">
             <tbody>
               {py.cheats.map((c) => (

@@ -50,7 +50,7 @@ export function CatalogView() {
     <>
       <StatBar items={stats()} />
       <p className="lead">
-        每课两页：<b>课件</b>是完整的教案、板书和图解；<b>学生版</b>只剩图解和能拖的参数，那个链接可以直接发给学生。
+        每一课有两页：<b>课件</b>是给老师看的，教案、板书、图解都在里面；<b>学生版</b>只剩下图和能自己动手拖的那部分，这一页的链接可以直接发给学生。
       </p>
       <p className="small" style={{ marginBottom: 16 }}>
         {COURSEWARE.basis}

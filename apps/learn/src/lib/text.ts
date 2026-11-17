@@ -5,11 +5,31 @@ export function plen(s: string): number {
   return [...s].length;
 }
 
+/** 屏幕上占几格。中文、日文、全角标点一个占 2 格，其余占 1 格。
+ *  注意 U+4E00–U+9FFF（常用汉字整段）必须在里面，否则「张伟」会被数成 2 格，这一课的例子就演示不出来了。 */
+function isWide(c: number): boolean {
+  return (
+    (c >= 0x1100 && c <= 0x115f) ||
+    (c >= 0x2e80 && c <= 0x303e) ||
+    (c >= 0x3041 && c <= 0x33ff) ||
+    (c >= 0x3400 && c <= 0x4dbf) ||
+    (c >= 0x4e00 && c <= 0x9fff) ||
+    (c >= 0xa000 && c <= 0xa4cf) ||
+    (c >= 0xac00 && c <= 0xd7a3) ||
+    (c >= 0xf900 && c <= 0xfaff) ||
+    (c >= 0xfe30 && c <= 0xfe6b) ||
+    (c >= 0xff00 && c <= 0xff60) ||
+    (c >= 0xffe0 && c <= 0xffe6) ||
+    (c >= 0x1f300 && c <= 0x1f64f) ||
+    (c >= 0x1f900 && c <= 0x1f9ff) ||
+    c >= 0x20000
+  );
+}
+
 export function dw(s: string): number {
   let n = 0;
   for (const ch of s) {
-    const c = ch.codePointAt(0) || 0;
-    n += c > 0x1100 && (c < 0x2e80 || (c > 0x303f && c < 0x4e00) || (c > 0xa4cf && c < 0x11000) || c >= 0x1f300) ? 2 : 1;
+    n += isWide(ch.codePointAt(0) || 0) ? 2 : 1;
   }
   return n;
 }

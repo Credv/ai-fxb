@@ -49,10 +49,10 @@ export function LessonNav({ sec, lesson }: { sec: Sec; lesson: Lesson | null }) 
                     <div key={l.id} className={'lnav__row' + (l.id === lesson?.id ? ' is-here' : '')}>
                       <span className="lnav__rowT">{l.title}</span>
                       <span className="lnav__rowG">
-                        <a href={hashFor('course', l.id)} title="这一课的课件页（教案 · 板书 · 图解）">
+                        <a href={hashFor('course', l.id)} title="给老师看的那一页：教案、板书、图解都在">
                           课件
                         </a>
-                        <a href={hashFor('student', l.id)} title="这一课的学生版（只剩图解和能拖的参数）">
+                        <a href={hashFor('student', l.id)} title="只剩图和能自己拖的那一页，链接可以直接发给学生">
                           学生版
                         </a>
                       </span>

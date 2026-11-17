@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Gate } from './components/Gate';
 import { LessonNav, PageFoot } from './components/Nav';
+import { BackToTop, SectionRail } from './components/Rail';
 import { COURSEWARE, LESSONS, findLesson } from './lib/courseware';
 import { applyRoute, boot, daysLeft, go, hashFor, leave, parseHash, PRIVATE_VIEWS, state, useVersion } from './lib/store';
 import { CatalogView } from './views/Catalog';
@@ -68,7 +69,7 @@ function PublicShell() {
     <div className="shell">
       <Masthead
         title={COURSEWARE.course}
-        sub={state.sec === 'student' ? '图解和参数，自己动手看' : '教案 · 板书 · 图解 —— 按章节存放'}
+        sub={state.sec === 'student' ? '图在这里，参数自己拖' : '教案、板书、图解，一节一节放着'}
         right={
           <a className="chip-i" href="/ai-fxb/">
             AI 窗口 ↗
@@ -76,15 +77,19 @@ function PublicShell() {
         }
       />
       <LessonNav sec={state.sec} lesson={lesson} />
-      {state.sec === 'catalog' ? <CatalogView /> : null}
-      {state.sec === 'course' ? (lesson ? <CourseView lesson={lesson} /> : <NotFound id={state.id} />) : null}
-      {state.sec === 'student' ? (lesson ? <StudentLab lesson={lesson} /> : <NotFound id={state.id} />) : null}
+      <SectionRail key={state.sec + ':' + (state.id || '')} pageId="page" />
+      <div id="page">
+        {state.sec === 'catalog' ? <CatalogView /> : null}
+        {state.sec === 'course' ? (lesson ? <CourseView lesson={lesson} /> : <NotFound id={state.id} />) : null}
+        {state.sec === 'student' ? (lesson ? <StudentLab lesson={lesson} /> : <NotFound id={state.id} />) : null}
+      </div>
       <PageFoot lesson={lesson} />
       <footer className="foot">
         <div>
           <a href="/">← 3ecat.me</a>
         </div>
       </footer>
+      <BackToTop />
     </div>
   );
 }

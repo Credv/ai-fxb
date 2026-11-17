@@ -25,9 +25,9 @@ export function Collapsible({
   );
 }
 
-export function Block({ title, n, lead, children }: { title: string; n?: string; lead?: string; children?: ReactNode }) {
+export function Block({ title, nav, n, lead, children }: { title: string; nav?: string; n?: string; lead?: string; children?: ReactNode }) {
   return (
-    <section className="blk">
+    <section className="blk" data-sec={nav || title}>
       <h3>
         {n ? <span className="n">{n}</span> : null}
         {title}
@@ -80,7 +80,7 @@ export function Look({ text }: { text?: string }) {
 export function Guide({ steps, legend, terms }: { steps?: { t: string; d: string }[]; legend?: { sym: string; means: string }[]; terms?: { t: string; say: string }[] }) {
   if (!steps?.length && !legend?.length && !terms?.length) return null;
   return (
-    <section className="blk blk--lead guide">
+    <section className="blk blk--lead guide" data-sec="这一页怎么读">
       <h3>这一页怎么读</h3>
       {steps?.length ? (
         <div className="guide__steps">
