@@ -7,6 +7,44 @@ export interface LessonFlow {
   say?: string;
 }
 
+/** 讲台脚本:一拍一条,时间从 0 一路接到 minutes,中间不许留空。
+ *  cue 是你要做的事(投影/板书/走位/等谁答),say 是照着念出口的话。
+ *  back 是学生可能的答法,以及那一种答法出来以后你怎么接 —— 一次课只会走到其中一条,不是全都要说。
+ *  note 是应变:这一拍冷场了怎么办、时间不够先砍哪、哪些事先要问清楚。 */
+export interface ScriptBack {
+  /** 学生那边会出现什么(答对/答错/报错原文/卡住的样子) */
+  s: string;
+  /** 你接的那一句 */
+  you: string;
+}
+
+export interface ScriptBeat {
+  /** 「课前」或 0–1 这样的分钟区间 */
+  min: string;
+  stage?: string;
+  cue: string;
+  say: string[];
+  back?: ScriptBack[];
+  note?: string;
+}
+
+/** 教材对照:这一课挂在书的哪一节、书里已经讲到哪、哪部分是这一课自己补的。
+ *  只写查得到的 —— 节名照书抄,页码没在原文里核到就不写。 */
+export interface TextbookRef {
+  edition: string;
+  book: string;
+  pub: string;
+  isbn: string;
+  issued: string;
+  pages?: string;
+  editor?: string;
+  /** 从章到节,照教材自己的编号排 */
+  at: { no: string; title: string; note?: string }[];
+  before: string;
+  beyond: string;
+  links: { t: string; u: string; note?: string }[];
+}
+
 export interface SpecToken {
   t: string;
   label: string;
@@ -65,11 +103,13 @@ export interface Lesson {
   guide?: ReadGuide;
   plan: {
     standard: string;
+    textbookRef?: TextbookRef;
     learners: string;
     goals: { dim: string; t: string }[];
     key: string[];
     hard: string[];
     flow: LessonFlow[];
+    script?: ScriptBeat[];
     board: string;
     homework: { t: string; d: string }[];
   };
@@ -82,6 +122,8 @@ export interface Chapter {
   no: string;
   title: string;
   lead: string;
+  /** 这一章对应教材里的哪几节;查不到对应章就留空,不硬凑 */
+  textbook?: string;
   lessons: Lesson[];
 }
 

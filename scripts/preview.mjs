@@ -40,6 +40,10 @@ function isFile(p) {
 function resolveFile(urlPath) {
   const rel = path.join(ROOT, path.normalize(urlPath));
   if (isFile(rel)) return rel;
+  // 目录里带 index.html 的先照线上那样给那一份:学生版是 /learn/student/index.html 这个二级入口,
+  // 少了这一层它会被当成导航,兜底到 /learn/index.html,本地预览就看到教师版了。
+  const idx = path.join(rel, 'index.html');
+  if (isFile(idx)) return idx;
   if (/\.[a-z0-9]+$/i.test(urlPath)) return null;
   const sub = SUBS.filter((s) => urlPath === s.prefix || urlPath.startsWith(s.prefix + '/'))[0];
   const html = path.join(sub ? sub.dir : ROOT, 'index.html');

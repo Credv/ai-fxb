@@ -37,9 +37,10 @@ function ChapterBlock({ c }: { c: Chapter }) {
       defaultOpen={c.lessons.length > 0}
       meta={c.lessons.length ? c.lessons.length + ' 课' : '未备课件'}
     >
-      <p className="lead" style={{ marginBottom: 13 }}>
+      <p className="lead" style={{ marginBottom: 8 }}>
         {c.lead}
       </p>
+      {c.textbook ? <p className="small" style={{ marginBottom: 13 }}>在课本里是：{c.textbook}</p> : null}
       {c.lessons.length ? c.lessons.map((l) => <LessonRow key={l.id} l={l} />) : <p className="small">这一章还没有课件。</p>}
     </Collapsible>
   );

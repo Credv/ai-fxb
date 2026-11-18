@@ -156,6 +156,46 @@ p.small{margin:12px 0 0;font-size:12.4px;color:var(--txt-3);line-height:1.7}
   padding:6px 0 6px 11px;background:rgba(167,139,250,.06);border-radius:0 8px 8px 0}
 .tl__say::before{content:"说";color:var(--acc-2);font-size:10.5px;font-weight:800;margin-right:7px;letter-spacing:1px}
 
+/* 讲台脚本:一拍一块,台词比正文大一档,让站着也能一眼抓住 */
+.scr{margin-top:2px}
+.scr__stage{font-size:12.4px;font-weight:800;color:var(--acc);letter-spacing:1px;
+  padding:14px 0 5px;margin-bottom:1px;border-bottom:1px solid var(--line-2)}
+.scr__row{display:grid;grid-template-columns:56px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.scr__row:last-child{border-bottom:none}
+.scr__min{font-family:var(--mono);font-size:12px;color:var(--acc);padding-top:3px}
+.scr__cue{margin:0 0 7px;font-size:12.4px;color:var(--txt-3)}
+.scr__cue::before{content:"做";font-size:10.5px;font-weight:800;color:var(--txt-3);
+  border:1px solid var(--line);border-radius:5px;padding:0 4px;margin-right:7px}
+.scr__say{margin:0;padding:0 0 0 12px;list-style:none;border-left:2px solid rgba(167,139,250,.34)}
+.scr__say li{font-size:14.2px;line-height:1.76;color:var(--txt);margin-bottom:4px}
+.scr__say li:last-child{margin-bottom:0}
+/* 接话:一节课只会走到其中一条,所以字号比台词小一档,别抢念稿那条主线 */
+.scr__back{margin:9px 0 0;padding:0 0 0 12px;list-style:none;border-left:1px dashed var(--line-2)}
+.scr__back li{margin-bottom:8px}
+.scr__back li:last-child{margin-bottom:0}
+.scr__s,.scr__y,.scr__note{margin:0;font-size:12.3px;line-height:1.66;color:var(--txt-2)}
+.scr__y{margin-top:2px;color:var(--txt)}
+.scr__s::before,.scr__y::before{font-size:10.5px;font-weight:800;color:var(--txt-3);
+  border:1px solid var(--line);border-radius:5px;padding:0 4px;margin-right:7px}
+.scr__s::before{content:"他们"}
+.scr__y::before{content:"你接"}
+/* 应变:这一拍冷场了怎么办、时间不够先砍哪、哪件事得提前问清楚 */
+.scr__note{margin-top:8px;color:var(--txt-3)}
+.scr__note::before{content:"备";font-size:10.5px;font-weight:800;color:var(--txt-3);
+  border:1px solid var(--line);border-radius:5px;padding:0 4px;margin-right:7px}
+
+/* 教材对照:节号是等宽的,和课文标题拉开一点,扫一眼就能挑出「2.3.3」 */
+.mini--book{border-left:2px solid var(--acc)}
+.tbr__at{margin:0;padding:0;list-style:none}
+.tbr__at li{margin-bottom:5px}
+.tbr__at li:last-child{margin-bottom:0}
+.tbr__at b{font-family:var(--mono);font-size:11.6px;color:var(--acc);margin-right:3px}
+.tbr__note{display:block;font-size:11.8px;color:var(--txt-3);margin-top:2px}
+.tbr__link{display:block;margin-bottom:7px}
+.tbr__link:last-child{margin-bottom:0}
+.tbr__a{color:var(--acc);text-decoration:none;border-bottom:1px dashed rgba(79,209,197,.5)}
+.tbr__a:hover{border-bottom-style:solid}
+
 /* 代码 */
 .code{font-family:var(--mono);font-size:12.6px;line-height:1.72;background:rgba(0,0,0,.34);
   border:1px solid var(--line);border-radius:12px;padding:13px 15px;overflow-x:auto;margin:0;white-space:pre;color:#dbe6f7}
