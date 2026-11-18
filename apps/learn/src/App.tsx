@@ -3,13 +3,12 @@ import { Gate } from './components/Gate';
 import { LessonNav, PageFoot } from './components/Nav';
 import { BackToTop, SectionRail } from './components/Rail';
 import { COURSEWARE, LESSONS, findLesson } from './lib/courseware';
-import { applyRoute, boot, daysLeft, go, hashFor, leave, parseHash, PRIVATE_VIEWS, state, useVersion } from './lib/store';
+import { applyRoute, boot, daysLeft, go, hashFor, leave, parseHash, PRIVATE_VIEWS, redirectLegacyStudent, state, studentHref, useVersion } from './lib/store';
 import { CatalogView } from './views/Catalog';
 import { CertView } from './views/Cert';
 import { CourseView } from './views/Course';
 import { MapView } from './views/Map';
 import { PrepView } from './views/Prep';
-import { StudentLab } from './views/StudentLab';
 import { StudentsView } from './views/Students';
 
 function Bg() {
@@ -49,7 +48,7 @@ function NotFound({ id }: { id: string }) {
             <span className="err__t">{l.title}</span>
             <span className="err__go">
               <a href={hashFor('course', l.id)}>课件</a>
-              <a href={hashFor('student', l.id)}>学生版</a>
+              <a href={studentHref(l.id)} target="_blank" rel="noopener">学生版</a>
             </span>
           </div>
         ))}
@@ -64,12 +63,12 @@ function NotFound({ id }: { id: string }) {
 }
 
 function PublicShell() {
-  const lesson = state.sec === 'course' || state.sec === 'student' ? findLesson(state.id) : null;
+  const lesson = state.sec === 'course' ? findLesson(state.id) : null;
   return (
     <div className="shell">
       <Masthead
         title={COURSEWARE.course}
-        sub={state.sec === 'student' ? '图在这里，参数自己拖' : '教案、板书、图解，一节一节放着'}
+        sub="教案、板书、图解，一节一节放着"
         right={
           <a className="chip-i" href="/ai-fxb/">
             AI 窗口 ↗
@@ -81,7 +80,6 @@ function PublicShell() {
       <div id="page">
         {state.sec === 'catalog' ? <CatalogView /> : null}
         {state.sec === 'course' ? (lesson ? <CourseView lesson={lesson} /> : <NotFound id={state.id} />) : null}
-        {state.sec === 'student' ? (lesson ? <StudentLab lesson={lesson} /> : <NotFound id={state.id} />) : null}
       </div>
       <PageFoot lesson={lesson} />
       <footer className="foot">
@@ -167,6 +165,7 @@ export default function App() {
   useEffect(() => {
     boot();
     const onHash = () => {
+      if (redirectLegacyStudent()) return;
       const r = parseHash();
       if (r.sec !== state.sec || r.id !== state.id) applyRoute(r.sec, r.id);
     };

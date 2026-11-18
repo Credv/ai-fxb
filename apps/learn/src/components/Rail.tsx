@@ -6,8 +6,9 @@ interface SecItem {
 }
 
 /**
- * 这一页的小节导航:宽屏贴在正文右边,窄屏收成导航条下面的一排。
+ * 快速定位:宽屏贴在正文右边,窄屏收成导航条下面的一排。
  * 条目从 DOM 里的 [data-sec] 现取,所以改标题、加图块都不用再维护第二份名单。
+ * 条目名要单独说清是哪件事(「冒号右边能写什么」),别只留两三个字的短号。
  */
 export function SectionRail({ pageId }: { pageId: string }) {
   const [secs, setSecs] = useState<SecItem[]>([]);
@@ -60,11 +61,11 @@ export function SectionRail({ pageId }: { pageId: string }) {
 
   return (
     <>
-      <nav className="rnav rnav--side" aria-label="这一页的小节">
-        <p className="rnav__t">这一页</p>
+      <nav className="rnav rnav--side" aria-label="快速定位">
+        <p className="rnav__t">快速定位</p>
         {secs.map(item)}
       </nav>
-      <nav className="rnav rnav--strip" aria-label="这一页的小节">
+      <nav className="rnav rnav--strip" aria-label="快速定位">
         {secs.map(item)}
       </nav>
     </>

@@ -1,8 +1,9 @@
 import { CJKTrap, Drill, FlowStages, GridTable, SpecAnatomy, Tips } from '../components/diagrams';
 import { Lab } from '../components/Lab';
-import { Block, Collapsible, Guide, StatBar } from '../components/ui';
+import { Block, Guide, StatBar } from '../components/ui';
+import { Collapsible } from '../components/Accordion';
 import { chapterOf } from '../lib/courseware';
-import { hashFor } from '../lib/store';
+import { hashFor, studentHref } from '../lib/store';
 import type { Lesson } from '../lib/types';
 
 const BOARD = 'course:board:';
@@ -19,8 +20,8 @@ export function CourseView({ lesson: l }: { lesson: Lesson }) {
           <p className="lead">{l.summary}</p>
         </div>
         <div className="lhead__go">
-          <a className="btn btn--primary" href={hashFor('student', l.id)}>
-            学生版
+          <a className="btn btn--primary" href={studentHref(l.id)} target="_blank" rel="noopener">
+            学生版 ↗
           </a>
           <a className="btn btn--ghost" href={hashFor('catalog')}>
             章节目录
@@ -79,7 +80,7 @@ export function CourseView({ lesson: l }: { lesson: Lesson }) {
         </div>
       </Block>
 
-      <Block title="板书和作业" nav="板书 · 作业" n="02">
+      <Block title="板书和作业" nav="板书和留什么作业" n="02">
         <Collapsible id={BOARD + l.id} no="稿" title="板书草稿" defaultOpen>
           <pre className="board">{l.plan.board}</pre>
         </Collapsible>
@@ -93,7 +94,7 @@ export function CourseView({ lesson: l }: { lesson: Lesson }) {
         </div>
       </Block>
 
-      <Block title="三种写法，写的是同一件事" nav="三种写法" n="03" lead={py.note}>
+      <Block title="三种写法，写的是同一件事" nav="填值的三种写法" n="03" lead={py.note}>
         <table className="dtable">
           <thead>
             <tr>
@@ -132,20 +133,20 @@ export function CourseView({ lesson: l }: { lesson: Lesson }) {
         <Lab key={x.title} {...x} />
       ))}
 
-      <Block title="先猜再看" nav="先猜再看" n="04" lead="课堂上直接拿这几条提问：先让两个人说出答案，再按下运行。">
+      <Block title="先猜再看" nav="先猜再看这几题" n="04" lead="课堂上直接拿这几条提问：先让两个人说出答案，再按下运行。">
         {py.drills.map((x) => (
           <Drill key={x.title} {...x} />
         ))}
       </Block>
 
-      <Block title="名字是中文，表格为什么会歪" nav="中文为什么歪" n="05" lead="这一条不用讲给全班，但学生一定会撞上来。撞上来时你能一句话说清，就不会被问住。">
+      <Block title="名字是中文，表格为什么会歪" nav="为什么中文会歪" n="05" lead="这一条不用讲给全班，但学生一定会撞上来。撞上来时你能一句话说清，就不会被问住。">
         {py.trap.map((t) => (
           <CJKTrap key={t.text} {...t} />
         ))}
       </Block>
 
       <div className="grid2">
-        <Block title="全部写法，一张表查完" nav="速查表" n="06">
+        <Block title="全部写法，一张表查完" nav="全部写法一张表查完" n="06">
           <table className="dtable">
             <tbody>
               {py.cheats.map((c) => (
@@ -159,7 +160,7 @@ export function CourseView({ lesson: l }: { lesson: Lesson }) {
             </tbody>
           </table>
         </Block>
-        <Block title="学生可能会问" nav="学生可能会问" n="07">
+        <Block title="学生可能会问" nav="学生可能会问什么" n="07">
           <table className="dtable">
             <tbody>
               {l.ask.map((a) => (

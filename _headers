@@ -28,6 +28,14 @@
 /learn/index.html
   Cache-Control: public, max-age=0, must-revalidate
 
+# 学生版是另一份 HTML(/learn/student/),同样每次回源:
+# 它写的是带哈希的资源名,缓存住旧 HTML 会指向已经不在新发布里的资源。
+/learn/student/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/learn/student/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
 /learn/data/*
   Cache-Control: public, max-age=0, must-revalidate
 

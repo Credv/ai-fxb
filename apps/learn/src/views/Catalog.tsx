@@ -1,6 +1,7 @@
-import { Collapsible, OpenAll, StatBar } from '../components/ui';
+import { Collapsible } from '../components/Accordion';
+import { OpenAll, StatBar } from '../components/ui';
 import { COURSEWARE, stats } from '../lib/courseware';
-import { hashFor, setGroup } from '../lib/store';
+import { hashFor, setGroup, studentHref } from '../lib/store';
 import type { Chapter, Lesson } from '../lib/types';
 
 const KEY = 'cat:';
@@ -19,7 +20,7 @@ function LessonRow({ l }: { l: Lesson }) {
         <a className="btn btn--primary" href={hashFor('course', l.id)}>
           课件
         </a>
-        <a className="btn btn--ghost" href={hashFor('student', l.id)}>
+        <a className="btn btn--ghost" href={studentHref(l.id)} target="_blank" rel="noopener">
           学生版
         </a>
       </div>
@@ -50,7 +51,7 @@ export function CatalogView() {
     <>
       <StatBar items={stats()} />
       <p className="lead">
-        每一课有两页：<b>课件</b>是给老师看的，教案、板书、图解都在里面；<b>学生版</b>只剩下图和能自己动手拖的那部分，这一页的链接可以直接发给学生。
+        每一课两张网页：<b>课件</b>是给老师看的，教案、板书、图解都在；<b>学生版</b>是另建的一张，只剩下图和能自己动手拖的那部分。学生那一侧看不到这里，所以链接可以直接发出去。
       </p>
       <p className="small" style={{ marginBottom: 16 }}>
         {COURSEWARE.basis}

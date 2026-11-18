@@ -292,10 +292,11 @@ a.chip-i:hover{color:var(--txt);border-color:var(--line-2)}
 .lnav__rowG a{font-size:11.6px;color:var(--txt-2);text-decoration:none;border:1px solid var(--line-2);
   border-radius:7px;padding:3px 8px;white-space:nowrap}
 .lnav__rowG a:hover{color:#04211d;background:var(--acc);border-color:transparent}
-.lnav__seg{display:flex;border:1px solid var(--line-2);border-radius:9px;overflow:hidden}
-.lnav__seg a{font-size:12.6px;font-weight:600;color:var(--txt-2);text-decoration:none;padding:6px 12px}
-.lnav__seg a+ a{border-left:1px solid var(--line-2)}
-.lnav__seg a.is-on{color:#04211d;background:var(--acc);font-weight:750}
+.lnav__out{display:inline-flex;align-items:center;gap:5px;font-size:12.6px;font-weight:650;
+  color:var(--acc);text-decoration:none;border:1px solid rgba(79,209,197,.45);border-radius:9px;
+  padding:6px 11px;background:rgba(79,209,197,.08)}
+.lnav__out:hover{color:#04211d;background:var(--acc);border-color:transparent}
+.lnav__outX{font-size:11.5px}
 .lnav__step{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
 .lnav__step a{font-size:12.4px;color:var(--txt-2);text-decoration:none;border:1px solid var(--line);
   border-radius:8px;padding:5px 10px;background:var(--panel);white-space:nowrap}
@@ -393,6 +394,13 @@ a.chip-i:hover{color:var(--txt);border-color:var(--line-2)}
 .stu .guide__terms td{font-size:13.4px}
 .stu .ruler__cap{font-size:13px}
 .stu .gt__ruler{font-size:13.4px;padding:7px 13px}
+/* 学生版那一张网页:链接被学生截短或改过时,给的一页单子(只有学生版的课) */
+.stupick{display:flex;flex-direction:column;gap:9px;margin-top:14px}
+.stupick__i{display:flex;flex-direction:column;gap:3px;text-decoration:none;color:var(--txt);
+  border:1px solid var(--line-2);border-radius:12px;padding:12px 14px;background:var(--panel)}
+.stupick__i:hover{border-color:var(--acc);background:rgba(79,209,197,.08)}
+.stupick__i b{font-size:15px;font-weight:700;line-height:1.5}
+.stupick__i span{font-size:12px;color:var(--txt-3)}
 
 .err{background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.28);border-radius:var(--radius);
   padding:18px 20px;color:#fda4af;font-size:13.2px;line-height:1.8}
@@ -417,7 +425,7 @@ a.chip-i:hover{color:var(--txt);border-color:var(--line-2)}
   .guide__steps{grid-template-columns:minmax(0,1fr)}
   .ruler{overflow-x:auto;padding-bottom:3px}
 }
-/* 这一页的小节快速导航 + 回顶部 */
+/* 快速定位 + 回顶部 */
 [data-sec]{scroll-margin-top:86px}
 .rnav--side{display:none}
 .rnav--strip{display:flex;gap:7px;flex-wrap:wrap;margin:-4px 0 16px}
@@ -431,8 +439,8 @@ a.chip-i:hover{color:var(--txt);border-color:var(--line-2)}
   .rnav--side{display:block;position:fixed;right:18px;top:104px;width:158px;z-index:4;
     max-height:calc(100vh - 190px);overflow-y:auto;padding:11px 10px;
     background:rgba(9,14,26,.86);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(8px)}
-  .rnav--side .rnav__i{display:block;width:100%;margin-bottom:2px;padding:6px 9px;
-    border-radius:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rnav--side .rnav__i{display:block;width:100%;margin-bottom:2px;padding:6px 9px;border-radius:9px;
+    white-space:normal;line-height:1.45}
   .rnav--side .rnav__i.is-on{background:rgba(79,209,197,.18);color:#d9fff9;border-color:rgba(79,209,197,.45)}
 }
 .totop{position:fixed;right:16px;bottom:20px;z-index:6;font-family:inherit;font-size:12.5px;font-weight:600;

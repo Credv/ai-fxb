@@ -2,8 +2,15 @@ import { useSyncExternalStore } from 'react';
 import { fetchEnvelope, GateError, unlock, type Decrypted, type Envelope } from './crypto';
 import type { PrivateParts } from './types';
 
-export type Sec = 'catalog' | 'course' | 'student' | 'private';
+export type Sec = 'catalog' | 'course' | 'private';
 export type PrivateView = 'prep' | 'students' | 'map' | 'cert';
+
+/** 学生版是另建的一张网页(/learn/student/),不在这套 hash 里。
+ *  分开成两张页是为了让学生手里那一张找不到课件、目录、备课台的任何入口。 */
+export const STU_BASE = '/learn/student/';
+export function studentHref(id: string) {
+  return STU_BASE + '#/l/' + id;
+}
 /** 只描述私密区那一侧的状态:公开课件不经过它,首屏因此完全不碰密文。 */
 export type Gate = 'idle' | 'loading' | 'locked' | 'opening' | 'open' | 'error';
 
@@ -79,11 +86,10 @@ export function setGroup(ids: string[], on: boolean) {
   notify();
 }
 
-/* ---------------- 路由:四种页面都走 hash,静态托管不用配任何重写 ---------------- */
+/* ---------------- 路由:这张页的三种视图都走 hash,静态托管不用配任何重写 ---------------- */
 
 export function hashFor(sec: Sec, id = '') {
   if (sec === 'course') return '#/c/' + id;
-  if (sec === 'student') return '#/s/' + id;
   if (sec === 'private') return '#/private' + (id ? '/' + id : '');
   return '#/';
 }
@@ -91,12 +97,19 @@ export function hashFor(sec: Sec, id = '') {
 export function parseHash(): { sec: Sec; id: string } {
   const [a, b] = location.hash.replace(/^#\/?/, '').split('/');
   if (a === 'c' && b) return { sec: 'course', id: b };
-  if (a === 's' && b) return { sec: 'student', id: b };
   if (a === 'private') {
     const v = PRIVATE_VIEWS.some((x) => x.id === b) ? (b as PrivateView) : 'prep';
     return { sec: 'private', id: v };
   }
   return { sec: 'catalog', id: '' };
+}
+
+/** 学生版从前是这一张页里的 #/s/<id>。已经发给学生的链接不能变死链,遇到就送到新页去。 */
+export function redirectLegacyStudent(): boolean {
+  const m = /^#\/s\/([^/?]+)/.exec(location.hash);
+  if (!m) return false;
+  location.replace(STU_BASE + '#/l/' + m[1]);
+  return true;
 }
 
 export function go(sec: Sec, id = '') {
@@ -113,6 +126,7 @@ export function applyRoute(sec: Sec, id: string) {
 }
 
 export function boot() {
+  if (redirectLegacyStudent()) return;
   const r = parseHash();
   applyRoute(r.sec, r.id);
 }

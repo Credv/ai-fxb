@@ -1,6 +1,7 @@
 import { setGroup } from '../lib/store';
 import type { Students } from '../lib/types';
-import { Block, Collapsible, OpenAll } from '../components/ui';
+import { Block, OpenAll } from '../components/ui';
+import { Collapsible } from '../components/Accordion';
 
 const RULE = 'stu:rule:';
 

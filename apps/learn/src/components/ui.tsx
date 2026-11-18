@@ -1,28 +1,10 @@
 import type { ReactNode } from 'react';
-import { isOpen, toggle } from '../lib/store';
 import type { Level } from '../lib/types';
 
 export const LEVEL_TEXT: Record<Level, string> = { have: '现成', rusty: '要捡', gap: '缺口' };
 
 export function LevelTag({ v }: { v: Level }) {
   return <span className={'lvl lvl--' + v}>{LEVEL_TEXT[v]}</span>;
-}
-
-export function Collapsible({
-  id, no, title, meta, defaultOpen = false, children
-}: { id: string; no?: string; title: string; meta?: ReactNode; defaultOpen?: boolean; children: ReactNode }) {
-  const on = isOpen(id, defaultOpen);
-  return (
-    <div className={'acc' + (on ? ' is-on' : '')}>
-      <button type="button" className="acc__head" onClick={() => toggle(id, defaultOpen)}>
-        {no ? <span className="acc__no">{no}</span> : null}
-        <span className="acc__title">{title}</span>
-        {meta ? <span className="acc__meta">{meta}</span> : null}
-        <span className="acc__caret">▶</span>
-      </button>
-      {on ? <div className="acc__body">{children}</div> : null}
-    </div>
-  );
 }
 
 export function Block({ title, nav, n, lead, children }: { title: string; nav?: string; n?: string; lead?: string; children?: ReactNode }) {

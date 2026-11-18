@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { COURSEWARE, neighbors, shortTitle } from '../lib/courseware';
-import { hashFor, type Sec } from '../lib/store';
+import { hashFor, studentHref, type Sec } from '../lib/store';
 import type { Lesson } from '../lib/types';
 
 /** 全站导航：公开区任何一个页面都能到任何一个页面。私密区不放入口（只走直达链接）。 */
@@ -21,9 +21,6 @@ export function LessonNav({ sec, lesson }: { sec: Sec; lesson: Lesson | null }) 
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
   }, [open]);
-
-  const onCourse = sec === 'course';
-  const onStudent = sec === 'student';
 
   return (
     <nav className={'lnav' + (open ? ' is-open' : '')}>
@@ -52,7 +49,7 @@ export function LessonNav({ sec, lesson }: { sec: Sec; lesson: Lesson | null }) 
                         <a href={hashFor('course', l.id)} title="给老师看的那一页：教案、板书、图解都在">
                           课件
                         </a>
-                        <a href={hashFor('student', l.id)} title="只剩图和能自己拖的那一页，链接可以直接发给学生">
+                        <a href={studentHref(l.id)} target="_blank" rel="noopener" title="只剩图和能自己拖的那一张页，是另建的网页，链接可以直接发给学生">
                           学生版
                         </a>
                       </span>
@@ -67,25 +64,12 @@ export function LessonNav({ sec, lesson }: { sec: Sec; lesson: Lesson | null }) 
 
       {lesson ? (
         <>
-          <div className="lnav__seg">
-            <a className={onCourse ? 'is-on' : ''} href={hashFor('course', lesson.id)}>
-              课件页
-            </a>
-            <a className={onStudent ? 'is-on' : ''} href={hashFor('student', lesson.id)}>
-              学生版
-            </a>
-          </div>
+          <a className="lnav__out" href={studentHref(lesson.id)} target="_blank" rel="noopener" title="打开学生手里那一张：只剩图和能自己拖的参数">
+            学生版 <span className="lnav__outX">↗</span>
+          </a>
           <div className="lnav__step">
-            {prev ? (
-              <a href={onStudent ? hashFor('student', prev.id) : hashFor('course', prev.id)}>‹ {shortTitle(prev)}</a>
-            ) : (
-              <span className="is-off">‹ 已是第一课</span>
-            )}
-            {next ? (
-              <a href={onStudent ? hashFor('student', next.id) : hashFor('course', next.id)}>{shortTitle(next)} ›</a>
-            ) : (
-              <span className="is-off">最后一课 ›</span>
-            )}
+            {prev ? <a href={hashFor('course', prev.id)}>‹ {shortTitle(prev)}</a> : <span className="is-off">‹ 已是第一课</span>}
+            {next ? <a href={hashFor('course', next.id)}>{shortTitle(next)} ›</a> : <span className="is-off">最后一课 ›</span>}
           </div>
         </>
       ) : null}
@@ -103,11 +87,8 @@ export function PageFoot({ lesson }: { lesson: Lesson | null }) {
       </a>
       {lesson ? (
         <>
-          <a className="btn btn--ghost" href={hashFor('course', lesson.id)}>
-            课件页
-          </a>
-          <a className="btn btn--ghost" href={hashFor('student', lesson.id)}>
-            学生版
+          <a className="btn btn--ghost" href={studentHref(lesson.id)} target="_blank" rel="noopener">
+            学生版 ↗
           </a>
           {prev ? <a className="btn btn--ghost" href={hashFor('course', prev.id)}>‹ {shortTitle(prev)}</a> : null}
           {next ? <a className="btn btn--ghost" href={hashFor('course', next.id)}>{shortTitle(next)} ›</a> : null}
