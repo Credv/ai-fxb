@@ -319,11 +319,12 @@ function PythonBody({
         {mode === 'edit' ? (
           <div className="stdin">
             <span>运行输入</span>
-            <input
+            <textarea
+              rows={2}
               value={stdin}
               spellCheck={false}
               disabled={locked}
-              placeholder={q.checks?.length ? '' : '程序里 input() 读到的内容，一行一个'}
+              placeholder="程序里 input() 读到的内容，一行算一行"
               onChange={(e) => onEdit(q.id, { stdin: e.target.value })}
             />
           </div>

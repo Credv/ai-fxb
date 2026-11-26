@@ -225,8 +225,9 @@ input.tt:focus, textarea.tt:focus, select.tt:focus {
 }
 .out--err { color: #ffb4ab }
 .out-hint { color: #7a879b }
-.stdin { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: var(--paper-2); border-top: 1px solid var(--line); font-size: 12.8px }
-.stdin input { flex: 1; font-family: var(--mono); font-size: 13px; padding: 6px 9px; border: 1px solid var(--line-2); border-radius: 6px }
+.stdin { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; background: var(--paper-2); border-top: 1px solid var(--line); font-size: 12.8px }
+.stdin span { padding-top: 7px; white-space: nowrap }
+.stdin input, .stdin textarea { flex: 1; font-family: var(--mono); font-size: 13px; padding: 6px 9px; border: 1px solid var(--line-2); border-radius: 6px; resize: vertical; line-height: 1.5 }
 
 /* 操作题 */
 .steps { margin: 12px 0 0; padding-left: 22px; font-size: 14px; color: var(--ink-2) }
