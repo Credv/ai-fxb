@@ -7,13 +7,13 @@
 - `/` —— 个人简历站（`apps/resume`）
 - `/ai-fxb/` —— 本控制台（`apps/console`）
 - `/learn` —— 备课台（`apps/learn`，四页内容全部加密，打开就要密码）
-- `/exam` —— 信息技术模拟考（`apps/exam`，四套卷，交卷当场出分）
+- `/exam` —— 信息技术模拟考（`apps/exam`，四套卷，交卷当场判理论题与程序题，编写题与表格题留给教师）
 
 四者共用一个仓库、一次构建、一个域名（Cloudflare Workers 静态资产托管，push 即部署）。
 
 ## 特点
 
-- **无后端**：只有静态产物。构建工具是 Vite + React 18 + TypeScript（npm workspaces 单仓库：`packages/core` 共享核心 + `apps/resume` + `apps/console` + `apps/learn` + `apps/exam`）。three.js 从 npm 取，按需动态加载，不再 vendored 进仓库。`apps/learn` 不依赖 `@ai-fxb/core`，它没有 API 调用，是纯内容站；`apps/exam` 同样不依赖 `@ai-fxb/core`，也不发任何网络请求（除按需加载自带的 Python 运行环境）。
+- **无后端**：只有静态产物。构建工具是 Vite + React 18 + TypeScript（npm workspaces 单仓库：`packages/core` 共享核心 + `apps/resume` + `apps/console` + `apps/learn` + `apps/exam`）。three.js 从 npm 取，按需动态加载，不再 vendored 进仓库。`apps/learn` 不依赖 `@ai-fxb/core`，它没有 API 调用，是纯内容站；`apps/exam` 同样不依赖 `@ai-fxb/core`，也不发任何网络请求（只有表格题的素材 `.xlsx` 是学生主动点下载才取的静态文件）。
 - **公开快照模式**：站长每天定时用自己的 Key 生成一次数据快照（GitHub Actions → `apps/console/public/data/snapshot.json` → 站点自动部署），任何访客打开 https://3ecat.me/ai-fxb/ 无需配置即可查看，页面显示「数据截至」时间；访客自己的 Key 永不参与。
 - **`/learn` 是备课台**：试讲准备、学生相处、知识地图、教师资格证四页，整站要密码。公开的课件区和学生版已经拆掉，旧链接一律并到备课台。详见「备课台（`/learn`）」。
 - 浏览器直接调用大模型 API（可选，自选 Key 才启用）：内置千问(阿里云百炼)、DeepSeek、OpenAI、Claude(Anthropic) 与自定义 OpenAI 兼容网关五档预设，切换即自动填地址与默认模型；千问档支持 `enable_search` 联网检索。
@@ -42,7 +42,7 @@ npm run preview        # 起本地静态服务器,默认 0.0.0.0:5178
 - 简历 → http://127.0.0.1:5178/
 - AI 窗口 → http://127.0.0.1:5178/ai-fxb/
 - 备课台 → http://127.0.0.1:5178/learn/ （打开就是锁屏，要密码。改内容后先 `npm run learn:data`，见「备课台（`/learn`）」）
-- 模拟考 → http://127.0.0.1:5178/exam/ （四套卷在 `#/list`，交卷当场出分；首次打开程序题要等 Python 环境加载完）
+- 模拟考 → http://127.0.0.1:5178/exam/ （四套卷在 `#/list`，理论题与程序题按卷面标准答案当场给分，编写题与表格题交截图等教师评定）
 
 或直接双击 `启动.bat`（Windows），自动装依赖、构建、起服务并打开浏览器。
 

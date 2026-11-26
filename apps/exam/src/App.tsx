@@ -61,8 +61,7 @@ export default function App() {
   }, [route]);
 
   /**
-   * 成绩优先读本机存下的判分结果。换浏览器或清过记录时没有存卷，
-   * 就照原答卷重判一次——程序题要等运行环境起来，所以这一段会有几秒。
+   * 成绩优先读本机存下的判分结果。换浏览器或清过记录时没有存卷，就照原答卷重判一次。
    */
   useEffect(() => {
     if (route.view !== 'result' || !rec?.submittedAt || grade) return;
@@ -144,8 +143,7 @@ export default function App() {
     route.view === 'list'
       ? '信息技术 · 模拟试卷'
       : `${route.paper.name}`;
-  const sub =
-    route.view === 'exam' || route.view === 'result' ? route.paper.subtitle : '理论卷与操作卷，含程序运行环境';
+  const sub = 'paper' in route ? route.paper.subtitle : '理论卷与操作卷 · 程序题按卷面作答判分';
 
   return (
     <>

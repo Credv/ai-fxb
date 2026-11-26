@@ -220,16 +220,21 @@ select.tt { cursor: pointer }
   background: #fbfbf7; color: #23272f; tab-size: 4;
 }
 .ide textarea:focus { outline: none; background: #fff }
-.out {
-  border-top: 1px solid var(--line); padding: 11px 14px; background: #1c2027; color: #d7e0ea;
-  font-family: var(--mono); font-size: 13.2px; line-height: 1.6; white-space: pre-wrap;
-  word-break: break-word; min-height: 40px; max-height: 300px; overflow: auto;
+/* 程序题的作答空：卷面把空印成「第 1 空」，学生把答案敲进对应的框 */
+.blanks { margin-top: 13px; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden }
+.blanks-tip {
+  margin: 0; padding: 9px 13px; background: var(--paper-2); border-bottom: 1px solid var(--line);
+  font-size: 12.8px; color: var(--ink-3);
 }
-.out--err { color: #ffb4ab }
-.out-hint { color: #7a879b }
-.stdin { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; background: var(--paper-2); border-top: 1px solid var(--line); font-size: 12.8px }
-.stdin span { padding-top: 7px; white-space: nowrap }
-.stdin input, .stdin textarea { flex: 1; font-family: var(--mono); font-size: 13px; padding: 6px 9px; border: 1px solid var(--line-2); border-radius: 6px; resize: vertical; line-height: 1.5 }
+.blank { display: flex; gap: 10px; align-items: flex-start; padding: 9px 13px; border-bottom: 1px solid var(--line) }
+.blank:last-child { border-bottom: 0 }
+.blank-t { padding-top: 7px; font-size: 13px; font-weight: 600; color: var(--ink-2); white-space: nowrap; min-width: 58px }
+.blank input, .blank textarea {
+  flex: 1; min-width: 0; font-family: var(--mono); font-size: 13.4px; line-height: 1.55;
+  padding: 7px 10px; border: 1px solid var(--line-2); border-radius: 6px; background: #fbfbf7; color: var(--ink); resize: vertical;
+}
+.blank input:focus, .blank textarea:focus { outline: none; background: #fff; border-color: var(--acc) }
+.blank input:disabled, .blank textarea:disabled { background: var(--paper-2); color: var(--ink-2) }
 
 /* 操作题 */
 .steps { margin: 12px 0 0; padding-left: 22px; font-size: 14px; color: var(--ink-2) }
@@ -251,8 +256,6 @@ select.tt { cursor: pointer }
 .proof { margin-top: 12px; border: 1px dashed var(--line-2); border-radius: 8px; padding: 12px 14px; background: var(--paper-2) }
 .proof-t { font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bottom: 7px }
 .proof-list { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
-.alt-run { margin: 12px 0 0; font-size: 13.2px; color: var(--ink-2) }
-.alt-run a { color: var(--acc); font-family: var(--mono); text-decoration: underline; text-underline-offset: 2px }
 .thumb { position: relative; width: 74px; height: 56px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line-2); background: var(--paper) }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block }
 .thumb button {

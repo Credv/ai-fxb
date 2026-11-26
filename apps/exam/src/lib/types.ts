@@ -19,29 +19,42 @@ export type SingleChoice = BaseQuestion & {
   explain: string;
 };
 
-/** 一组自动核对：给定输入，比对输出。分值合计须等于本题 score */
-export type PyCheck = {
-  /** 卷面上写的评分点，例如「输入 20，输出闰年」 */
+/** 程序题作答区里的一个空：读程序写结果，或把程序补完整。分值合计须等于本题 score */
+export type PyBlank = {
+  /** 卷面上印的空名，例如「第 1 空」「第 2 空」 */
   label: string;
-  stdin: string;
-  /** 逐字符比对前会去掉每行行尾空格与末尾空行 */
-  expect: string;
+  /** 标准答案。写成多行时逐行比对，行尾空格与末尾空行不算差异 */
+  answer: string;
+  /** 填的是程序里的一段代码：空格写不写、缩进几格都不算差异 */
+  code?: boolean;
+  /** 同样算对的写法，例如把 s >= 90 写成 90 <= s */
+  alts?: string[];
+  /** 只在本地回归里用：把题面程序按这个输入跑一遍，标准答案应当等于输出的第 line 行（默认第一行） */
+  probe?: { stdin: string; line?: number };
   score: number;
 };
 
-/** Python 程序题。内置 Python 环境可直接运行；无内置环境时按题面在本地完成并截图 */
+/**
+ * 程序设计题，卷面上三种形态：
+ * 读程序写结果、按空把程序补完整（这两种有空可填，交卷当场判）；
+ * 整题编写（没有空，代码与运行结果截图记入答卷，成绩由教师评定）。
+ */
 export type PythonTask = BaseQuestion & {
   type: 'python';
   stem: string;
-  /** 程序要求，逐条列在代码框上方 */
+  /** 印在题面上的程序，阅读题与填空题给出 */
+  program?: string;
+  /** 程序要求，逐条列在作答区上方，编写题给出 */
   requirements?: string[];
-  /** 给出的起始代码，学生在此基础上改 */
+  /** 代码框里的起始内容，编写题留空即可 */
   starter?: string;
-  /** 需要随卷下发的数据文件，例如程序要读取的 csv */
+  /** 需要随卷下发的素材 */
   assets?: Asset[];
-  /** 有这些评分点就当场判分；没有就只记作答，成绩等你人工看 */
-  checks?: PyCheck[];
-  /** 参考答案，成绩页在解析之后给出 */
+  /** 考生要填的空。一个都没有即整题编写，只记作答 */
+  blanks?: PyBlank[];
+  /** 只在本地回归里用：把参考程序照这些输入各跑一遍，输出必须与卷面写定的答案一致 */
+  demo?: { stdin: string; expect: string }[];
+  /** 参考程序或参考输出，成绩页在解析之后给出 */
   answer?: string;
   explain: string;
 };

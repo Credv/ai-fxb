@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { Answer, Shot } from '../lib/store';
-import { shrinkImage } from '../lib/store';
+import { blankKey, shrinkImage } from '../lib/store';
 import type { ItemResult } from '../lib/grade';
 import type { IpTask, PythonTask, Question, SheetTask, SingleChoice } from '../lib/types';
-import { envState, envVersion, onEnvChange, runPython, type EnvState } from '../lib/python';
 
 export type Mode = 'edit' | 'review';
 
@@ -322,28 +321,13 @@ function PythonBody({
   onEdit: Props['onEdit'];
 }) {
   const code = ans?.code ?? q.starter ?? '';
-  const stdin = ans?.stdin ?? '';
-  const [running, setRunning] = useState(false);
-  const [env, setEnv] = useState<EnvState>(envState());
-  const [live, setLive] = useState<{ out: string; err: string } | null>(
-    ans?.out || ans?.err ? { out: ans?.out ?? '', err: ans?.err ?? '' } : null
-  );
-
-  useEffect(() => onEnvChange(setEnv), []);
+  const values = ans?.values ?? {};
+  const blanks = q.blanks ?? [];
 
   const edit = useCallback(
     (next: string) => onEdit(q.id, { code: next }),
     [onEdit, q.id]
   );
-
-  async function run() {
-    setRunning(true);
-    setLive(null);
-    const r = await runPython(code, stdin);
-    setLive({ out: r.out, err: r.err });
-    setRunning(false);
-    onEdit(q.id, { out: r.out, err: r.err, ran: true });
-  }
 
   function onKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     const ta = e.currentTarget;
@@ -375,6 +359,7 @@ function PythonBody({
 
   return (
     <>
+      {q.program ? <pre className="code-read">{q.program}</pre> : null}
       {q.requirements?.length ? (
         <ol className="steps">
           {q.requirements.map((s, i) => (
@@ -384,78 +369,68 @@ function PythonBody({
       ) : null}
       {q.assets?.length ? <Assets files={q.assets} /> : null}
 
-      <div className="ide">
-        {mode === 'edit' ? (
-          <div className="ide-bar">
-            <span className="env">{envText(env)}</span>
-            <span className="muted">Python 3</span>
-            <span className="btn-row" style={{ marginLeft: 'auto' }}>
-              <button className="btn btn--sm btn--primary" onClick={run} disabled={running || locked || env === 'failed'}>
-                {running ? <i className="spin" /> : null}运行
-              </button>
-            </span>
-          </div>
-        ) : null}
-        <textarea
-          spellCheck={false}
-          readOnly={mode === 'review' || locked}
-          value={code}
-          onChange={(e) => edit(e.target.value)}
-          onKeyDown={onKey}
-        />
-        {mode === 'edit' ? (
-          <div className="stdin">
-            <span>运行输入</span>
-            <textarea
-              rows={2}
-              value={stdin}
-              spellCheck={false}
-              disabled={locked}
-              placeholder="程序里 input() 读到的内容，一行算一行"
-              onChange={(e) => onEdit(q.id, { stdin: e.target.value })}
-            />
-          </div>
-        ) : null}
-        <div className={live && live.err && !live.out ? 'out out--err' : 'out'}>
-          {running ? <span className="out-hint">正在运行…</span> : live ? show(live) : <span className="out-hint">运行结果显示在这里</span>}
+      {blanks.length ? (
+        <div className="blanks">
+          <p className="blanks-tip">把答案填在相应的空内，一个空只填一处内容。</p>
+          {blanks.map((b, i) => {
+            const key = blankKey(i);
+            const lines = b.answer.split('\n').length;
+            return (
+              <div className="blank" key={key}>
+                <span className="blank-t">{b.label}</span>
+                {lines > 1 ? (
+                  <textarea
+                    rows={Math.min(8, lines)}
+                    spellCheck={false}
+                    disabled={mode === 'review' || locked}
+                    value={values[key] ?? ''}
+                    onChange={(e) => onEdit(q.id, { values: { ...values, [key]: e.target.value } })}
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    spellCheck={false}
+                    autoComplete="off"
+                    disabled={mode === 'review' || locked}
+                    value={values[key] ?? ''}
+                    onChange={(e) => onEdit(q.id, { values: { ...values, [key]: e.target.value } })}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
-      </div>
+      ) : (
+        <div className="ide">
+          <div className="ide-bar">
+            <span className="env">程序编写</span>
+            <span className="muted">Python 3</span>
+          </div>
+          <textarea
+            spellCheck={false}
+            readOnly={mode === 'review' || locked}
+            value={code}
+            onChange={(e) => edit(e.target.value)}
+            onKeyDown={onKey}
+          />
+        </div>
+      )}
 
-      {mode === 'edit' ? (
-        <p className="alt-run">
-          这里的运行环境用不了时，到{' '}
-          <a href="https://onlinepy.com/" target="_blank" rel="noopener noreferrer">
-            onlinepy.com
-          </a>{' '}
-          写完并运行，把代码和运行结果截图交在下面。
-        </p>
-      ) : null}
-
-      <div className="proof">
-        <Shots
-          q={q}
-          ans={ans}
-          mode={mode}
-          locked={locked}
-          onEdit={onEdit}
-          title="代码与运行结果截图"
-          hint="截图里要能同时看到程序和运行出来的结果"
-        />
-      </div>
+      {blanks.length ? null : (
+        <div className="proof">
+          <Shots
+            q={q}
+            ans={ans}
+            mode={mode}
+            locked={locked}
+            onEdit={onEdit}
+            title="程序与运行结果截图"
+            hint="程序运行通过后，把程序与运行结果一并截图记入答卷"
+          />
+        </div>
+      )}
     </>
   );
-}
-
-function show(l: { out: string; err: string }) {
-  const t = (l.out || '') + (l.err ? (l.out ? '\n' : '') + l.err : '');
-  return t || <span className="out-hint">程序没有输出</span>;
-}
-
-function envText(s: EnvState) {
-  if (s === 'ready') return `运行环境已就绪 ${envVersion()}`;
-  if (s === 'loading') return '运行环境准备中';
-  if (s === 'failed') return '运行环境未能启动';
-  return '运行环境';
 }
 
 /* ---------- 电子表格 ---------- */
@@ -543,8 +518,8 @@ function Review({ q, r }: { q: Question; r: ItemResult }) {
           <table className="opts">
             <thead>
               <tr>
-                <th>评分点</th>
-                <th>运行结果</th>
+                <th>{r.type === 'python' ? '作答空' : '设置项'}</th>
+                <th>考生答案</th>
                 <th>得分</th>
               </tr>
             </thead>
@@ -573,7 +548,7 @@ function Review({ q, r }: { q: Question; r: ItemResult }) {
       {right ? <p className="ref-answer">正确答案：{right}</p> : null}
       {q.type === 'python' && q.answer ? (
         <>
-          <p className="ref-answer">参考程序</p>
+          <p className="ref-answer">{q.blanks?.length ? '完整程序' : '参考程序'}</p>
           <pre className="code-read">{q.answer}</pre>
         </>
       ) : null}
@@ -595,5 +570,6 @@ function clip(s: string) {
 function rightText(q: Question): string {
   if (q.type === 'single') return letter(q.answer);
   if (q.type === 'ip') return q.answers.map((a) => a.value).join('　');
+  if (q.type === 'python') return (q.blanks ?? []).map((b) => b.label + '：' + b.answer.replace(/\n+/g, ' / ')).join('　');
   return '';
 }

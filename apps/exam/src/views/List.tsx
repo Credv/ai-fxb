@@ -13,7 +13,7 @@ export default function ListView({ papers }: { papers: Paper[] }) {
           <h2>信息技术 · 模拟试卷</h2>
           <p className="cover-sub">
             按合格性考试的卷面规格编制：第一部分基础理论 40 题，第二部分操作技能 6 题，理论题与程序题当场给分，
-            操作题随卷附素材与运行环境。选择一份开始。
+            表格题随卷附素材，完成后截图记入答卷。选择一份开始。
           </p>
           <p className="muted" style={{ marginTop: 10 }}>
             本卷为模拟练习卷，不等同于正式考试试题；正式考试为全省统一机房环境，软件版本以考点当场为准。

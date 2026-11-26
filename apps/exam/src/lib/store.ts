@@ -9,13 +9,11 @@ export type Shot = { name: string; data: string; kb: number };
 export type Answer = {
   /** 单选：选项下标，未作答为空 */
   pick?: number;
+  /** 程序题在代码框里写的程序 */
   code?: string;
-  stdin?: string;
-  out?: string;
-  err?: string;
-  ran?: boolean;
   shots?: Shot[];
   note?: string;
+  /** 网络参数题的每一项、程序题每一个空填的内容，都按名字存这里 */
   values?: Record<string, string>;
 };
 
@@ -149,10 +147,18 @@ export function totalQuestions(paper: Paper): number {
 export function isAnswered(q: Question, a?: Answer): boolean {
   if (!a) return false;
   if (q.type === 'single') return typeof a.pick === 'number' && a.pick >= 0;
-  if (q.type === 'python') return !!(a.code && a.code.trim()) || !!(a.shots && a.shots.length);
+  if (q.type === 'python') {
+    const filled = (q.blanks ?? []).some((_, i) => ((a.values ?? {})[blankKey(i)] ?? '').trim() !== '');
+    return filled || !!(a.code && a.code.trim()) || !!(a.shots && a.shots.length);
+  }
   if (q.type === 'ip') return !!(a.values && q.fields.some((f) => (a.values![f.key] || '').trim()));
   if (q.type === 'sheet') return !!(a.shots && a.shots.length) || !!(a.note && a.note.trim());
   return false;
+}
+
+/** 程序题每一空在作答记录里的键名，按卷面顺序编号 */
+export function blankKey(i: number): string {
+  return 'b' + i;
 }
 
 /** 截图压到最长边 1400 像素再存，教室屏幕原图是 PNG，原样存几条就把本地空间用光 */

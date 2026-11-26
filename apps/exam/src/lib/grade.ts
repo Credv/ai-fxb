@@ -1,13 +1,9 @@
-// 判分。单选、判断、网络参数按卷面答案直接对；程序题把考生的代码连同各评分点的输入
-// 喂给浏览器里的 Python，比输出。表格题没有可靠的机器判法，只记作答，成绩等人工看截图。
-import { isAnswered, type Answer, type Record0 } from './store';
-import { runPython } from './python';
+// 判分。单选、判断、网络参数按卷面答案直接对；程序题的读程序写结果与程序填空，按卷面
+// 标准答案逐空对；整题编写和表格操作题没有可靠的机器判法，只记作答，成绩等人工看截图。
+import { isAnswered, blankKey, type Answer, type Record0 } from './store';
 import type { IpTask, Paper, PythonTask, Question, SingleChoice } from './types';
 import type { SectionKind } from './types';
 import { entries, sumKind } from './paper';
-
-/** 单个评分点最多跑这么多时间；一个死循环不能把整卷判分卡住 */
-const CHECK_LIMIT_MS = 8000;
 
 export type Point = {
   label: string;
@@ -41,15 +37,19 @@ export type Grade = {
   pending: number;
 };
 
-/** 比对输出：行尾空格和末尾空行不算差异，行内空格照原样比 */
-function normOut(s: string): string {
-  return s
-    .replace(/\r\n/g, '\n')
-    .split('\n')
-    .map((l) => l.replace(/[ \t]+$/, ''))
-    .join('\n')
-    .replace(/\n+$/, '')
-    .trim();
+/** 一个空里的作答与标准答案是否一致：行尾空格与末尾空行不算差异；代码空再把空格与缩进深浅一并忽略 */
+function sameBlank(mine: string, want: string, code: boolean): boolean {
+  const fold = (s: string) => {
+    const t = s
+      .replace(/\r\n/g, '\n')
+      .split('\n')
+      .map((l) => l.replace(/[ \t]+/g, ' ').replace(/[ \t]+$/, ''))
+      .join('\n')
+      .replace(/\n+$/, '')
+      .trim();
+    return code ? t.replace(/[ \t]+/g, '') : t;
+  };
+  return fold(mine) === fold(want);
 }
 
 /** 比对填写值：不分大小写，多个空格算一个 */
@@ -95,36 +95,29 @@ function ipResult(q: IpTask, ans: Answer | undefined, number: number, kind: Sect
   };
 }
 
-async function pythonResult(q: PythonTask, ans: Answer | undefined, number: number, kind: SectionKind): Promise<ItemResult> {
-  const code = (ans?.code ?? '').trim();
+function pythonResult(q: PythonTask, ans: Answer | undefined, number: number, kind: SectionKind): ItemResult {
   const shape = { id: q.id, number, kind, type: 'python' as const, full: q.score, points: [] as Point[] };
-  // 没写代码但交了截图的，按待教师评定处理，不能当成 0 分
-  if (!code) return { ...shape, score: 0, state: ans?.shots?.length ? 'pending' : 'blank' };
-  const checks = q.checks ?? [];
-  // 没配评分点的程序题只留作答记录，跑不跑都由人工看
-  if (!checks.length) return { ...shape, score: 0, state: 'pending' };
+  const blanks = q.blanks ?? [];
+  const values = ans?.values ?? {};
+  // 没有空的整题编写：写了程序或交了截图的都留给教师评定，不能当成 0 分
+  if (!blanks.length) {
+    const done = !!((ans?.code ?? '').trim() || (ans?.shots && ans.shots.length));
+    return { ...shape, score: 0, state: done ? 'pending' : 'blank' };
+  }
 
   let got = 0;
-  const points: Point[] = [];
-  for (const c of checks) {
-    const r = await runPython(code, c.stdin, CHECK_LIMIT_MS);
-    const want = normOut(c.expect);
-    const have = normOut(r.out);
-    const ok = r.ok && !r.killed && have === want;
-    if (ok) got += c.score;
-    points.push({
-      label: c.label,
-      ok,
-      score: ok ? c.score : 0,
-      full: c.score,
-      got: r.killed ? '运行超过 8 秒已停止' : !r.ok ? r.err || '程序未能运行' : have || '（没有输出）'
-    });
-  }
+  const points: Point[] = blanks.map((b, i) => {
+    const mine = (values[blankKey(i)] ?? '').trim();
+    const ok = mine !== '' && [b.answer, ...(b.alts ?? [])].some((w) => sameBlank(mine, w, !!b.code));
+    if (ok) got += b.score;
+    return { label: b.label, ok, score: ok ? b.score : 0, full: b.score, got: mine };
+  });
+  const touched = points.some((p) => p.got);
   return {
     ...shape,
+    points,
     score: got,
-    state: got === q.score ? 'right' : got > 0 ? 'partial' : 'wrong',
-    points
+    state: !touched ? 'blank' : got === q.score ? 'right' : got > 0 ? 'partial' : 'wrong'
   };
 }
 
@@ -153,7 +146,7 @@ export function pendingGrade(paper: Paper, record: Record0): Grade {
   );
 }
 
-/** 判整卷。程序题要现场跑，所以是异步的；环境起不来时程序题按待评处理，不影响理论分出来 */
+/** 判整卷。全部按卷面标准答案比对，交卷当场就能出分；编写题与表格题记为待教师评定 */
 export async function gradePaper(paper: Paper, record: Record0): Promise<Grade> {
   const items: ItemResult[] = [];
   for (const e of entries(paper)) {
@@ -161,7 +154,7 @@ export async function gradePaper(paper: Paper, record: Record0): Promise<Grade> 
     let r: ItemResult;
     if (e.q.type === 'single') r = choiceResult(e.q, ans, e.number, e.kind);
     else if (e.q.type === 'ip') r = ipResult(e.q, ans, e.number, e.kind);
-    else if (e.q.type === 'python') r = await pythonResult(e.q, ans, e.number, e.kind);
+    else if (e.q.type === 'python') r = pythonResult(e.q, ans, e.number, e.kind);
     else r = { id: e.q.id, number: e.number, kind: e.kind, type: 'sheet', full: e.q.score, score: 0, state: 'pending', points: [] };
     if (r.state === 'pending' && !isAnswered(e.q, ans)) r = { ...r, state: 'blank' };
     items.push(r);

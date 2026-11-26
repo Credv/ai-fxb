@@ -2,7 +2,7 @@
 // 学生用课堂传输软件发给老师；在线提交在能连到时优先走在线，连不上不拦学生交卷。
 import type { Grade } from './grade';
 import { findQuestion } from './paper';
-import type { Answer, Record0, Shot, SubmitMark } from './store';
+import { blankKey, type Answer, type Record0, type Shot, type SubmitMark } from './store';
 import type { Paper, Question } from './types';
 
 export const REPORT_VERSION = 'exam-report-1';
@@ -84,9 +84,16 @@ function answerBlock(q: Question, a: Answer | undefined): string {
         .map((f) => `<tr><td>${esc(f.label)}</td><td>${esc((a.values ?? {})[f.key] ?? '') || '—'}</td></tr>`)
         .join('')}</table>`;
     case 'python': {
+      const rows = (q.blanks ?? []).map(
+        (b, i) =>
+          `<tr><td>${esc(b.label)}</td><td>${
+            esc((a.values ?? {})[blankKey(i)] ?? '').replace(/\n/g, '<br />') || '—'
+          }</td></tr>`
+      );
+      const blanks = rows.length ? `<table class="fill"><tr><th>作答空</th><th>考生答案</th></tr>${rows.join('')}</table>` : '';
       const code = (a.code ?? '').trim() ? `<pre class="code">${esc(a.code ?? '')}</pre>` : '';
       const shots = (a.shots ?? []).map(shotHtml).join('');
-      return code + shots || '<p class="none">未作答</p>';
+      return blanks + code + shots || '<p class="none">未作答</p>';
     }
     case 'sheet':
       return `${a.note ? `<p>${esc(a.note)}</p>` : ''}${(a.shots ?? []).map(shotHtml).join('')}` || '<p class="none">未作答</p>';
