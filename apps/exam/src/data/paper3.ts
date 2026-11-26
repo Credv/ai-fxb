@@ -659,7 +659,7 @@ const PRACTICE: Question[] = [
 const paper: Paper = {
   id: 'p3',
   name: '模拟试卷（三）',
-  subtitle: '普通高中学业水平合格性考试 · 信息技术 · 四套模拟卷之一 · 供考前自测与讲评 · 满分 100 分 · 考试时间 70 分钟',
+  subtitle: '普通高中学业水平合格性考试 · 信息技术 · 十套模拟卷之一 · 供考前自测与讲评 · 满分 100 分 · 考试时间 70 分钟',
   minutes: 70,
   fullMark: 100,
   notice: [

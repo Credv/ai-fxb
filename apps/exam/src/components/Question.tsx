@@ -553,7 +553,7 @@ function Review({ q, r }: { q: Question; r: ItemResult }) {
         </>
       ) : null}
       <div className="why">
-        <b>为什么这样选</b>
+        <b>答题解析：</b>
         <div>
           <Rich text={q.explain} />
         </div>

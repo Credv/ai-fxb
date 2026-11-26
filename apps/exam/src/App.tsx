@@ -7,12 +7,22 @@ import type { Paper } from './lib/types';
 import CoverView from './views/Cover';
 import ExamView from './views/Exam';
 import ListView from './views/List';
+import PrintView from './views/Print';
 import ResultView from './views/Result';
 
-export type Route = { view: 'list' } | { view: 'cover' | 'exam' | 'result'; paper: Paper };
+export type Route =
+  | { view: 'list' }
+  | { view: 'cover' | 'exam' | 'result'; paper: Paper }
+  | { view: 'print'; paper: Paper | null; paperId: string };
 
 /** 站点挂在 /exam/ 子路径下，服务器不会把未知路径送回 index.html，所以路由一律走 # */
 function parse(hash: string): Route {
+  const printing = /^#\/print(?:\/([^/]+))?$/.exec(hash);
+  if (printing) {
+    const paperId = printing[1] ?? '';
+    return { view: 'print', paperId, paper: paperId ? PAPERS.find((p) => p.id === paperId) ?? null : null };
+  }
+
   const m = /^#\/(cover|exam|result)\/([\w-]+)$/.exec(hash);
   if (m) {
     const paper = PAPERS.find((p) => p.id === m[2]);
@@ -42,12 +52,12 @@ export default function App() {
 
   // 每份卷各自一份作答，切卷不能串；同一份卷内部翻页要保留刚判出的成绩
   useEffect(() => {
-    const pid = route.view === 'list' ? '' : route.paper.id;
+    const pid = route.view === 'list' || route.view === 'print' ? '' : route.paper.id;
     const changed = pid !== onPaper.current;
     onPaper.current = pid;
     submitting.current = false;
     if (changed) setGrade(null);
-    if (route.view === 'list') {
+    if (route.view === 'list' || route.view === 'print') {
       setRec(null);
       return;
     }
@@ -140,29 +150,35 @@ export default function App() {
   }, [remaining, route, rec]);
 
   const title =
-    route.view === 'list'
-      ? '信息技术 · 模拟试卷'
-      : `${route.paper.name}`;
-  const sub = 'paper' in route ? route.paper.subtitle : '理论卷与操作卷 · 程序题按卷面作答判分';
+    route.view === 'print'
+      ? route.paper?.name ?? '打印复习资料'
+      : route.view === 'list'
+        ? '信息技术 · 模拟试卷'
+        : `${route.paper.name}`;
+  const sub = route.view === 'print'
+    ? route.paper ? '理论卷打印预览' : route.paperId ? '未找到试卷' : '知识点汇总打印预览'
+    : 'paper' in route ? route.paper.subtitle : '理论卷与操作卷 · 程序题按卷面作答判分';
 
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-in">
-          <div>
-            <h1>{title}</h1>
-            <div className="sub">{sub}</div>
+      {route.view !== 'print' ? (
+        <header className="topbar">
+          <div className="topbar-in">
+            <div>
+              <h1>{title}</h1>
+              <div className="sub">{sub}</div>
+            </div>
+            <div className="topbar-right">
+              {route.view === 'exam' && rec ? <Clock sec={remaining()} /> : null}
+              {route.view === 'result' ? (
+                <button className="btn btn--sm btn--ghost" onClick={() => go('#/list')}>
+                  返回考卷
+                </button>
+              ) : null}
+            </div>
           </div>
-          <div className="topbar-right">
-            {route.view === 'exam' && rec ? <Clock sec={remaining()} /> : null}
-            {route.view === 'result' ? (
-              <button className="btn btn--sm btn--ghost" onClick={() => go('#/list')}>
-                返回考卷
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </header>
+        </header>
+      ) : null}
 
       {busy ? (
         <div className="sheet">
@@ -175,6 +191,7 @@ export default function App() {
       ) : null}
 
       {route.view === 'list' ? <ListView papers={PAPERS} /> : null}
+      {route.view === 'print' ? <PrintView paper={route.paper} paperId={route.paperId} /> : null}
 
       {route.view === 'cover' && rec ? (
         <CoverView

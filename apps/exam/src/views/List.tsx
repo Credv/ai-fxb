@@ -18,12 +18,25 @@ export default function ListView({ papers }: { papers: Paper[] }) {
           <p className="muted" style={{ marginTop: 10 }}>
             本卷为模拟练习卷，不等同于正式考试试题；正式考试为全省统一机房环境，软件版本以考点当场为准。
           </p>
+          <div className="print-entries">
+            <div className="print-entries-title">打印复习资料</div>
+            <div className="btn-row">
+              {papers.length ? (
+                <a className="btn btn--sm" href={`#/print/${papers[papers.length - 1].id}`} title="打印最新一份理论卷，也可在下方选择其他试卷">
+                  打印理论卷
+                </a>
+              ) : null}
+              <a className="btn btn--sm" href="#/print">
+                打印知识点
+              </a>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="page">
         <div className="paper-list">
-          {papers.map((p) => (
+          {[...papers].reverse().map((p) => (
             <PaperCard key={p.id} paper={p} />
           ))}
         </div>
@@ -49,21 +62,28 @@ function PaperCard({ paper }: { paper: Paper }) {
   }
 
   return (
-    <button
-      className="paper-card"
-      onClick={() => go(`#/${rec?.submittedAt ? 'result' : rec && answeredSome(rec) ? 'exam' : 'cover'}/${paper.id}`)}
-    >
-      <h3>{paper.name}</h3>
-      <p>{paper.subtitle}</p>
-      <div className="pc-meta">
-        <em>满分 {score.total} 分</em>
-        <em>
-          理论 {score.theory} 分 · 操作 {score.practice} 分
-        </em>
-        <em>{paper.minutes} 分钟</em>
+    <article className="paper-card-shell">
+      <button
+        className="paper-card"
+        onClick={() => go(`#/${rec?.submittedAt ? 'result' : rec && answeredSome(rec) ? 'exam' : 'cover'}/${paper.id}`)}
+      >
+        <h3>{paper.name}</h3>
+        <p>{paper.subtitle}</p>
+        <div className="pc-meta">
+          <em>满分 {score.total} 分</em>
+          <em>
+            理论 {score.theory} 分 · 操作 {score.practice} 分
+          </em>
+          <em>{paper.minutes} 分钟</em>
+        </div>
+        <div style={{ marginTop: 10 }}>{status}</div>
+      </button>
+      <div className="paper-card-print">
+        <a className="btn btn--sm btn--ghost" href={`#/print/${paper.id}`}>
+          打印理论卷
+        </a>
       </div>
-      <div style={{ marginTop: 10 }}>{status}</div>
-    </button>
+    </article>
   );
 }
 
