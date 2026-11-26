@@ -1,7 +1,7 @@
-// 本地预览构建产物:与线上一样的三条路由(简历在 /,AI 窗口在 /ai-fxb,教案与课件在 /learn)。
+// 本地预览构建产物:与线上一样的三条路由(简历在 /,AI 窗口在 /ai-fxb,备课台在 /learn)。
 // 用法: npm run build && npm run preview
 // 手机/平板用日志里的局域网地址(需同一 WiFi);只监听本机: set HOST=127.0.0.1 && npm run preview
-// 注意:/learn 的公开课件区局域网地址能看;私密区要 WebCrypto,只有 https 或 127.0.0.1 才开放。
+// 注意:/learn 整站要密码,而解密用的 WebCrypto 只在 https 或 127.0.0.1 开放——局域网地址解不开。
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -42,8 +42,8 @@ function isFile(p) {
 function resolveFile(urlPath) {
   const rel = path.join(ROOT, path.normalize(urlPath));
   if (isFile(rel)) return rel;
-  // 目录里带 index.html 的先照线上那样给那一份:学生版是 /learn/student/index.html 这个二级入口,
-  // 少了这一层它会被当成导航,兜底到 /learn/index.html,本地预览就看到教师版了。
+  // 目录里带 index.html 的先照线上那样给那一份:/learn/student/index.html 是旧学生版链接的跳转桩,
+  // 少了这一层它会被当成导航,兜底到 /learn/index.html,本地预览就跳不到桩上了。
   const idx = path.join(rel, 'index.html');
   if (isFile(idx)) return idx;
   if (/\.[a-z0-9]+$/i.test(urlPath)) return null;
@@ -73,12 +73,11 @@ server.listen(PORT, HOST, () => {
   console.log('站点预览已启动(产物来自 dist/)');
   console.log('  本机      →  http://127.0.0.1:' + PORT + '/         简历');
   console.log('  本机      →  http://127.0.0.1:' + PORT + '/ai-fxb/  AI 窗口');
-  console.log('  本机      →  http://127.0.0.1:' + PORT + '/learn/   教案与课件(公开课件免密码;私密区 #/private 要密码,只能用 127.0.0.1)');
+  console.log('  本机      →  http://127.0.0.1:' + PORT + '/learn/   备课台(要密码;只能用 127.0.0.1 或线上 https)');
   console.log('  本机      →  http://127.0.0.1:' + PORT + '/exam/    模拟试卷(理论卷自动判分;操作卷需下载表格素材)');
   os.networkInterfaces && Object.values(os.networkInterfaces()).flat().forEach((i) => {
     if (i && i.family === 'IPv4' && !i.internal) {
       console.log('  手机/平板 →  http://' + i.address + ':' + PORT + '/ai-fxb/   (需同一 WiFi)');
-      console.log('  手机/平板 →  http://' + i.address + ':' + PORT + '/learn/    公开课件(免密码;私密区只能 127.0.0.1 或线上 https)');
     }
   });
   console.log('API Key 只存在各设备自己的浏览器里,手机上需重新填一次。按 Ctrl+C 停止。');

@@ -1,7 +1,6 @@
 /* 把 apps/learn/content/private/*.json 的明文加密成 apps/learn/public/data/content.json。
  *
- * 备课台分两半:公开课件(content/courseware.json,直接 import 进 bundle,不加密——它本来就要
- * 发给其他老师和学生)与私密区(试讲准备、学生相处、知识地图、教资)。这一脚本只管后者。
+ * 备课台就四页:试讲准备、学生相处、知识地图、教资。全部走加密,没有公开那半了。
  *
  * 为什么要绕这一圈:仓库是 public 的,而私密区里写着学校、日期、任职要求逐条对照和我的缺口。
  * 前端静态站没有后端,拿密码校验等于把密码写进 JS——谁都能翻出来,那种「密码框」是假的。
@@ -108,7 +107,7 @@ console.log(
   ' · ' + ITERATIONS + ' 轮 PBKDF2-' + HASH + ' · 内容片段 ' + Object.keys(parts).join('/')
 );
 console.log('下一步:content/private/ 的明文别提交(已在 .gitignore),把 ' + outFile.replace(root, '.') + ' 一起提交上去。');
-console.log('公开课件不走这一步:改 content/courseware.json 直接构建即可。');
+console.log('改内容就改 content/private/ 里那几个 json,重跑这一脚本,再把 content.json 提交。');
 
 function kb(n) {
   return (n / 1024).toFixed(1) + ' KB';

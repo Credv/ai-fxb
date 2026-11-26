@@ -1,9 +1,7 @@
 import { setGroup } from '../lib/store';
 import type { KnowledgeMap } from '../lib/types';
-import { Tips } from '../components/diagrams';
-import { Block, LevelTag, OpenAll } from '../components/ui';
+import { Block, LevelTag, OpenAll, Tips } from '../components/ui';
 import { Collapsible } from '../components/Accordion';
-
 const CH = 'map:ch:';
 const JD = 'map:jd:';
 

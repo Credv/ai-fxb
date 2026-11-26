@@ -2,18 +2,9 @@ import { useSyncExternalStore } from 'react';
 import { fetchEnvelope, GateError, unlock, type Decrypted, type Envelope } from './crypto';
 import type { PrivateParts } from './types';
 
-export type Sec = 'catalog' | 'course' | 'private';
 export type PrivateView = 'prep' | 'students' | 'map' | 'cert';
 
-/** 学生版是另建的一张网页(/learn/student/),不在这套 hash 里。
- *  分开成两张页是为了让学生手里那一张找不到课件、目录、备课台的任何入口。 */
-export const STU_BASE = '/learn/student/';
-export function studentHref(id: string) {
-  return STU_BASE + '#/l/' + id;
-}
-/** 只描述私密区那一侧的状态:公开课件不经过它,首屏因此完全不碰密文。 */
-export type Gate = 'idle' | 'loading' | 'locked' | 'opening' | 'open' | 'error';
-
+/** 这一站只剩自己看的那几页,所以地址栏直接就是视图名:#/prep #/students #/map #/cert。 */
 export const PRIVATE_VIEWS: { id: PrivateView; ico: string; label: string; hint: string }[] = [
   { id: 'prep', ico: '⚑', label: '试讲准备', hint: '要问清楚的、话术、要带的' },
   { id: 'students', ico: '☗', label: '学生相处', hint: '高中部怎么带' },
@@ -24,9 +15,10 @@ export const PRIVATE_VIEWS: { id: PrivateView; ico: string; label: string; hint:
 const PW_KEY = 'learn-pw-v1';
 const OPEN_KEY = 'learn-open-v1';
 
+export type Gate = 'idle' | 'loading' | 'locked' | 'opening' | 'open' | 'error';
+
 export const state = {
-  sec: 'catalog' as Sec,
-  id: '',
+  view: 'prep' as PrivateView,
   gate: 'idle' as Gate,
   error: '',
   env: null as Envelope | null,
@@ -74,10 +66,10 @@ export function toggle(key: string, fallback = false) {
 }
 
 export function isOpen(key: string, fallback = false) {
-  return key in state.open ? state.open[key] : fallback;
+  return key in state.open ? key in state.open ? state.open[key] : fallback : fallback;
 }
 
-/** 一组一起开关:章节多的时候,逐个点不是办法。 */
+/** 一组一起开关:条目多的时候,逐个点不是办法。 */
 export function setGroup(ids: string[], on: boolean) {
   ids.forEach((id) => {
     state.open[id] = on;
@@ -86,52 +78,45 @@ export function setGroup(ids: string[], on: boolean) {
   notify();
 }
 
-/* ---------------- 路由:这张页的三种视图都走 hash,静态托管不用配任何重写 ---------------- */
+/* ---------------- 路由:全走 hash,静态托管不用配任何重写 ---------------- */
 
-export function hashFor(sec: Sec, id = '') {
-  if (sec === 'course') return '#/c/' + id;
-  if (sec === 'private') return '#/private' + (id ? '/' + id : '');
-  return '#/';
+export function hashFor(view: PrivateView) {
+  return '#/' + view;
 }
 
-export function parseHash(): { sec: Sec; id: string } {
-  const [a, b] = location.hash.replace(/^#\/?/, '').split('/');
-  if (a === 'c' && b) return { sec: 'course', id: b };
-  if (a === 'private') {
-    const v = PRIVATE_VIEWS.some((x) => x.id === b) ? (b as PrivateView) : 'prep';
-    return { sec: 'private', id: v };
-  }
-  return { sec: 'catalog', id: '' };
+/** 课件时代的 #/c/<课件号>、学生版的 #/s/<课件号> 都发出去过,不能留死链:
+ *  遇到就直接落到备课台的默认那一页。 */
+function isLegacyCoursewareHash(): boolean {
+  return /^#\/[cs]\//.test(location.hash);
 }
 
-/** 学生版从前是这一张页里的 #/s/<id>。已经发给学生的链接不能变死链,遇到就送到新页去。 */
-export function redirectLegacyStudent(): boolean {
-  const m = /^#\/s\/([^/?]+)/.exec(location.hash);
-  if (!m) return false;
-  location.replace(STU_BASE + '#/l/' + m[1]);
-  return true;
+export function parseHash(): PrivateView {
+  const seg = location.hash.replace(/^#\/?/, '').split('/');
+  const want = seg[0] === 'private' ? seg[1] : seg[0];
+  return PRIVATE_VIEWS.some((v) => v.id === want) ? (want as PrivateView) : 'prep';
 }
 
-export function go(sec: Sec, id = '') {
-  const h = hashFor(sec, id);
-  if (location.hash === h) applyRoute(sec, id);
+export function go(view: PrivateView) {
+  const h = hashFor(view);
+  if (location.hash === h) applyRoute(view);
   else location.hash = h;
 }
 
-export function applyRoute(sec: Sec, id: string) {
-  state.sec = sec;
-  state.id = id;
+export function applyRoute(view: PrivateView) {
+  state.view = view;
   notify();
-  if (sec === 'private') void ensurePrivate();
 }
 
 export function boot() {
-  if (redirectLegacyStudent()) return;
-  const r = parseHash();
-  applyRoute(r.sec, r.id);
+  if (isLegacyCoursewareHash()) {
+    location.replace('/learn/');
+    return;
+  }
+  applyRoute(parseHash());
+  void ensurePrivate();
 }
 
-/* ---------------- 私密区:只有真的走到 #/private 才去取密文 ---------------- */
+/* ---------------- 密文与解锁 ---------------- */
 
 let fetching = false;
 
@@ -209,7 +194,7 @@ export function leave() {
   notify();
 }
 
-/** 距离试讲还有几天:日子在加密内容里,天数每次现算,不写死。 */
+/** 距离那一场还有几天:日子在加密内容里,天数每次现算,不写死。 */
 export function daysLeft(iso: string): number {
   const target = new Date(iso + 'T00:00:00');
   const now = new Date();

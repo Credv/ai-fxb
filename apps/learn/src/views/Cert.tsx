@@ -1,9 +1,7 @@
 import { setGroup } from '../lib/store';
 import type { Cert } from '../lib/types';
-import { Tips } from '../components/diagrams';
-import { Block, OpenAll } from '../components/ui';
+import { Block, OpenAll, Tips } from '../components/ui';
 import { Collapsible } from '../components/Accordion';
-
 const FAQ = 'cert:faq:';
 const ST: Record<Cert['calendar'][number]['st'], string> = { past: '已过', next: '最近的一班', later: '在后面' };
 

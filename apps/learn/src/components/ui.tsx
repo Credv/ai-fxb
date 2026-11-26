@@ -47,58 +47,13 @@ export function OpenAll({ expand, collapse }: { expand: () => void; collapse: ()
   );
 }
 
-/** 每个图解块顶上那一句「盯这里」:先说看哪儿,再说为什么。 */
-export function Look({ text }: { text?: string }) {
-  if (!text) return null;
+/** 一组要点,不带折叠:试讲要带什么、下一步要问什么这类。 */
+export function Tips({ items }: { items: ReactNode[] }) {
   return (
-    <p className="look">
-      <span className="look__k">盯这里</span>
-      {text}
-    </p>
-  );
-}
-
-/** 这一页怎么读:三步读法 + 符号图例 + 名词翻成大白话。三项都可缺。 */
-export function Guide({ steps, legend, terms }: { steps?: { t: string; d: string }[]; legend?: { sym: string; means: string }[]; terms?: { t: string; say: string }[] }) {
-  if (!steps?.length && !legend?.length && !terms?.length) return null;
-  return (
-    <section className="blk blk--lead guide" data-sec="这一页怎么读">
-      <h3>这一页怎么读</h3>
-      {steps?.length ? (
-        <div className="guide__steps">
-          {steps.map((s, i) => (
-            <div key={s.t} className="guide__s">
-              <i>{i + 1}</i>
-              <div>
-                <b>{s.t}</b>
-                <p>{s.d}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : null}
-      {legend?.length ? (
-        <div className="guide__legend">
-          {legend.map((g) => (
-            <div key={g.sym} className="guide__lg">
-              <code>{g.sym}</code>
-              <span>{g.means}</span>
-            </div>
-          ))}
-        </div>
-      ) : null}
-      {terms?.length ? (
-        <table className="dtable guide__terms">
-          <tbody>
-            {terms.map((t) => (
-              <tr key={t.t}>
-                <td className="k">{t.t}</td>
-                <td>{t.say}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : null}
-    </section>
+    <ul className="tips">
+      {items.map((t, i) => (
+        <li key={i}>{t}</li>
+      ))}
+    </ul>
   );
 }

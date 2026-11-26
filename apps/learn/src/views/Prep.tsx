@@ -1,9 +1,7 @@
-import { Tips } from '../components/diagrams';
-import { Block, OpenAll, StatBar } from '../components/ui';
+import { Block, OpenAll, StatBar, Tips } from '../components/ui';
 import { Collapsible } from '../components/Accordion';
 import { daysLeft, setGroup } from '../lib/store';
 import type { Prep } from '../lib/types';
-
 const SCENE = 'prep:scene:';
 
 export function PrepView({ d }: { d: Prep }) {
