@@ -13,10 +13,12 @@ type Props = {
   onRestart: () => void;
 };
 
+const CLASSES = ['一班', '二班', '三班', '四班', '五班', '六班', '七班', '八班', '九班', '十班'];
+
 export default function CoverView({ paper, record, onInfo, onStart, onRestart }: Props) {
   const score = paperScore(paper);
   const counts = paperCounts(paper);
-  const filled = record.name.trim() && record.className.trim() && record.examNo.trim();
+  const filled = record.name.trim() && record.className.trim();
   const resuming = record.startedAt > 0 && !record.submittedAt;
   const submitted = !!record.submittedAt;
   const [asking, setAsking] = useState(false);
@@ -68,8 +70,8 @@ export default function CoverView({ paper, record, onInfo, onStart, onRestart }:
           <h3 className="h3">考生信息</h3>
           <div className="field-grid">
             <Field label="姓名" required value={record.name} onChange={(v) => onInfo({ name: v })} />
-            <Field label="班级" required value={record.className} onChange={(v) => onInfo({ className: v })} />
-            <Field label="考号" required value={record.examNo} onChange={(v) => onInfo({ examNo: v })} numeric />
+            <ClassField label="班级" value={record.className} onChange={(v) => onInfo({ className: v })} />
+            <Field label="考号" hint="选填" value={record.examNo} onChange={(v) => onInfo({ examNo: v })} numeric />
           </div>
 
           <div className="btn-row" style={{ marginTop: 20 }}>
@@ -90,7 +92,7 @@ export default function CoverView({ paper, record, onInfo, onStart, onRestart }:
             <button className="btn btn--ghost" onClick={() => (location.hash = '#/list')}>
               返回考卷
             </button>
-            {!filled && !submitted ? <span className="muted">姓名、班级、考号填写完整后可以开始</span> : null}
+            {!filled && !submitted ? <span className="muted">姓名与班级选好后可以开始</span> : null}
           </div>
 
           {submitted ? (
@@ -134,12 +136,14 @@ function Field({
   value,
   onChange,
   required,
+  hint,
   numeric
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   required?: boolean;
+  hint?: string;
   numeric?: boolean;
 }) {
   return (
@@ -147,6 +151,7 @@ function Field({
       <label className="fl">
         {label}
         {required ? <span className="req">*</span> : null}
+        {hint ? <span className="fl-hint">{hint}</span> : null}
       </label>
       <input
         className="tt"
@@ -156,6 +161,27 @@ function Field({
         maxLength={numeric ? 20 : 40}
         onChange={(e) => onChange(e.target.value)}
       />
+    </div>
+  );
+}
+
+/** 班级从预设的十个班里选，不让考生手打，收上来的答卷才好按班归类 */
+function ClassField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const opts = value && !CLASSES.includes(value) ? [...CLASSES, value] : CLASSES;
+  return (
+    <div>
+      <label className="fl">
+        {label}
+        <span className="req">*</span>
+      </label>
+      <select className="tt" value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">请选择</option>
+        {opts.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

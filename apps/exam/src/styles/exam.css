@@ -107,6 +107,8 @@ input.tt:focus, textarea.tt:focus, select.tt:focus {
   outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft);
 }
 .req { color: var(--bad); margin-left: 2px }
+.fl-hint { margin-left: 6px; color: var(--ink-3); font-weight: 400 }
+select.tt { cursor: pointer }
 
 /* 按钮 */
 .btn {
@@ -257,13 +259,16 @@ input.tt:focus, textarea.tt:focus, select.tt:focus {
   font-size: 11px; line-height: 17px; cursor: pointer;
 }
 
-/* 答题卡 */
+/* 答题卡：理论与操作分两行标出来，考生一眼能找到操作题从第几题开始 */
 .tray {
   position: sticky; bottom: 0; z-index: 15; margin-top: 16px;
   background: rgba(255, 255, 255, .96); backdrop-filter: blur(8px);
   border: 1px solid var(--line); border-radius: var(--radius); padding: 11px 16px;
-  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  display: flex; flex-direction: column; gap: 9px;
 }
+.tray-top { display: flex; align-items: center; justify-content: space-between; gap: 12px }
+.tray-row { display: flex; align-items: flex-start; gap: 10px }
+.tray-cap { font-size: 12.5px; font-weight: 600; color: var(--ink-2); white-space: nowrap; padding-top: 5px }
 .tray-nums { display: flex; gap: 5px; flex-wrap: wrap; flex: 1 }
 .cell {
   width: 27px; height: 27px; border-radius: 6px; border: 1px solid var(--line-2);

@@ -34,7 +34,8 @@ export default function ResultView({ paper, record, grade, onRestart }: Props) {
           <div className={'score-num ' + (passed ? 'score-num--pass' : decided ? 'score-num--fail' : '')}>{grade.got}</div>
           <div className="score-of">当场评定 / 满分 {grade.full} 分</div>
           <div className="score-of" style={{ marginTop: 8 }}>
-            {record.name}　{record.className}　考号 {record.examNo}
+            {record.name}　{record.className}
+            {record.examNo.trim() ? `　考号 ${record.examNo}` : ''}
           </div>
           <div className="score-bars">
             <div className="score-bar">

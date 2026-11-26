@@ -67,28 +67,40 @@ export default function ExamView({ paper, record, over, onEdit, onSubmit }: Prop
       ))}
 
       <div className="tray">
-        <span className="tray-stat">
-          已作答 <b>{done}</b> / {total}
-        </span>
-        <div className="tray-nums">
-          {all.map((e) => (
-            <button
-              key={e.q.id}
-              className={[
-                'cell',
-                e.kind === 'practice' ? 'cell--prac' : '',
-                isDone(e.q.id) ? 'cell--done' : ''
-              ].join(' ')}
-              title={`${e.number} ${sectionName(paper, e.q.id)}`}
-              onClick={() => jump(e.number)}
-            >
-              {e.number}
-            </button>
-          ))}
+        <div className="tray-top">
+          <span className="tray-stat">
+            已作答 <b>{done}</b> / {total}
+          </span>
+          <button className="btn btn--primary" onClick={() => setConfirming(true)} disabled={over}>
+            交卷
+          </button>
         </div>
-        <button className="btn btn--primary" onClick={() => setConfirming(true)} disabled={over}>
-          交卷
-        </button>
+        {paper.sections.map((section) => (
+          <div className="tray-row" key={section.id}>
+            <span className="tray-cap">
+              {section.kind === 'theory' ? '理论' : '操作题'}（
+              {section.questions.reduce((t, q) => t + q.score, 0)} 分）
+            </span>
+            <div className="tray-nums">
+              {all
+                .filter((e) => e.section.id === section.id)
+                .map((e) => (
+                  <button
+                    key={e.q.id}
+                    className={[
+                      'cell',
+                      e.kind === 'practice' ? 'cell--prac' : '',
+                      isDone(e.q.id) ? 'cell--done' : ''
+                    ].join(' ')}
+                    title={`${e.number} ${section.name}`}
+                    onClick={() => jump(e.number)}
+                  >
+                    {e.number}
+                  </button>
+                ))}
+            </div>
+          </div>
+        ))}
       </div>
 
       {over ? <p className="note-strip" style={{ marginTop: 12 }}>考试时间已到，答卷正在提交。</p> : null}
@@ -127,9 +139,4 @@ export default function ExamView({ paper, record, over, onEdit, onSubmit }: Prop
       ) : null}
     </main>
   );
-}
-
-function sectionName(paper: Paper, id: string) {
-  const s = paper.sections.find((x) => x.questions.some((q) => q.id === id));
-  return s ? s.name : '';
 }
