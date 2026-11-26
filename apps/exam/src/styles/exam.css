@@ -295,6 +295,15 @@ input.tt:focus, textarea.tt:focus, select.tt:focus {
 }
 .note-strip + .note-strip { margin-top: 9px }
 
+/* 重考确认：清掉作答是不可逆的，所以单独框出来，红色按钮要主动点第二下 */
+.retake {
+  margin-top: 14px; padding: 14px 16px; border-radius: 9px;
+  background: var(--bad-soft); border: 1px solid #f3c9c4;
+}
+.retake p { margin: 0 0 11px; font-size: 13.4px; color: var(--ink-2) }
+.btn--warn { background: var(--bad); border-color: var(--bad); color: #fff }
+.btn--warn:hover:not(:disabled) { background: #9a1d14; border-color: #9a1d14; color: #fff }
+
 /* 卷列表 */
 .paper-list { display: grid; gap: 12px; padding: 24px }
 @media (min-width: 660px) { .paper-list { grid-template-columns: 1fr 1fr } }

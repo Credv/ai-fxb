@@ -1,20 +1,25 @@
+import { useState } from 'react';
 import type { Record0 } from '../lib/store';
 import type { Paper } from '../lib/types';
 import { paperScore } from '../lib/types';
 import { paperCounts } from '../lib/paper';
+import { clockText } from '../lib/submit';
 
 type Props = {
   paper: Paper;
   record: Record0;
   onInfo: (patch: Partial<Pick<Record0, 'name' | 'className' | 'examNo'>>) => void;
   onStart: () => void;
+  onRestart: () => void;
 };
 
-export default function CoverView({ paper, record, onInfo, onStart }: Props) {
+export default function CoverView({ paper, record, onInfo, onStart, onRestart }: Props) {
   const score = paperScore(paper);
   const counts = paperCounts(paper);
   const filled = record.name.trim() && record.className.trim() && record.examNo.trim();
   const resuming = record.startedAt > 0 && !record.submittedAt;
+  const submitted = !!record.submittedAt;
+  const [asking, setAsking] = useState(false);
 
   return (
     <main className="sheet">
@@ -68,14 +73,45 @@ export default function CoverView({ paper, record, onInfo, onStart }: Props) {
           </div>
 
           <div className="btn-row" style={{ marginTop: 20 }}>
-            <button className="btn btn--primary" disabled={!filled} onClick={onStart}>
-              {resuming ? '继续作答' : '开始作答'}
-            </button>
+            {submitted ? (
+              <>
+                <button className="btn btn--primary" onClick={() => (location.hash = '#/result/' + paper.id)}>
+                  查看这次的成绩
+                </button>
+                <button className="btn" onClick={() => setAsking(true)}>
+                  重新作答这张卷
+                </button>
+              </>
+            ) : (
+              <button className="btn btn--primary" disabled={!filled} onClick={onStart}>
+                {resuming ? '继续作答' : '开始作答'}
+              </button>
+            )}
             <button className="btn btn--ghost" onClick={() => (location.hash = '#/list')}>
               返回考卷
             </button>
-            {!filled ? <span className="muted">姓名、班级、考号填写完整后可以开始</span> : null}
+            {!filled && !submitted ? <span className="muted">姓名、班级、考号填写完整后可以开始</span> : null}
           </div>
+
+          {submitted ? (
+            <p className="note-strip" style={{ marginTop: 16 }}>
+              这张卷已在 {clockText(record.submittedAt ?? 0)} 交卷。
+            </p>
+          ) : null}
+
+          {submitted && asking ? (
+            <div className="retake">
+              <p>重新作答会把这张卷的作答和成绩清掉，从计时第一步重新做起。姓名、班级、考号留着，不必重填。</p>
+              <div className="btn-row">
+                <button className="btn btn--sm btn--warn" onClick={onRestart}>
+                  确认重考
+                </button>
+                <button className="btn btn--sm" onClick={() => setAsking(false)}>
+                  先不重考
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           {resuming ? (
             <p className="note-strip" style={{ marginTop: 16 }}>

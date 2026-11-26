@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PAPERS } from './data/papers';
 import { gradePaper, pendingGrade, type Grade } from './lib/grade';
-import { blankRecord, loadGrade, loadRecord, saveGrade, saveRecord, type Answer, type Record0 } from './lib/store';
+import { blankRecord, loadGrade, loadRecord, restartRecord, saveGrade, saveRecord, type Answer, type Record0 } from './lib/store';
 import { markOf, submitPaper } from './lib/submit';
 import type { Paper } from './lib/types';
 import CoverView from './views/Cover';
@@ -55,6 +55,8 @@ export default function App() {
     setRec(saved);
     // 没按「开始作答」就没有计时起点，直接进答题页要退回卷首页
     if (route.view === 'exam' && !saved.startedAt) go('#/cover/' + route.paper.id);
+    // 已经交出去的卷子不再进答题页，回看成绩只走成绩页
+    if (route.view === 'exam' && saved.submittedAt) go('#/result/' + route.paper.id);
     if (route.view === 'result' && !saved.submittedAt) go('#/cover/' + route.paper.id);
   }, [route]);
 
@@ -96,6 +98,14 @@ export default function App() {
   const patch = useCallback((id: string, p: Answer) => {
     setRec((r) => (r ? { ...r, answers: { ...r.answers, [id]: { ...r.answers[id], ...p } } } : r));
   }, []);
+
+  /** 重考：这张卷的作答、计时与成绩清掉，考生信息留着，回到卷首页从头开始 */
+  function restart(paper: Paper, record: Record0) {
+    setRec(restartRecord(record));
+    setGrade(null);
+    submitting.current = false;
+    go('#/cover/' + paper.id);
+  }
 
   const remaining = useCallback(() => {
     if (route.view !== 'exam' || !rec) return 0;
@@ -173,6 +183,7 @@ export default function App() {
           paper={route.paper}
           record={rec}
           onInfo={(p) => setRec({ ...rec, ...p })}
+          onRestart={() => restart(route.paper, rec)}
           onStart={() => {
             const started = { ...rec, startedAt: Date.now() };
             saveRecord(started);
@@ -193,7 +204,7 @@ export default function App() {
       ) : null}
 
       {route.view === 'result' && rec && grade ? (
-        <ResultView paper={route.paper} record={rec} grade={grade} />
+        <ResultView paper={route.paper} record={rec} grade={grade} onRestart={() => restart(route.paper, rec)} />
       ) : null}
 
       {route.view === 'result' && rec && !grade && !busy ? (

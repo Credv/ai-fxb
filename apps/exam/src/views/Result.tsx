@@ -10,10 +10,12 @@ type Props = {
   paper: Paper;
   record: Record0;
   grade: Grade;
+  onRestart: () => void;
 };
 
-export default function ResultView({ paper, record, grade }: Props) {
+export default function ResultView({ paper, record, grade, onRestart }: Props) {
   const [onlyWrong, setOnlyWrong] = useState(false);
+  const [asking, setAsking] = useState(false);
   const all = entries(paper);
   const items = onlyWrong ? grade.items.filter((i) => i.state !== 'right') : grade.items;
   const wrongCount = grade.items.filter((i) => i.state !== 'right').length;
@@ -70,6 +72,26 @@ export default function ResultView({ paper, record, grade }: Props) {
           ) : (
             <DownloadAgain again={again} />
           )}
+
+          <div className="btn-row" style={{ marginTop: 12 }}>
+            <button className="btn btn--sm" onClick={() => setAsking(true)}>
+              重新作答这张卷
+            </button>
+            <span className="muted">模拟卷可以反复做，已下载的答卷文件不受影响。</span>
+          </div>
+          {asking ? (
+            <div className="retake">
+              <p>重新作答会把这张卷的作答和成绩清掉，从计时第一步重新做起。姓名、班级、考号留着，不必重填。</p>
+              <div className="btn-row">
+                <button className="btn btn--sm btn--warn" onClick={onRestart}>
+                  确认重考
+                </button>
+                <button className="btn btn--sm" onClick={() => setAsking(false)}>
+                  先不重考
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 

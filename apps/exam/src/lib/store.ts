@@ -91,6 +91,24 @@ export function clearRecord(paperId: string) {
 }
 
 /**
+ * 重考这张卷：作答、计时、成绩全部清掉，考生信息留着——模拟卷本来就是拿来反复做的，
+ * 让学生把姓名班级考号再敲一遍没有意义。
+ */
+export function restartRecord(r: Record0): Record0 {
+  const fresh: Record0 = {
+    paper: r.paper,
+    name: r.name,
+    className: r.className,
+    examNo: r.examNo,
+    answers: {},
+    startedAt: 0
+  };
+  localStorage.removeItem(gradeKey(r.paper));
+  saveRecord(fresh);
+  return fresh;
+}
+
+/**
  * 判分结果单独存一份。成绩页刷新时直接读，不再重跑一遍程序题——
  * 重跑要等解释器起来，教室里网络慢的时候成绩页会白屏几秒。
  */
