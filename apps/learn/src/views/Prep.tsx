@@ -1,12 +1,10 @@
 import { Block, OpenAll, StatBar, Tips } from '../components/ui';
 import { Collapsible } from '../components/Accordion';
-import { daysLeft, setGroup } from '../lib/store';
+import { setGroup } from '../lib/store';
 import type { Prep } from '../lib/types';
 const SCENE = 'prep:scene:';
 
 export function PrepView({ d }: { d: Prep }) {
-  const left = daysLeft(d.date);
-  const when = left > 1 ? '还有 ' + left + ' 天' : left === 1 ? '明天' : left === 0 ? '今天' : '已过 ' + -left + ' 天';
   const sceneIds = d.script.map((_, i) => SCENE + i);
 
   return (
@@ -21,7 +19,7 @@ export function PrepView({ d }: { d: Prep }) {
 
       <StatBar
         items={[
-          { label: '距离试课', value: when, hot: left <= 3 },
+          { label: '试课日期', value: d.date },
           { label: '课时长度', value: d.minutes + ' 分钟' },
           { label: '学校', value: d.school },
           { label: '课题', value: d.lesson }

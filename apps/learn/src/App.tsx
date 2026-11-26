@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Gate } from './components/Gate';
-import { applyRoute, boot, daysLeft, go, leave, parseHash, PRIVATE_VIEWS, state, useVersion } from './lib/store';
+import { applyRoute, boot, go, leave, parseHash, PRIVATE_VIEWS, state, useVersion } from './lib/store';
 import { CertView } from './views/Cert';
 import { MapView } from './views/Map';
 import { PrepView } from './views/Prep';
@@ -76,8 +76,6 @@ export default function App() {
   }
 
   const p = state.parts;
-  const left = daysLeft(p.prep.date);
-  const hot = left >= 0 && left <= 7;
 
   return (
     <>
@@ -87,9 +85,6 @@ export default function App() {
           sub="我自己看的那几页"
           right={
             <>
-              <span className={'chip-i' + (hot ? ' chip-i--hot' : '')}>
-                试讲{left > 1 ? '还有 ' + left + ' 天' : left === 1 ? '就在明天' : left === 0 ? '就是今天' : '已经过了'}
-              </span>
               <a className="chip-i" href="/ai-fxb/">
                 AI 窗口 ↗
               </a>

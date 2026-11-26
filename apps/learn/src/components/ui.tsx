@@ -20,11 +20,11 @@ export function Block({ title, nav, n, lead, children }: { title: string; nav?: 
   );
 }
 
-export function StatBar({ items }: { items: { label: string; value: string; hot?: boolean }[] }) {
+export function StatBar({ items }: { items: { label: string; value: string }[] }) {
   return (
     <div className="bar">
       {items.map((i) => (
-        <div key={i.label} className={'bar__i' + (i.hot ? ' is-hot' : '')}>
+        <div key={i.label} className="bar__i">
           <b>{i.value}</b>
           <span>{i.label}</span>
         </div>

@@ -193,11 +193,3 @@ export function leave() {
   state.error = '';
   notify();
 }
-
-/** 距离那一场还有几天:日子在加密内容里,天数每次现算,不写死。 */
-export function daysLeft(iso: string): number {
-  const target = new Date(iso + 'T00:00:00');
-  const now = new Date();
-  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.round((target.getTime() - midnight.getTime()) / 86400000);
-}
