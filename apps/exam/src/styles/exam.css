@@ -251,6 +251,8 @@ select.tt { cursor: pointer }
 .proof { margin-top: 12px; border: 1px dashed var(--line-2); border-radius: 8px; padding: 12px 14px; background: var(--paper-2) }
 .proof-t { font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bottom: 7px }
 .proof-list { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+.alt-run { margin: 12px 0 0; font-size: 13.2px; color: var(--ink-2) }
+.alt-run a { color: var(--acc); font-family: var(--mono); text-decoration: underline; text-underline-offset: 2px }
 .thumb { position: relative; width: 74px; height: 56px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line-2); background: var(--paper) }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block }
 .thumb button {

@@ -98,7 +98,8 @@ function ipResult(q: IpTask, ans: Answer | undefined, number: number, kind: Sect
 async function pythonResult(q: PythonTask, ans: Answer | undefined, number: number, kind: SectionKind): Promise<ItemResult> {
   const code = (ans?.code ?? '').trim();
   const shape = { id: q.id, number, kind, type: 'python' as const, full: q.score, points: [] as Point[] };
-  if (!code) return { ...shape, score: 0, state: 'blank' };
+  // 没写代码但交了截图的，按待教师评定处理，不能当成 0 分
+  if (!code) return { ...shape, score: 0, state: ans?.shots?.length ? 'pending' : 'blank' };
   const checks = q.checks ?? [];
   // 没配评分点的程序题只留作答记录，跑不跑都由人工看
   if (!checks.length) return { ...shape, score: 0, state: 'pending' };

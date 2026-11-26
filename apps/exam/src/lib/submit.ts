@@ -83,8 +83,11 @@ function answerBlock(q: Question, a: Answer | undefined): string {
       return `<table class="fill"><tr><th>项目</th><th>填写内容</th></tr>${q.fields
         .map((f) => `<tr><td>${esc(f.label)}</td><td>${esc((a.values ?? {})[f.key] ?? '') || '—'}</td></tr>`)
         .join('')}</table>`;
-    case 'python':
-      return `<pre class="code">${esc(a.code ?? '')}</pre>`;
+    case 'python': {
+      const code = (a.code ?? '').trim() ? `<pre class="code">${esc(a.code ?? '')}</pre>` : '';
+      const shots = (a.shots ?? []).map(shotHtml).join('');
+      return code + shots || '<p class="none">未作答</p>';
+    }
     case 'sheet':
       return `${a.note ? `<p>${esc(a.note)}</p>` : ''}${(a.shots ?? []).map(shotHtml).join('')}` || '<p class="none">未作答</p>';
   }

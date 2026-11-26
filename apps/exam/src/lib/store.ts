@@ -149,7 +149,7 @@ export function totalQuestions(paper: Paper): number {
 export function isAnswered(q: Question, a?: Answer): boolean {
   if (!a) return false;
   if (q.type === 'single') return typeof a.pick === 'number' && a.pick >= 0;
-  if (q.type === 'python') return !!(a.code && a.code.trim());
+  if (q.type === 'python') return !!(a.code && a.code.trim()) || !!(a.shots && a.shots.length);
   if (q.type === 'ip') return !!(a.values && q.fields.some((f) => (a.values![f.key] || '').trim()));
   if (q.type === 'sheet') return !!(a.shots && a.shots.length) || !!(a.note && a.note.trim());
   return false;

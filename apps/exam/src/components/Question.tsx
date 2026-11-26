@@ -219,6 +219,93 @@ function IpBody({
   );
 }
 
+/* ---------- 截图提交 ---------- */
+
+/** 表格式操作的凭据一律用截图交：表格题和程序题共用这一处，措辞与上限保持一致 */
+function Shots({
+  q,
+  ans,
+  mode,
+  locked,
+  onEdit,
+  title,
+  hint
+}: {
+  q: Question;
+  ans?: Answer;
+  mode: Mode;
+  locked?: boolean;
+  onEdit: Props['onEdit'];
+  title: string;
+  hint: string;
+}) {
+  const shots = ans?.shots ?? [];
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function pickFiles(files: FileList | null) {
+    if (!files || !files.length) return;
+    setBusy(true);
+    setError('');
+    const next: Shot[] = [];
+    for (const f of Array.from(files)) {
+      try {
+        next.push(await shrinkImage(f));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : '图片读取失败');
+      }
+    }
+    onEdit(q.id, { shots: [...shots, ...next].slice(0, 6) });
+    setBusy(false);
+  }
+
+  return (
+    <>
+      <div className="proof-t">
+        {title}
+        {mode === 'review' ? '' : '（最多 6 张）'}
+      </div>
+      <div className="proof-list">
+        {shots.map((s, i) => (
+          <div className="thumb" key={i}>
+            {s.data ? <img src={s.data} alt={s.name} /> : <span className="muted">图片未保存</span>}
+            {mode === 'edit' && !locked ? (
+              <button
+                title="移除这张截图"
+                onClick={() => onEdit(q.id, { shots: shots.filter((_, j) => j !== i) })}
+              >
+                ×
+              </button>
+            ) : null}
+          </div>
+        ))}
+        {!shots.length && mode === 'edit' ? <span className="muted">尚未添加截图</span> : null}
+        {!shots.length && mode === 'review' ? <span className="muted">未提交截图</span> : null}
+      </div>
+      {mode === 'edit' && !locked ? (
+        <div className="btn-row" style={{ marginTop: 9 }}>
+          <label className="btn btn--sm">
+            {busy ? <i className="spin" /> : null}添加截图
+            <input
+              type="file"
+              accept="image/png,image/jpeg"
+              multiple
+              hidden
+              disabled={busy}
+              onChange={(e) => {
+                void pickFiles(e.target.files);
+                e.target.value = '';
+              }}
+            />
+          </label>
+          <span className="muted">{hint}</span>
+        </div>
+      ) : null}
+      {error ? <div className="err-tip">{error}</div> : null}
+    </>
+  );
+}
+
 /* ---------- 程序设计 ---------- */
 
 function PythonBody({
@@ -333,6 +420,28 @@ function PythonBody({
           {running ? <span className="out-hint">正在运行…</span> : live ? show(live) : <span className="out-hint">运行结果显示在这里</span>}
         </div>
       </div>
+
+      {mode === 'edit' ? (
+        <p className="alt-run">
+          这里的运行环境用不了时，到{' '}
+          <a href="https://onlinepy.com/" target="_blank" rel="noopener noreferrer">
+            onlinepy.com
+          </a>{' '}
+          写完并运行，把代码和运行结果截图交在下面。
+        </p>
+      ) : null}
+
+      <div className="proof">
+        <Shots
+          q={q}
+          ans={ans}
+          mode={mode}
+          locked={locked}
+          onEdit={onEdit}
+          title="代码与运行结果截图"
+          hint="截图里要能同时看到程序和运行出来的结果"
+        />
+      </div>
     </>
   );
 }
@@ -364,26 +473,6 @@ function SheetBody({
   locked?: boolean;
   onEdit: Props['onEdit'];
 }) {
-  const shots = ans?.shots ?? [];
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  async function pickFiles(files: FileList | null) {
-    if (!files || !files.length) return;
-    setBusy(true);
-    setError('');
-    const next: Shot[] = [];
-    for (const f of Array.from(files)) {
-      try {
-        next.push(await shrinkImage(f));
-      } catch (e) {
-        setError(e instanceof Error ? e.message : '图片读取失败');
-      }
-    }
-    onEdit(q.id, { shots: [...shots, ...next].slice(0, 6) });
-    setBusy(false);
-  }
-
   return (
     <>
       <ol className="steps">
@@ -397,44 +486,15 @@ function SheetBody({
       <Assets files={q.assets} />
 
       <div className="proof">
-        <div className="proof-t">操作结果截图{mode === 'review' ? '' : '（最多 6 张）'}</div>
-        <div className="proof-list">
-          {shots.map((s, i) => (
-            <div className="thumb" key={i}>
-              {s.data ? <img src={s.data} alt={s.name} /> : <span className="muted">图片未保存</span>}
-              {mode === 'edit' && !locked ? (
-                <button
-                  title="移除这张截图"
-                  onClick={() => onEdit(q.id, { shots: shots.filter((_, j) => j !== i) })}
-                >
-                  ×
-                </button>
-              ) : null}
-            </div>
-          ))}
-          {!shots.length && mode === 'edit' ? <span className="muted">尚未添加截图</span> : null}
-          {!shots.length && mode === 'review' ? <span className="muted">未提交截图</span> : null}
-        </div>
-        {mode === 'edit' && !locked ? (
-          <div className="btn-row" style={{ marginTop: 9 }}>
-            <label className="btn btn--sm">
-              {busy ? <i className="spin" /> : null}添加截图
-              <input
-                type="file"
-                accept="image/png,image/jpeg"
-                multiple
-                hidden
-                disabled={busy}
-                onChange={(e) => {
-                  void pickFiles(e.target.files);
-                  e.target.value = '';
-                }}
-              />
-            </label>
-            <span className="muted">截图保存的是屏幕上的表格画面</span>
-          </div>
-        ) : null}
-        {error ? <div className="err-tip">{error}</div> : null}
+        <Shots
+          q={q}
+          ans={ans}
+          mode={mode}
+          locked={locked}
+          onEdit={onEdit}
+          title="操作结果截图"
+          hint="截图保存的是屏幕上的表格画面"
+        />
         {mode === 'edit' ? (
           <textarea
             className="tt"
