@@ -39,6 +39,26 @@
 /learn/data/*
   Cache-Control: public, max-age=0, must-revalidate
 
+# 模拟考:卷面一旦下发就是那一份,但改题和加卷是常事,所以 HTML 与卷数据仍每次回源。
+/exam/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/exam/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/exam/data/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# 内置 Python 运行环境按版本号建目录,同名即同内容,可以给满一年。
+/exam/pyodide/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# 只钉这一个文件,不能写 /exam/pyodide/*.wasm 之外更宽的通配:同目录下还有 js 引导层、
+# lock 清单和 stdlib 压缩包,Content-Type 一旦被它们命中,浏览器就不加载解释器了。
+# 本地预览服务器少发这个类型时 WebAssembly.compile 会直接拒绝,线上同样要保住。
+/exam/pyodide/pyodide.asm.wasm
+  Content-Type: application/wasm
+
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
@@ -46,4 +66,7 @@
   Cache-Control: public, max-age=31536000, immutable
 
 /learn/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/exam/assets/*
   Cache-Control: public, max-age=31536000, immutable

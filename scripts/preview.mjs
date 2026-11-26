@@ -16,7 +16,8 @@ const HOST = process.env.HOST || '0.0.0.0';
 // 子路径路由:前缀命中就用那一格的 index.html 兜底,根路由是简历。
 const SUBS = [
   { prefix: '/ai-fxb', dir: path.join(ROOT, 'ai-fxb') },
-  { prefix: '/learn', dir: path.join(ROOT, 'learn') }
+  { prefix: '/learn', dir: path.join(ROOT, 'learn') },
+  { prefix: '/exam', dir: path.join(ROOT, 'exam') }
 ];
 
 const MIME = {
@@ -29,6 +30,7 @@ const MIME = {
   '.jpg': 'image/jpeg',
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
+  '.wasm': 'application/wasm',
   '.txt': 'text/plain; charset=utf-8'
 };
 
@@ -72,6 +74,7 @@ server.listen(PORT, HOST, () => {
   console.log('  本机      →  http://127.0.0.1:' + PORT + '/         简历');
   console.log('  本机      →  http://127.0.0.1:' + PORT + '/ai-fxb/  AI 窗口');
   console.log('  本机      →  http://127.0.0.1:' + PORT + '/learn/   教案与课件(公开课件免密码;私密区 #/private 要密码,只能用 127.0.0.1)');
+  console.log('  本机      →  http://127.0.0.1:' + PORT + '/exam/    模拟试卷(理论卷自动判分;操作卷需下载表格素材)');
   os.networkInterfaces && Object.values(os.networkInterfaces()).flat().forEach((i) => {
     if (i && i.family === 'IPv4' && !i.internal) {
       console.log('  手机/平板 →  http://' + i.address + ':' + PORT + '/ai-fxb/   (需同一 WiFi)');

@@ -11,20 +11,23 @@
     "packages/core",
     "apps/resume",
     "apps/console",
-    "apps/learn"
+    "apps/learn",
+    "apps/exam"
   ],
   "scripts": {
-    "build": "npm run build --workspace @ai-fxb/core && npm run build --workspace resume-react && npm run build --workspace @ai-fxb/console && npm run build --workspace @ai-fxb/learn && node scripts/assemble.mjs",
+    "build": "npm run build --workspace @ai-fxb/core && npm run build --workspace resume-react && npm run build --workspace @ai-fxb/console && npm run build --workspace @ai-fxb/learn && npm run build --workspace @ai-fxb/exam && node scripts/assemble.mjs",
     "build:core": "npm run build --workspace @ai-fxb/core",
     "build:resume": "npm run build --workspace resume-react",
     "build:console": "npm run build --workspace @ai-fxb/console",
     "build:learn": "npm run build --workspace @ai-fxb/learn",
+    "build:exam": "npm run build --workspace @ai-fxb/exam",
     "learn:data": "node tools/build-learn-content.mjs",
     "dev:resume": "npm run build:core && npm run dev --workspace resume-react",
     "dev:console": "npm run build:core && npm run dev --workspace @ai-fxb/console",
     "dev:learn": "npm run dev --workspace @ai-fxb/learn",
     "dev:learn:private": "npm run learn:data && npm run dev --workspace @ai-fxb/learn",
+    "dev:exam": "npm run dev --workspace @ai-fxb/exam",
     "preview": "node scripts/preview.mjs",
-    "typecheck": "npm run typecheck --workspace @ai-fxb/core && npm run typecheck --workspace @ai-fxb/console && npm run typecheck --workspace @ai-fxb/learn"
+    "typecheck": "npm run typecheck --workspace @ai-fxb/core && npm run typecheck --workspace @ai-fxb/console && npm run typecheck --workspace @ai-fxb/learn && npm run typecheck --workspace @ai-fxb/exam"
   }
 }

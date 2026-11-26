@@ -1,7 +1,8 @@
-/* 把三个 app 的构建产物拼成一份 Cloudflare 静态资产输出:
+/* 把四个 app 的构建产物拼成一份 Cloudflare 静态资产输出:
  *   简历      apps/resume/dist   → dist/          (3ecat.me/)
  *   AI 窗口   apps/console/dist  → dist/ai-fxb/   (3ecat.me/ai-fxb/)
  *   教案与课件 apps/learn/dist    → dist/learn/    (3ecat.me/learn/)
+ *   模拟考    apps/exam/dist     → dist/exam/     (3ecat.me/exam/)
  * 产物目录不入库,只入库源码与 _headers;云端构建跑同一个脚本。
  */
 import { cpSync, existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -14,7 +15,8 @@ const out = join(root, 'dist');
 const jobs = [
   { name: '简历', src: join(root, 'apps', 'resume', 'dist'), dest: out },
   { name: 'AI 窗口', src: join(root, 'apps', 'console', 'dist'), dest: join(out, 'ai-fxb') },
-  { name: '教案与课件', src: join(root, 'apps', 'learn', 'dist'), dest: join(out, 'learn') }
+  { name: '教案与课件', src: join(root, 'apps', 'learn', 'dist'), dest: join(out, 'learn') },
+  { name: '模拟考', src: join(root, 'apps', 'exam', 'dist'), dest: join(out, 'exam') }
 ];
 
 const missing = jobs.filter((j) => !existsSync(join(j.src, 'index.html')));

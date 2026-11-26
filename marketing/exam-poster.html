@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>信息技术模拟考 · 宣发海报</title>
+<style>
+  :root {
+    --paper: #ffffff;
+    --desk: #eef1f5;
+    --ink: #14181f;
+    --ink-2: #495265;
+    --ink-3: #7a879b;
+    --line: #dfe4ec;
+    --acc: #0f766e;
+    --acc-soft: #e3f4f2;
+    --gold: #92610a;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+    --song: "Songti SC", SimSun, NSimSun, serif;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+      "Microsoft YaHei", sans-serif;
+  }
+  * { box-sizing: border-box }
+  html, body { margin: 0; padding: 0; background: var(--desk) }
+  body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: antialiased }
+
+  .poster {
+    width: 1240px; height: 1754px; margin: 0 auto; background: var(--paper);
+    display: flex; flex-direction: column;
+    box-shadow: 0 24px 60px rgba(20, 24, 31, .16);
+  }
+
+  /* 顶部：一条深青带，放卷种与主标题 */
+  .head { background: #0b3b38; color: #fff; padding: 74px 88px 66px; position: relative; overflow: hidden }
+  .head::after {
+    content: ""; position: absolute; right: -180px; top: -180px; width: 620px; height: 620px;
+    border: 1px solid rgba(255,255,255,.14); border-radius: 50%;
+  }
+  .head::before {
+    content: ""; position: absolute; right: 60px; bottom: -260px; width: 460px; height: 460px;
+    border: 1px dashed rgba(255,255,255,.16); border-radius: 50%;
+  }
+  .kind {
+    display: inline-block; font-size: 21px; letter-spacing: 4px; padding: 7px 18px;
+    border: 1px solid rgba(255,255,255,.42); border-radius: 999px; color: #cfe9e5;
+  }
+  h1 { font-family: var(--song); font-size: 104px; line-height: 1.12; margin: 30px 0 0; letter-spacing: 6px; font-weight: 700 }
+  h1 em { font-style: normal; color: #7fd8cd }
+  .sub { margin-top: 22px; font-size: 30px; color: #b9d6d2; letter-spacing: 2px }
+  .meta { margin-top: 40px; display: flex; gap: 46px; font-size: 22px; color: #dcece9 }
+  .meta b { font-family: var(--mono); font-size: 26px; color: #fff; font-weight: 700; margin-right: 8px }
+
+  /* 三个数：卷面结构、当场出分、收卷方式 */
+  .stats { display: flex; border-bottom: 1px solid var(--line) }
+  .stat { flex: 1; padding: 46px 40px 44px; border-right: 1px solid var(--line) }
+  .stat:last-child { border-right: 0 }
+  .stat .n { font-family: var(--mono); font-size: 66px; font-weight: 700; color: var(--acc); letter-spacing: -2px; line-height: 1 }
+  .stat .n span { font-size: 30px; color: var(--ink-2); margin-left: 6px }
+  .stat .t { margin-top: 14px; font-size: 25px; font-weight: 600 }
+  .stat .d { margin-top: 8px; font-size: 20px; color: var(--ink-3); line-height: 1.6 }
+
+  /* 要点 */
+  .body { padding: 52px 88px 0; flex: 1 }
+  .lead { font-size: 27px; font-weight: 600; letter-spacing: 1px; margin: 0 0 26px }
+  .lead span { color: var(--acc) }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 26px 40px }
+  li { border-left: 3px solid var(--acc-soft); padding: 2px 0 2px 20px }
+  li b { display: block; font-size: 24px; margin-bottom: 6px }
+  li p { margin: 0; font-size: 20px; color: var(--ink-2); line-height: 1.66 }
+  li code { font-family: var(--mono); font-size: .94em; background: #f4f6f8; padding: 1px 6px; border-radius: 4px }
+
+  .sample { margin-top: 40px; background: #f7f9fb; border: 1px solid var(--line); border-radius: 12px; padding: 26px 30px }
+  .sample h3 { margin: 0 0 14px; font-size: 22px; letter-spacing: 1px; color: var(--ink-2) }
+  .row { display: flex; align-items: center; gap: 16px; font-size: 20px; color: var(--ink-2) }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap }
+  .chip { font-family: var(--mono); font-size: 17px; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 7px; background: #e6ebf1; color: var(--ink-2) }
+  .chip.on { background: var(--acc); color: #fff }
+  .chip.bad { background: #b42318; color: #fff }
+  .chip.ok { background: #15803d; color: #fff }
+  .verdict { font-size: 20px; color: var(--ink-2) }
+  .verdict b { font-family: var(--mono); color: var(--acc); font-size: 24px }
+
+  /* 页脚：地址与说明 */
+  .foot { padding: 40px 88px 46px; border-top: 1px solid var(--line); display: flex; align-items: flex-end; justify-content: space-between; gap: 40px }
+  .url { font-family: var(--mono); font-size: 46px; font-weight: 700; color: var(--ink); letter-spacing: 1px }
+  .url span { color: var(--acc) }
+  .url small { display: block; font-family: var(--font); font-size: 20px; font-weight: 400; color: var(--ink-3); letter-spacing: 0; margin-top: 8px }
+  .note { text-align: right; font-size: 18px; color: var(--ink-3); line-height: 1.7; max-width: 560px }
+  .note em { font-style: normal; color: var(--gold) }
+
+  @media print {
+    html, body { background: #fff }
+    .poster { box-shadow: none }
+  }
+</style>
+</head>
+<body>
+<div class="poster">
+  <div class="head">
+    <span class="kind">模拟练习卷 · 非正式考试</span>
+    <h1>信息技术<em>模拟考</em></h1>
+    <div class="sub">普通高中学业水平合格性考试 · 四套卷 · 交卷当场出分</div>
+    <div class="meta">
+      <div><b>70</b>分钟一场</div>
+      <div><b>100</b>分卷面满分</div>
+      <div><b>60</b>分合格线</div>
+      <div><b>184</b>题共四套</div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="n">40<span>+6</span></div>
+      <div class="t">每卷题量与构成</div>
+      <div class="d">40 道单选，加 6 道操作题：3 道程序、2 道电子表格、1 道网络参数</div>
+    </div>
+    <div class="stat">
+      <div class="n">80<span>分当场</span></div>
+      <div class="t">交卷即判分</div>
+      <div class="d">单选、程序、网络参数当场判定；电子表格看上交的操作截图评定</div>
+    </div>
+    <div class="stat">
+      <div class="n">1<span>个文件</span></div>
+      <div class="t">答卷怎么交</div>
+      <div class="d">交卷生成一份答卷，作答、运行结果、截图都在里面，课堂传输发给老师</div>
+    </div>
+  </div>
+
+  <div class="body">
+    <p class="lead">打开网页就能考，<span>不必在机房装编程环境</span></p>
+    <ul>
+      <li>
+        <b>程序题当场就能跑</b>
+        <p>页面里带一套真正的 Python 运行环境（Python 3.13），学生写完点运行就出结果，不依赖机房电脑装什么。</p>
+      </li>
+      <li>
+        <b>按评分点给分，不是一句「错了」</b>
+        <p>每道程序题两个评分点，各 5 分。拿学生自己的代码，按题目给定的输入跑一遍，把实跑出来的结果和期望值并排列出来。</p>
+      </li>
+      <li>
+        <b>逐题讲评，交卷后自己就能看</b>
+        <p>错题给考点、正确答案和选择依据；程序题另给参考程序。学生知道自己错在哪，老师不用再一对一解释。</p>
+      </li>
+      <li>
+        <b>电子表格题随卷发表格</b>
+        <p>题目直接下发 <code>.xlsx</code> 文件，学生在本机软件里做完，把表格画面截图记入答卷，卷面同时写明完成后的应得结果。</p>
+      </li>
+      <li>
+        <b>答到哪儿存到哪儿</b>
+        <p>作答即时保存在学生本机，误关网页、断网、停电都能回到原处；时间走完自动收卷，不留半张卷子。</p>
+      </li>
+      <li>
+        <b>卷面按正式卷排版</b>
+        <p>考生须知、部分说明、分值与题号都按正式卷的样子排，页面上不出现练习系统常见的提示语与口语化说明。</p>
+      </li>
+    </ul>
+
+    <div class="sample">
+      <h3>交卷后学生看到的答题条与评分点</h3>
+      <div class="row">
+        <div class="chips">
+          <span class="chip ok">41</span><span class="chip ok">42</span><span class="chip bad">43</span>
+          <span class="chip on">44</span><span class="chip">45</span><span class="chip ok">46</span>
+        </div>
+        <div class="verdict">第 41 题 <b>10 / 10</b> 分 · 评分点：输入 385 输出 583 符合，输入 120 输出 21 符合</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="url">3ecat.me<span>/exam</span><small>浏览器直接打开，四套卷任选</small></div>
+    <div class="note">
+      正式考试为全省统一机房环境，软件版本以考点当场为准。<br />
+      本卷为模拟练习，供考前自测讲评使用，<em>成绩不作为正式考试依据</em>。
+    </div>
+  </div>
+</div>
+</body>
+</html>

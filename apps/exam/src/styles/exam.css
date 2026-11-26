@@ -1,0 +1,351 @@
+/* 模拟考卷面。整站是深色底，这一张按纸卷做：白底黑字、强调色沿用站点的青与紫但压深，
+   投影上不发灰，打印出来也能看。深色变量留在 :root 里方便整页切换。 */
+:root {
+  --paper: #ffffff;
+  --paper-2: #f6f7f9;
+  --desk: #eef1f5;
+  --ink: #14181f;
+  --ink-2: #495265;
+  --ink-3: #7a879b;
+  --line: #d9dee7;
+  --line-2: #b9c2d0;
+  --acc: #0f766e;
+  --acc-soft: #e3f4f2;
+  --acc-2: #6d28d9;
+  --ok: #15803d;
+  --ok-soft: #e7f6ec;
+  --bad: #b42318;
+  --bad-soft: #fdecea;
+  --warn: #92610a;
+  --warn-soft: #fdf4e3;
+  --radius: 10px;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+  --song: "Songti SC", "SimSun", "NSimSun", serif;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+}
+
+* { box-sizing: border-box }
+html, body { margin: 0; padding: 0 }
+body {
+  background: var(--desk);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+code { font-family: var(--mono); font-size: .9em }
+
+/* 页眉：左侧卷名，右侧走时与考生状态 */
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(255, 255, 255, .94);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: 940px; margin: 0 auto; padding: 11px 20px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.topbar h1 { margin: 0; font-size: 15.5px; font-weight: 700; letter-spacing: .3px }
+.topbar .sub { font-size: 12.5px; color: var(--ink-3); margin-top: 1px }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 9px; flex-wrap: wrap }
+
+.clock {
+  font-family: var(--mono); font-size: 13.5px; font-weight: 650;
+  padding: 5px 11px; border-radius: 8px;
+  background: var(--paper-2); border: 1px solid var(--line); color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.clock--low { background: var(--warn-soft); border-color: #f0d9a8; color: var(--warn) }
+.clock--over { background: var(--bad-soft); border-color: #f3c8c2; color: var(--bad) }
+
+/* 主体 */
+.sheet { max-width: 940px; margin: 0 auto; padding: 22px 20px 90px }
+.page {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: 0 1px 2px rgba(20, 24, 31, .05);
+}
+.page + .page { margin-top: 16px }
+
+/* 卷头 */
+.cover { padding: 30px 34px }
+.cover-kicker { font-size: 12.5px; letter-spacing: 2.2px; color: var(--acc); font-weight: 700 }
+.cover h2 { margin: 8px 0 2px; font-size: 26px; font-weight: 750; letter-spacing: .5px }
+.cover .cover-sub { margin: 0; font-size: 14px; color: var(--ink-2) }
+.cover-meta {
+  display: flex; flex-wrap: wrap; gap: 0; margin: 20px 0 0;
+  border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+}
+.cover-meta div { flex: 1 1 140px; padding: 11px 14px; border-right: 1px solid var(--line) }
+.cover-meta div:last-child { border-right: 0 }
+.cover-meta dt { margin: 0; font-size: 12px; color: var(--ink-3) }
+.cover-meta dd { margin: 2px 0 0; font-size: 16px; font-weight: 700 }
+
+.notice { margin: 22px 0 0; padding: 0; list-style: none; counter-reset: n }
+.notice li {
+  counter-increment: n; position: relative; padding: 4px 0 4px 30px;
+  font-size: 13.8px; color: var(--ink-2);
+}
+.notice li::before {
+  content: counter(n); position: absolute; left: 0; top: 5px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--paper-2); border: 1px solid var(--line);
+  font-size: 11.5px; font-weight: 700; color: var(--ink-3);
+  display: grid; place-items: center; font-family: var(--mono);
+}
+
+/* 考生信息 */
+.field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 6px }
+label.fl { display: block; font-size: 12.5px; color: var(--ink-3); margin-bottom: 5px }
+input.tt, textarea.tt, select.tt {
+  width: 100%; font-family: inherit; font-size: 14.5px; color: var(--ink);
+  padding: 9px 12px; background: var(--paper); border: 1px solid var(--line-2); border-radius: 8px;
+}
+input.tt:focus, textarea.tt:focus, select.tt:focus {
+  outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px var(--acc-soft);
+}
+.req { color: var(--bad); margin-left: 2px }
+
+/* 按钮 */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  font-family: inherit; font-size: 14px; font-weight: 650;
+  padding: 9px 17px; border-radius: 8px; border: 1px solid var(--line-2);
+  background: var(--paper); color: var(--ink);
+}
+.btn:hover:not(:disabled) { border-color: var(--acc); color: var(--acc) }
+.btn:disabled { opacity: .45; cursor: not-allowed }
+.btn--primary { background: var(--acc); border-color: var(--acc); color: #fff }
+.btn--primary:hover:not(:disabled) { background: #0c655e; color: #fff; border-color: #0c655e }
+.btn--ghost { background: transparent; border-color: transparent; color: var(--ink-2); font-weight: 600 }
+.btn--ghost:hover:not(:disabled) { color: var(--acc); background: var(--acc-soft) }
+.btn--sm { font-size: 12.8px; padding: 6px 12px }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
+
+/* 部分标题 */
+.part {
+  padding: 18px 34px; border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--paper-2), var(--paper));
+}
+.part-name { margin: 0; font-size: 17px; font-weight: 750; letter-spacing: .4px }
+.part-note { margin: 5px 0 0; font-size: 13.2px; color: var(--ink-2) }
+.part-tag {
+  display: inline-block; margin-left: 9px; padding: 2px 9px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .4px; vertical-align: 2px;
+  background: var(--acc-soft); color: var(--acc); border: 1px solid #c8e8e5;
+}
+.part-tag--practice { background: #f1eafe; color: var(--acc-2); border-color: #e0d0f7 }
+
+/* 题目 */
+.q { padding: 20px 34px; border-bottom: 1px solid var(--line); scroll-margin-top: 132px }
+.q:last-child { border-bottom: 0 }
+.q-head { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; margin-bottom: 7px }
+.q-no { font-family: var(--mono); font-size: 13.5px; font-weight: 700; color: var(--acc) }
+.q-mark {
+  font-size: 11.8px; color: var(--ink-3); background: var(--paper-2);
+  border: 1px solid var(--line); padding: 1px 7px; border-radius: 999px;
+}
+.q-kind { font-size: 11.8px; color: var(--ink-3) }
+.q-stem { margin: 0; font-size: 15px; color: var(--ink); white-space: pre-line }
+.q-stem .blank { font-family: var(--mono); color: var(--acc-2); font-weight: 700 }
+.q-stem pre, .code-read {
+  margin: 11px 0 0; padding: 12px 14px; background: #f8f8f4; border: 1px solid var(--line);
+  border-left: 3px solid var(--acc-2); border-radius: 6px;
+  font-family: var(--mono); font-size: 13.2px; line-height: 1.62;
+  overflow-x: auto; white-space: pre; color: #2c2f36;
+}
+
+/* 选项 */
+.opts { list-style: none; margin: 13px 0 0; padding: 0; display: grid; gap: 7px }
+.opt {
+  display: flex; gap: 10px; align-items: flex-start; cursor: pointer;
+  padding: 9px 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper);
+  font-size: 14.2px;
+}
+.opt:hover { border-color: var(--line-2); background: var(--paper-2) }
+.opt input { margin: 4px 0 0; accent-color: var(--acc); flex: none }
+.opt-key { font-family: var(--mono); font-weight: 700; color: var(--ink-3); flex: none }
+.opt--on { border-color: var(--acc); background: var(--acc-soft) }
+.opt--on .opt-key { color: var(--acc) }
+.opts--inline { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) }
+/* 讲评时把对的与选错的分别标出来，学生一眼看到差在哪 */
+.opt--right { border-color: var(--ok); background: var(--ok-soft) }
+.opt--right .opt-key { color: var(--ok) }
+.opt--miss { border-color: var(--bad); background: var(--bad-soft) }
+.opt--miss .opt-key { color: var(--bad) }
+
+/* 题面里的表：网络参数对照、评分点比对，跟整张卷面的细线框一致 */
+.q table, .section-pad table { border-collapse: collapse; width: 100%; margin: 12px 0 0; font-size: 13.6px }
+.q th, .q td, .section-pad th, .section-pad td {
+  border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top;
+}
+.q th, .section-pad th { background: var(--paper-2); font-weight: 600; color: var(--ink-2) }
+.q td code { background: var(--paper-2); padding: 1px 5px; border-radius: 4px; word-break: break-all }
+
+/* 判分后的题态 */
+.q--right { box-shadow: inset 3px 0 0 var(--ok) }
+.q--wrong { box-shadow: inset 3px 0 0 var(--bad) }
+.verdict { margin-top: 12px; font-size: 13.6px }
+.verdict-line { display: flex; gap: 8px; align-items: baseline; margin-bottom: 5px }
+.tag-ok, .tag-bad {
+  flex: none; font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px;
+}
+.tag-ok { background: var(--ok-soft); color: var(--ok) }
+.tag-bad { background: var(--bad-soft); color: var(--bad) }
+.why {
+  margin: 9px 0 0; padding: 11px 14px; border-radius: 8px;
+  background: var(--paper-2); border: 1px solid var(--line); font-size: 13.8px; color: var(--ink-2);
+  white-space: pre-line;
+}
+.why .code-read { margin: 8px 0 0 }
+.why b { color: var(--ink) }
+.ref-answer { margin-top: 9px; font-size: 13.6px; color: var(--ink-2) }
+.ref-answer code { background: var(--acc-soft); color: var(--acc); padding: 1px 6px; border-radius: 5px }
+
+/* 代码框 */
+.ide { margin-top: 13px; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden }
+.ide-bar {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  padding: 8px 12px; background: var(--paper-2); border-bottom: 1px solid var(--line);
+  font-size: 12.5px; color: var(--ink-3);
+}
+.ide-bar .env { font-weight: 700; color: var(--acc) }
+.ide textarea {
+  display: block; width: 100%; border: 0; resize: vertical; min-height: 150px;
+  padding: 13px 14px; font-family: var(--mono); font-size: 13.4px; line-height: 1.66;
+  background: #fbfbf7; color: #23272f; tab-size: 4;
+}
+.ide textarea:focus { outline: none; background: #fff }
+.out {
+  border-top: 1px solid var(--line); padding: 11px 14px; background: #1c2027; color: #d7e0ea;
+  font-family: var(--mono); font-size: 13.2px; line-height: 1.6; white-space: pre-wrap;
+  word-break: break-word; min-height: 40px; max-height: 300px; overflow: auto;
+}
+.out--err { color: #ffb4ab }
+.out-hint { color: #7a879b }
+.stdin { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: var(--paper-2); border-top: 1px solid var(--line); font-size: 12.8px }
+.stdin input { flex: 1; font-family: var(--mono); font-size: 13px; padding: 6px 9px; border: 1px solid var(--line-2); border-radius: 6px }
+
+/* 操作题 */
+.steps { margin: 12px 0 0; padding-left: 22px; font-size: 14px; color: var(--ink-2) }
+.steps li { margin-bottom: 4px }
+.files { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 12px }
+.file-btn {
+  display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+  padding: 9px 14px; border: 1px solid var(--line-2); border-radius: 8px;
+  background: var(--paper); color: var(--ink); font-size: 13.5px; font-weight: 600;
+}
+.file-btn:hover { border-color: var(--acc); color: var(--acc); background: var(--acc-soft) }
+.file-btn .ext {
+  font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .5px;
+  padding: 1px 6px; border-radius: 4px; background: #217346; color: #fff;
+}
+.file-btn .ext--csv { background: #5a6b7d }
+.file-btn .ext--py { background: #3572a5 }
+
+.proof { margin-top: 12px; border: 1px dashed var(--line-2); border-radius: 8px; padding: 12px 14px; background: var(--paper-2) }
+.proof-t { font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bottom: 7px }
+.proof-list { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+.thumb { position: relative; width: 74px; height: 56px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line-2); background: var(--paper) }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block }
+.thumb button {
+  position: absolute; top: 1px; right: 1px; width: 17px; height: 17px; padding: 0;
+  border: 0; border-radius: 0 0 0 5px; background: rgba(20, 24, 31, .72); color: #fff;
+  font-size: 11px; line-height: 17px; cursor: pointer;
+}
+
+/* 答题卡 */
+.tray {
+  position: sticky; bottom: 0; z-index: 15; margin-top: 16px;
+  background: rgba(255, 255, 255, .96); backdrop-filter: blur(8px);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 11px 16px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.tray-nums { display: flex; gap: 5px; flex-wrap: wrap; flex: 1 }
+.cell {
+  width: 27px; height: 27px; border-radius: 6px; border: 1px solid var(--line-2);
+  background: var(--paper); color: var(--ink-3);
+  font-family: var(--mono); font-size: 12px; font-weight: 700; cursor: pointer;
+  display: grid; place-items: center; text-decoration: none;
+}
+.cell--done { background: var(--acc); border-color: var(--acc); color: #fff }
+.cell--prac { border-style: dashed }
+.cell--right { background: var(--ok); border-color: var(--ok); color: #fff }
+.cell--wrong { background: var(--bad); border-color: var(--bad); color: #fff }
+.tray-stat { font-size: 13px; color: var(--ink-2); white-space: nowrap }
+.tray-stat b { font-family: var(--mono); color: var(--ink) }
+
+/* 成绩页 */
+.score-hero { padding: 30px 34px; text-align: center; border-bottom: 1px solid var(--line) }
+.score-num { font-family: var(--mono); font-size: 58px; font-weight: 700; line-height: 1; letter-spacing: -1px }
+.score-num--pass { color: var(--ok) }
+.score-num--fail { color: var(--bad) }
+.score-of { font-size: 14px; color: var(--ink-3); margin-top: 4px }
+.score-bars { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px }
+.score-bar { min-width: 150px; padding: 11px 15px; border-radius: 8px; background: var(--paper-2); border: 1px solid var(--line) }
+.score-bar span { display: block; font-size: 12px; color: var(--ink-3) }
+.score-bar b { font-family: var(--mono); font-size: 19px }
+
+.note-strip {
+  padding: 12px 16px; border-radius: 8px; font-size: 13.4px;
+  background: var(--warn-soft); border: 1px solid #f0d9a8; color: var(--warn);
+}
+.note-strip + .note-strip { margin-top: 9px }
+
+/* 卷列表 */
+.paper-list { display: grid; gap: 12px; padding: 24px }
+@media (min-width: 660px) { .paper-list { grid-template-columns: 1fr 1fr } }
+.paper-card {
+  display: block; text-decoration: none; color: inherit; cursor: pointer; text-align: left;
+  padding: 17px 19px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper);
+  font-family: inherit;
+}
+.paper-card:hover { border-color: var(--acc); box-shadow: 0 2px 10px -4px rgba(15, 118, 110, .35) }
+.paper-card h3 { margin: 0 0 3px; font-size: 16px }
+.paper-card p { margin: 0; font-size: 13px; color: var(--ink-2) }
+.paper-card .pc-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 11px }
+.pc-meta em {
+  font-style: normal; font-size: 11.8px; color: var(--ink-3);
+  background: var(--paper-2); border: 1px solid var(--line); padding: 1px 8px; border-radius: 999px;
+}
+.pc-done { font-size: 11.8px; font-weight: 700; color: var(--acc) }
+
+.section-pad { padding: 22px 34px }
+/* 交卷确认：把没作答的题号摊开，学生按确认键之前能看清自己漏了哪几题 */
+.mask {
+  position: fixed; inset: 0; z-index: 40; padding: 20px;
+  background: rgba(20, 24, 31, .42); display: grid; place-items: center;
+}
+.modal {
+  width: 100%; max-width: 520px; background: var(--paper);
+  border-radius: 12px; padding: 20px 24px; box-shadow: 0 16px 44px -14px rgba(20, 24, 31, .45);
+}
+.modal h3 { margin: 0 0 8px; font-size: 17px }
+.modal p { margin: 4px 0 }
+.h3 { margin: 0 0 10px; font-size: 15.5px }
+.muted { color: var(--ink-3); font-size: 13px }
+.spin {
+  width: 13px; height: 13px; border-radius: 50%; flex: none;
+  border: 2px solid var(--line-2); border-top-color: var(--acc);
+  animation: sp .7s linear infinite; display: inline-block;
+}
+@keyframes sp { to { transform: rotate(360deg) } }
+.err-tip {
+  margin-top: 10px; padding: 10px 13px; border-radius: 8px;
+  background: var(--bad-soft); border: 1px solid #f3c8c2; color: var(--bad); font-size: 13.4px;
+}
+
+@media (max-width: 620px) {
+  body { font-size: 14.5px }
+  .cover, .part, .q, .section-pad { padding-left: 18px; padding-right: 18px }
+  .cover h2 { font-size: 21px }
+  .score-num { font-size: 46px }
+}
+
+@media print {
+  .topbar, .tray, .btn, .ide-bar { display: none !important }
+  body { background: #fff }
+  .page { border: 0; box-shadow: none }
+}

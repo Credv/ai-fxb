@@ -2,17 +2,18 @@
 
 一个**本地优先**的个人 AI 情报控制台（3D 科幻 HUD）：打开即保留上一次的历史记录，并在后台静默同步当日最新信息，今日新增条目自动标记 **NEW**。内容按「AI 汇总 → 前沿技术 → 模型排行 → 商机雷达 → 就业形势」呈现。
 
-线上 https://3ecat.me 现在有三个入口：
+线上 https://3ecat.me 现在有四个入口：
 
 - `/` —— 个人简历站（`apps/resume`）
 - `/ai-fxb/` —— 本控制台（`apps/console`）
 - `/learn` —— 教案与课件（`apps/learn`，一进来看见公开课件，私密区要密码）
+- `/exam` —— 信息技术模拟考（`apps/exam`，四套卷，交卷当场出分）
 
-三者共用一个仓库、一次构建、一个域名（Cloudflare Workers 静态资产托管，push 即部署）。
+四者共用一个仓库、一次构建、一个域名（Cloudflare Workers 静态资产托管，push 即部署）。
 
 ## 特点
 
-- **无后端**：只有静态产物。构建工具是 Vite + React 18 + TypeScript（npm workspaces 单仓库：`packages/core` 共享核心 + `apps/resume` + `apps/console` + `apps/learn`）。three.js 从 npm 取，按需动态加载，不再 vendored 进仓库。`apps/learn` 不依赖 `@ai-fxb/core`，它没有 API 调用，是纯内容站。
+- **无后端**：只有静态产物。构建工具是 Vite + React 18 + TypeScript（npm workspaces 单仓库：`packages/core` 共享核心 + `apps/resume` + `apps/console` + `apps/learn` + `apps/exam`）。three.js 从 npm 取，按需动态加载，不再 vendored 进仓库。`apps/learn` 不依赖 `@ai-fxb/core`，它没有 API 调用，是纯内容站；`apps/exam` 同样不依赖 `@ai-fxb/core`，也不发任何网络请求（除按需加载自带的 Python 运行环境）。
 - **公开快照模式**：站长每天定时用自己的 Key 生成一次数据快照（GitHub Actions → `apps/console/public/data/snapshot.json` → 站点自动部署），任何访客打开 https://3ecat.me/ai-fxb/ 无需配置即可查看，页面显示「数据截至」时间；访客自己的 Key 永不参与。
 - **`/learn` 拆成两半**：首页一进来就是**公开课件区**——按章节排的教案、板书、图解，不用密码，链接可以直接发给其他老师和学生；只有「怎么和学生相处」「教资怎么考」这类自己的东西留在**私密区**，靠 `#/private` 直达链接进去，要密码。课件页给学生另有一版：只剩图解和能拖的参数。详见「教案与课件」。
 - 浏览器直接调用大模型 API（可选，自选 Key 才启用）：内置千问(阿里云百炼)、DeepSeek、OpenAI、Claude(Anthropic) 与自定义 OpenAI 兼容网关五档预设，切换即自动填地址与默认模型；千问档支持 `enable_search` 联网检索。
@@ -34,13 +35,14 @@
 ```bash
 cd /d D:\ai-fxb
 npm install            # 首次
-npm run build          # core → 简历 → 控制台 → 拼装到 dist/
+npm run build          # core → 简历 → 控制台 → 课件 → 模拟考 → 拼装到 dist/
 npm run preview        # 起本地静态服务器,默认 0.0.0.0:5178
 ```
 
 - 简历 → http://127.0.0.1:5178/
 - AI 窗口 → http://127.0.0.1:5178/ai-fxb/
 - 教案与课件 → http://127.0.0.1:5178/learn/ （公开区直接就能看；私密区 `http://127.0.0.1:5178/learn/#/private` 要密码。改私密内容后先 `npm run learn:data`，见「教案与课件」）
+- 模拟考 → http://127.0.0.1:5178/exam/ （四套卷在 `#/list`，交卷当场出分；首次打开程序题要等 Python 环境加载完）
 
 或直接双击 `启动.bat`（Windows），自动装依赖、构建、起服务并打开浏览器。
 
@@ -51,9 +53,10 @@ npm run dev:console         # 控制台 http://127.0.0.1:5178/ai-fxb/
 npm run dev:resume          # 简历   http://127.0.0.1:3000/
 npm run dev:learn           # 课件区 http://127.0.0.1:5179/learn/  (首页就是公开课件,起服务不要密码)
 AIFXB_LEARN_PASSWORD=xxx npm run dev:learn:private   # 先重加密私密内容再起服务,要验私密区时用这条
+npm run dev:exam            # 模拟考 http://127.0.0.1:5180/exam/
 ```
 
-> 三条 dev 服务的端口各不相同（5178 / 3000 / 5179，写在各自 app 的 `vite.config.ts` 里），且都只服务自己那个 app——`/learn` 的开发地址不带 5178。要走**和线上一样的三条路由**（简历在 `/`、控制台在 `/ai-fxb/`、课件在 `/learn/`），用 `npm run build && npm run preview`。
+> 四条 dev 服务的端口各不相同（5178 / 3000 / 5179 / 5180，写在各自 app 的 `vite.config.ts` 里），且都只服务自己那个 app——`/learn` 的开发地址不带 5178。要走**和线上一样的四条路由**（简历在 `/`、控制台在 `/ai-fxb/`、课件在 `/learn/`、模拟考在 `/exam/`），用 `npm run build && npm run preview`。
 
 `packages/core` 被两个 app 直接引用源码之外的编译产物，改动后先 `npm run build:core`。
 
@@ -122,7 +125,7 @@ Cloudflare 侧需要且只需要两个字段（设置 → 构建 → 构建设�
 - **Node 版本**：仓库根 `.node-version` 已写 `20`，CF 会读它选运行时（构建日志里 `nodejs@20.20.2` 就是它生效）
 - 没有「输出目录」这个字段可填：Workers 项目的资产目录只认 `wrangler.jsonc`
 
-`scripts/assemble.mjs` 把三个 app 的产物拼成发布目录：`apps/resume/dist` → `dist/`（根路由），`apps/console/dist` → `dist/ai-fxb/`，`apps/learn/dist` → `dist/learn/`，并带上根目录的 `_headers`。产物不入库（`.gitignore` 已忽略 `dist/`）。子路径完全由各 app 的 vite `base` 决定，`wrangler.jsonc` 不用改。
+`scripts/assemble.mjs` 把四个 app 的产物拼成发布目录：`apps/resume/dist` → `dist/`（根路由），`apps/console/dist` → `dist/ai-fxb/`，`apps/learn/dist` → `dist/learn/`，`apps/exam/dist` → `dist/exam/`，并带上根目录的 `_headers`。产物不入库（`.gitignore` 已忽略 `dist/`）。子路径完全由各 app 的 vite `base` 决定，`wrangler.jsonc` 不用改。
 
 ## 教案与课件（`/learn`）
 
