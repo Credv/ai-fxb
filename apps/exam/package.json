@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "模拟考 (3ecat.me/exam):理论卷自动判分,操作卷含 Python 运行与表格素材,交卷后出成绩与逐题解析",
+  "description": "模拟考 (3ecat.me/exam):理论卷与程序题自动判分,操作卷含表格素材与完整打印",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

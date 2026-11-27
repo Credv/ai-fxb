@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Record0 } from '../lib/store';
-import type { Paper } from '../lib/types';
+import { EXAM_NAME, type Paper } from '../lib/types';
 import { paperScore } from '../lib/types';
 import { paperCounts } from '../lib/paper';
 import { clockText } from '../lib/submit';
@@ -27,7 +27,7 @@ export default function CoverView({ paper, record, onInfo, onStart, onRestart }:
     <main className="sheet">
       <div className="page">
         <div className="cover">
-          <div className="cover-kicker">普通高中学业水平合格性考试 · 信息技术</div>
+          <div className="cover-kicker">{EXAM_NAME}</div>
           <h2>{paper.name}</h2>
           <p className="cover-sub">{paper.subtitle}</p>
 

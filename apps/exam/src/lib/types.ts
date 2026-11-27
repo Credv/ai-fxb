@@ -1,6 +1,8 @@
 // 卷面数据结构。各份卷子都按这份结构写在 data/papers.ts 里，页面只认结构不认题。
 // 分值一律是「分」，理论合计与操作合计由页面现算，卷面上写的合计只作校验用。
 
+export const EXAM_NAME = '信成火炬高级中学信息技术模拟试卷';
+
 export type SectionKind = 'theory' | 'practice';
 
 export type BaseQuestion = {

@@ -1,7 +1,7 @@
 import { go } from '../App';
 import { loadGrade, loadRecord, type Record0 } from '../lib/store';
 import type { Grade } from '../lib/grade';
-import type { Paper } from '../lib/types';
+import { EXAM_NAME, type Paper } from '../lib/types';
 import { paperScore } from '../lib/types';
 
 export default function ListView({ papers }: { papers: Paper[] }) {
@@ -9,8 +9,8 @@ export default function ListView({ papers }: { papers: Paper[] }) {
     <main className="sheet">
       <div className="page">
         <div className="cover">
-          <div className="cover-kicker">普通高中学业水平合格性考试</div>
-          <h2>信息技术 · 模拟试卷</h2>
+          <div className="cover-kicker">普通高中学业水平合格性考试 · 信息技术</div>
+          <h2>{EXAM_NAME}</h2>
           <p className="cover-sub">
             按合格性考试的卷面规格编制：第一部分基础理论 40 题，第二部分操作技能 6 题，理论题与程序题当场给分，
             表格题随卷附素材，完成后截图记入答卷。选择一份开始。
@@ -21,12 +21,10 @@ export default function ListView({ papers }: { papers: Paper[] }) {
           <div className="print-entries">
             <div className="print-entries-title">打印复习资料</div>
             <div className="btn-row">
-              {papers.length ? (
-                <a className="btn btn--sm" href={`#/print/${papers[papers.length - 1].id}`} title="打印最新一份理论卷，也可在下方选择其他试卷">
-                  打印理论卷
-                </a>
-              ) : null}
-              <a className="btn btn--sm" href="#/print">
+              <a className="btn btn--sm" href="#/print" title="选择并打印任意一份完整试卷">
+                打印完整试卷
+              </a>
+              <a className="btn btn--sm" href="#/print/knowledge">
                 打印知识点
               </a>
             </div>
@@ -80,7 +78,7 @@ function PaperCard({ paper }: { paper: Paper }) {
       </button>
       <div className="paper-card-print">
         <a className="btn btn--sm btn--ghost" href={`#/print/${paper.id}`}>
-          打印理论卷
+          打印完整试卷
         </a>
       </div>
     </article>

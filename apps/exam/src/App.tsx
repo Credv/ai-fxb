@@ -3,7 +3,7 @@ import { PAPERS } from './data/papers';
 import { gradePaper, pendingGrade, type Grade } from './lib/grade';
 import { blankRecord, loadGrade, loadRecord, restartRecord, saveGrade, saveRecord, type Answer, type Record0 } from './lib/store';
 import { markOf, submitPaper } from './lib/submit';
-import type { Paper } from './lib/types';
+import { EXAM_NAME, type Paper } from './lib/types';
 import CoverView from './views/Cover';
 import ExamView from './views/Exam';
 import ListView from './views/List';
@@ -151,13 +151,21 @@ export default function App() {
 
   const title =
     route.view === 'print'
-      ? route.paper?.name ?? '打印复习资料'
+      ? route.paper?.name ?? (route.paperId === 'knowledge' ? '信息技术知识点汇总' : '打印复习资料')
       : route.view === 'list'
-        ? '信息技术 · 模拟试卷'
+        ? EXAM_NAME
         : `${route.paper.name}`;
   const sub = route.view === 'print'
-    ? route.paper ? '理论卷打印预览' : route.paperId ? '未找到试卷' : '知识点汇总打印预览'
-    : 'paper' in route ? route.paper.subtitle : '理论卷与操作卷 · 程序题按卷面作答判分';
+    ? route.paper
+      ? '完整试卷打印预览'
+      : route.paperId === 'knowledge'
+        ? '知识点汇总打印预览'
+        : route.paperId
+          ? '未找到试卷'
+          : '选择试卷打印'
+    : 'paper' in route
+      ? route.paper.subtitle
+      : '理论卷与操作卷 · 程序题按卷面作答判分';
 
   return (
     <>

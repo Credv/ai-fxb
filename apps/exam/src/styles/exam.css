@@ -485,6 +485,121 @@ select.tt { cursor: pointer }
 .print-error h2 { margin: 0 0 8px; font-size: 22px }
 .print-error p { margin: 0 0 18px; color: var(--ink-2) }
 
+.print-index { max-width: 940px; margin: 0 auto; padding: 42px 24px 64px }
+.print-index-head { padding: 0 4px 24px; text-align: center }
+.print-index-head h1 { margin: 10px 0 12px; font-size: clamp(24px, 4vw, 36px); line-height: 1.35; letter-spacing: .5px }
+.print-index-head p { max-width: 650px; margin: 0 auto; color: var(--ink-3); line-height: 1.8 }
+.print-picker { display: grid; gap: 12px }
+.print-picker-card {
+  display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; align-items: center; gap: 16px;
+  padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  color: inherit; text-decoration: none; box-shadow: 0 3px 14px rgba(20, 24, 31, .04);
+}
+.print-picker-card:hover { border-color: #9db4d8; box-shadow: 0 6px 20px rgba(20, 24, 31, .08) }
+.print-picker-no {
+  display: grid; place-items: center; width: 50px; height: 50px; border-radius: 10px;
+  background: #edf3fc; color: #28548f; font-weight: 800; font-size: 18px;
+}
+.print-picker-main { display: grid; gap: 5px; min-width: 0 }
+.print-picker-main strong { font-size: 17px }
+.print-picker-main small { color: var(--ink-3); font-size: 12px }
+.print-picker-action { color: #28548f; font-size: 13px; font-weight: 700; white-space: nowrap }
+.print-picker-card--knowledge .print-picker-no { background: #eef6ef; color: #35704a }
+
+.paper-print-subtitle { margin: 1.5mm 0 0; font-family: var(--font); font-size: 12pt; font-weight: 700 }
+.print-part + .print-part { break-before: page; page-break-before: always }
+.print-part-head {
+  margin: 5mm 0 2mm; padding-bottom: 2mm; border-bottom: 1.5px solid #111;
+  break-after: avoid-page; page-break-after: avoid;
+}
+.print-part-head h2 { margin: 0; font-family: var(--font); font-size: 15pt; line-height: 1.4 }
+.print-part-head p { margin: 1mm 0 0; font-size: 9.5pt }
+.print-operation { break-inside: auto; page-break-inside: auto }
+.print-question-kind { font-size: 9.5pt; font-weight: 400; color: #444 }
+.print-step-list { margin: 2mm 0 2mm 7mm; padding-left: 4mm; font-size: 10pt }
+.print-step-list li { margin: 1mm 0; padding-left: .5mm }
+.print-assets { display: grid; gap: 1.5mm; margin: 2mm 0 }
+.print-asset {
+  display: grid; grid-template-columns: minmax(42mm, auto) 1fr; gap: 3mm; align-items: baseline;
+  padding: 1.5mm 2.5mm; border: 1px solid #aaa; font-family: var(--font); font-size: 8.8pt;
+}
+.print-asset span { color: #333 }
+.print-editor {
+  margin: 2mm 0; border: 1px solid #444; border-radius: 3px; overflow: hidden;
+  break-inside: avoid; page-break-inside: avoid; background: #f7f8fa;
+}
+.print-editor-bar {
+  display: flex; align-items: center; gap: 3mm; padding: 1.4mm 2.5mm;
+  border-bottom: 1px solid #444; background: #e7eaf0; color: #222;
+  font-family: var(--font); font-size: 8.5pt; font-weight: 700;
+}
+.print-editor-dots { display: inline-flex; gap: 1.2mm }
+.print-editor-dots i { width: 2.4mm; height: 2.4mm; border: 1px solid #666; border-radius: 50%; background: #fff }
+.print-editor-env { margin-left: auto; color: #555; font-weight: 400 }
+.print-editor pre { margin: 0; padding: 2mm 0; font-family: var(--mono); font-size: 8.8pt; line-height: 1.5 }
+.print-code-line { display: flex; min-height: 1.5em }
+.print-line-no {
+  flex: none; width: 10mm; padding-right: 2mm; color: #888; text-align: right;
+  user-select: none; border-right: 1px solid #d5d8de;
+}
+.print-code-line code { display: block; flex: 1; min-width: 0; padding: 0 2.5mm; white-space: pre-wrap; overflow-wrap: anywhere }
+.py-keyword { color: #7c3aed; font-weight: 700 }
+.py-string { color: #16734a }
+.py-comment { color: #777; font-style: italic }
+.py-number { color: #b45309 }
+.print-blanks { display: grid; gap: 2mm; margin: 2.5mm 0 }
+.print-blank { display: grid; grid-template-columns: 34mm 1fr; align-items: stretch; gap: 3mm; font-size: 9.5pt }
+.print-blank > span { padding-top: 1mm }
+.print-blank i { display: block; border-bottom: 1px solid #555 }
+.print-writing-area { margin: 2.5mm 0; padding: 2mm 2.5mm; border: 1px solid #888; font-family: var(--font); font-size: 9pt }
+.print-writing-area strong { display: block; margin-bottom: 1mm }
+.print-writing-area i { display: block; height: 7mm; border-bottom: 1px dotted #aaa }
+.print-shot-box {
+  display: grid; place-items: center; min-height: 28mm; margin-top: 3mm;
+  border: 1px dashed #777; color: #555; font-family: var(--font); font-size: 9pt;
+}
+.print-sheet-preview { margin: 3mm 0; break-inside: avoid; page-break-inside: avoid }
+.print-sheet-preview figcaption { margin-bottom: 1.5mm; font-family: var(--font); font-size: 9pt; font-weight: 700 }
+.print-table-wrap { width: 100%; overflow-x: auto }
+.sheet-grid { width: 100%; border-collapse: collapse; table-layout: fixed; font-family: var(--font); font-size: 7.8pt; line-height: 1.35 }
+.sheet-grid th, .sheet-grid td { border: 1px solid #888; padding: 1mm 1.2mm; text-align: center; vertical-align: middle; overflow-wrap: anywhere }
+.sheet-grid thead th, .sheet-grid tbody tr:first-child th { background: #e8edf4; font-weight: 700 }
+.sheet-grid .sheet-corner, .sheet-grid .sheet-row-head { width: 7mm; background: #f0f0f0; color: #555; font-weight: 400 }
+.print-ip-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-family: var(--font); font-size: 8.5pt; line-height: 1.4 }
+.print-ip-table th, .print-ip-table td { border: 1px solid #777; padding: 1.5mm 1.2mm; text-align: center; vertical-align: middle; overflow-wrap: anywhere }
+.print-ip-table th { background: #eee }
+.print-ip-table th:first-child { width: 30% }
+.print-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3mm 6mm; margin-top: 4mm }
+.print-field { display: grid; grid-template-columns: 34mm 1fr; align-items: end; gap: 2mm; font-size: 9.5pt }
+.print-field i { height: 6mm; border-bottom: 1px solid #555 }
+
+.answer-document { break-before: page; page-break-before: always; font-family: var(--font); font-size: 9.5pt; line-height: 1.5 }
+.answer-document-head { margin-bottom: 5mm; padding-bottom: 4mm; border-bottom: 2px solid #111; text-align: center }
+.answer-document-head h1 { margin: 2mm 0; font-size: 18pt; line-height: 1.4 }
+.answer-document-head p { margin: 0; font-size: 9pt }
+.answer-sheet { break-before: auto; page-break-before: auto; font-size: 9pt; line-height: 1.3 }
+.answer-sheet > header { margin-bottom: 3mm; text-align: center }
+.answer-sheet h2 { margin: 1.5mm 0 2mm; font-size: 15pt }
+.operation-answers-head { margin: 7mm 0 3mm; padding-top: 3mm; border-top: 2px solid #111; text-align: center }
+.operation-answers-head h2 { margin: 1.5mm 0; font-size: 15pt }
+.answer-operation { margin: 0 0 5mm; padding-bottom: 3mm; border-bottom: 1px dotted #888 }
+.answer-operation > header { display: flex; justify-content: space-between; gap: 4mm; align-items: baseline; break-after: avoid-page; page-break-after: avoid }
+.answer-operation h3 { margin: 0; font-size: 11pt }
+.answer-operation > header span { color: #444; font-size: 8.8pt; text-align: right }
+.answer-explain { margin: 2.5mm 0 0; font-size: 9.2pt; line-height: 1.65 }
+.answer-blanks { width: 100%; margin: 2mm 0; border-collapse: collapse; table-layout: fixed; font-size: 8.8pt }
+.answer-blanks th, .answer-blanks td { border: 1px solid #777; padding: 1.2mm 1.5mm; text-align: left; vertical-align: top }
+.answer-blanks th { background: #eee; text-align: center }
+.answer-blanks th:nth-child(1) { width: 24% }
+.answer-blanks th:nth-child(3) { width: 12mm; text-align: center }
+.answer-blanks td:nth-child(3) { text-align: center }
+.answer-blanks code { font-family: var(--mono); white-space: pre-wrap; overflow-wrap: anywhere }
+.answer-demo { margin: 2mm 0; font-size: 8.8pt }
+.answer-demo-case { display: grid; grid-template-columns: 12mm minmax(0, 1fr); gap: 1mm 2mm; margin-top: 1.5mm; padding: 1.5mm 2mm; border: 1px solid #aaa }
+.answer-demo-case pre { grid-column: 2; margin: 0; font-family: var(--mono); white-space: pre-wrap }
+.answer-sheet-result { margin: 2mm 0; padding: 2mm 2.5mm; border-left: 3px solid #555; background: #f5f5f5 }
+.answer-sheet-result p { margin: 1mm 0 0 }
+
 @page {
   size: A4 portrait;
   margin: 14mm 15mm 17mm;
@@ -508,6 +623,14 @@ select.tt { cursor: pointer }
   .paper-identification { gap: 3mm 5mm }
   .paper-identification i { width: 24mm }
   .print-options { grid-template-columns: 1fr; margin-left: 4mm }
+  .print-index { padding: 28px 14px 44px }
+  .print-picker-card { grid-template-columns: 44px minmax(0, 1fr); gap: 12px; padding: 14px }
+  .print-picker-no { width: 42px; height: 42px; font-size: 16px }
+  .print-picker-action { grid-column: 2; margin-top: -4px }
+  .print-asset, .print-blank, .print-field { grid-template-columns: 1fr }
+  .print-fields { grid-template-columns: 1fr }
+  .print-ip-table { font-size: 7.5pt }
+  .sheet-grid { font-size: 7pt }
   .knowledge-head h1 { font-size: 18pt }
   .knowledge-chapter-head h2 { font-size: 15pt }
   .knowledge-table-wrap { overflow-x: auto }
@@ -526,6 +649,16 @@ select.tt { cursor: pointer }
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
   .print-document, .print-document * { color: #000 !important; background: transparent !important; box-shadow: none !important; text-shadow: none !important }
+  .print-editor, .answer-sheet-result { background: #fff !important }
+  .print-editor-bar, .sheet-grid thead th, .sheet-grid tbody tr:first-child th,
+  .sheet-grid .sheet-corner, .sheet-grid .sheet-row-head, .print-ip-table th,
+  .answer-blanks th, .answer-sheet th { background: #eee !important }
+  .print-question-kind, .print-asset span, .answer-operation > header span,
+  .print-shot-box, .print-line-no { color: #333 !important }
+  .py-keyword { color: #5b21b6 !important }
+  .py-string { color: #166534 !important }
+  .py-comment { color: #555 !important }
+  .py-number { color: #92400e !important }
   .knowledge-document { font-size: 10pt; line-height: 1.45 }
   .paper-print-head, .knowledge-chapter-head { border-color: #000 }
   .print-question, .answer-sheet td, .answer-sheet th, .knowledge-table-wrap td, .knowledge-table-wrap th { border-color: #666 }
