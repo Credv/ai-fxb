@@ -582,6 +582,18 @@ select.tt { cursor: pointer }
 .answer-sheet h2 { margin: 1.5mm 0 2mm; font-size: 15pt }
 .operation-answers-head { margin: 7mm 0 3mm; padding-top: 3mm; border-top: 2px solid #111; text-align: center }
 .operation-answers-head h2 { margin: 1.5mm 0; font-size: 15pt }
+.theory-analysis { margin-top: 7mm; padding-top: 3mm; border-top: 2px solid #111 }
+.theory-analysis > header { margin-bottom: 3mm; text-align: center }
+.theory-analysis > header h2 { margin: 0; font-size: 15pt }
+.theory-analysis > header p { margin: 1mm 0 0; font-size: 9pt }
+.theory-analysis-item {
+  margin: 0 0 3.5mm; padding: 0 0 2.5mm; border-bottom: 1px dotted #aaa;
+  break-inside: avoid; page-break-inside: avoid;
+}
+.theory-analysis-item h3 { display: flex; justify-content: space-between; gap: 4mm; margin: 0; font-size: 10pt }
+.theory-analysis-item h3 span { color: #444; font-size: 8.8pt; font-weight: 400; text-align: right }
+.theory-analysis-item p { margin: 1.2mm 0 0; font-size: 9.2pt; line-height: 1.65 }
+.theory-analysis-answer { font-weight: 700 }
 .answer-operation { margin: 0 0 5mm; padding-bottom: 3mm; border-bottom: 1px dotted #888 }
 .answer-operation > header { display: flex; justify-content: space-between; gap: 4mm; align-items: baseline; break-after: avoid-page; page-break-after: avoid }
 .answer-operation h3 { margin: 0; font-size: 11pt }
@@ -653,7 +665,7 @@ select.tt { cursor: pointer }
   .print-editor-bar, .sheet-grid thead th, .sheet-grid tbody tr:first-child th,
   .sheet-grid .sheet-corner, .sheet-grid .sheet-row-head, .print-ip-table th,
   .answer-blanks th, .answer-sheet th { background: #eee !important }
-  .print-question-kind, .print-asset span, .answer-operation > header span,
+  .print-question-kind, .print-asset span, .answer-operation > header span, .theory-analysis-item h3 span,
   .print-shot-box, .print-line-no { color: #333 !important }
   .py-keyword { color: #5b21b6 !important }
   .py-string { color: #166534 !important }

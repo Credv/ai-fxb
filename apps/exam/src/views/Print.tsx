@@ -319,24 +319,42 @@ function PrintShotBox({ title }: { title: string }) {
 
 function TheoryAnswers({ paper, questions }: { paper: Paper; questions: SingleChoice[] }) {
   return (
-    <section className="answer-sheet theory-answers">
-      <header>
-        <div className="paper-print-kicker">{paper.name}</div>
-        <h2>基础理论参考答案</h2>
-      </header>
-      <table>
-        <thead><tr><th scope="col">题号</th><th scope="col">选项</th><th scope="col">对应知识点</th></tr></thead>
-        <tbody>
-          {questions.map((question, index) => (
-            <tr key={question.id}>
-              <td>{index + 1}</td>
-              <td>{String.fromCharCode(65 + question.answer)}</td>
-              <td>{question.topic || '综合知识'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </section>
+    <>
+      <section className="answer-sheet theory-answers">
+        <header>
+          <div className="paper-print-kicker">{paper.name}</div>
+          <h2>基础理论参考答案</h2>
+        </header>
+        <table>
+          <thead><tr><th scope="col">题号</th><th scope="col">选项</th><th scope="col">对应知识点</th></tr></thead>
+          <tbody>
+            {questions.map((question, index) => (
+              <tr key={question.id}>
+                <td>{index + 1}</td>
+                <td>{String.fromCharCode(65 + question.answer)}</td>
+                <td>{question.topic || '综合知识'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+      <section className="theory-analysis" aria-labelledby="theory-analysis-title">
+        <header>
+          <h2 id="theory-analysis-title">基础理论答题解析</h2>
+          <p>逐题列出正确答案、对应知识点与判断理由。</p>
+        </header>
+        {questions.map((question, index) => (
+          <article className="theory-analysis-item" key={question.id}>
+            <h3>
+              {index + 1}. {String.fromCharCode(65 + question.answer)}
+              <span>{question.topic || '综合知识'}</span>
+            </h3>
+            <p className="theory-analysis-answer"><strong>正确答案：</strong>{question.options[question.answer]}</p>
+            <p>{question.explain}</p>
+          </article>
+        ))}
+      </section>
+    </>
   );
 }
 
