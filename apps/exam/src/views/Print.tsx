@@ -52,9 +52,10 @@ function PrintIndex() {
         <div className="paper-print-kicker">普通高中学业水平合格性考试 · 信息技术</div>
         <h1>{EXAM_NAME}</h1>
         <p>选择一份完整试卷。学生卷与参考答案、解析分开排版，打印时请按需要选择页面。</p>
+        <a className="btn btn--sm btn--ghost print-index-home" href="#/list">返回考试首页</a>
       </header>
       <section className="print-picker" aria-label="试卷打印列表">
-        {[...PAPERS].reverse().map((paper) => (
+        {PAPERS.map((paper) => (
           <a className="print-picker-card" href={`#/print/${paper.id}`} key={paper.id}>
             <span className="print-picker-no">{paper.name.replace('模拟试卷', '').replace(/[（）]/g, '')}</span>
             <span className="print-picker-main">
@@ -85,6 +86,7 @@ function PrintToolbar({ title }: { title: string }) {
         <span>A4 打印预览</span>
       </div>
       <div className="btn-row">
+        <a className="btn btn--sm btn--ghost" href="#/list">返回考试首页</a>
         <a className="btn btn--sm" href="#/print">全部试卷</a>
         <button className="btn btn--sm btn--primary" type="button" onClick={() => window.print()}>
           打印

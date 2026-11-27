@@ -489,6 +489,7 @@ select.tt { cursor: pointer }
 .print-index-head { padding: 0 4px 24px; text-align: center }
 .print-index-head h1 { margin: 10px 0 12px; font-size: clamp(24px, 4vw, 36px); line-height: 1.35; letter-spacing: .5px }
 .print-index-head p { max-width: 650px; margin: 0 auto; color: var(--ink-3); line-height: 1.8 }
+.print-index-home { margin-top: 18px }
 .print-picker { display: grid; gap: 12px }
 .print-picker-card {
   display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; align-items: center; gap: 16px;

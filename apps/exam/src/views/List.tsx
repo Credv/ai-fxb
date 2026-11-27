@@ -34,7 +34,7 @@ export default function ListView({ papers }: { papers: Paper[] }) {
 
       <div className="page">
         <div className="paper-list">
-          {[...papers].reverse().map((p) => (
+          {papers.map((p) => (
             <PaperCard key={p.id} paper={p} />
           ))}
         </div>
