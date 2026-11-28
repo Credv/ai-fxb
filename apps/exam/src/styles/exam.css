@@ -272,6 +272,9 @@ select.tt { cursor: pointer }
   display: flex; flex-direction: column; gap: 9px;
 }
 .tray-top { display: flex; align-items: center; justify-content: space-between; gap: 12px }
+.tray-actions { display: flex; align-items: center; gap: 9px }
+.tray-toggle { display: none }
+.tray-body { display: flex; flex-direction: column; gap: 9px }
 .tray-row { display: flex; align-items: flex-start; gap: 10px }
 .tray-cap { font-size: 12.5px; font-weight: 600; color: var(--ink-2); white-space: nowrap; padding-top: 5px }
 .tray-nums { display: flex; gap: 5px; flex-wrap: wrap; flex: 1 }
@@ -625,28 +628,180 @@ select.tt { cursor: pointer }
 }
 
 @media (max-width: 620px) {
-  body { font-size: 14.5px }
-  .cover, .part, .q, .section-pad { padding-left: 18px; padding-right: 18px }
-  .cover h2 { font-size: 21px }
-  .score-num { font-size: 46px }
-  .print-toolbar { padding-left: 14px; padding-right: 14px }
+  body { font-size: 15px; overflow-x: hidden }
+  .topbar-in {
+    padding: calc(9px + env(safe-area-inset-top)) 12px 9px;
+    flex-wrap: nowrap; gap: 8px;
+  }
+  .topbar-in > div:first-child { flex: 1; min-width: 0 }
+  .topbar h1 { font-size: 14px; line-height: 1.45 }
+  .topbar .sub {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 11px; line-height: 1.45;
+  }
+  .topbar-right { flex: none; margin-left: 0 }
+  .topbar-right .btn { min-height: 38px; padding: 7px 10px; font-size: 12.5px }
+  .clock { min-height: 34px; display: inline-flex; align-items: center; padding: 5px 9px; font-size: 12.5px }
+
+  .sheet { padding: 12px 10px 32px }
+  .page { border-radius: 8px; box-shadow: none }
+  .page + .page { margin-top: 12px }
+  .cover { padding: 22px 18px }
+  .cover-kicker { font-size: 11px; letter-spacing: 1.2px }
+  .cover h2 { margin-top: 7px; font-size: 22px; line-height: 1.4 }
+  .cover .cover-sub { font-size: 13.5px }
+  .cover-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 18px }
+  .cover-meta div { min-width: 0; padding: 10px 12px; border-bottom: 1px solid var(--line) }
+  .cover-meta div:nth-child(even) { border-right: 0 }
+  .cover-meta div:nth-last-child(-n + 2) { border-bottom: 0 }
+  .cover-meta dd { font-size: 15px }
+  .notice { margin-top: 18px }
+  .notice li { padding-left: 28px; font-size: 13.5px }
+
+  .field-grid { grid-template-columns: 1fr; gap: 13px }
+  input.tt, textarea.tt, select.tt { min-height: 46px; padding: 10px 12px; font-size: 16px }
+  .btn { min-height: 44px; justify-content: center; padding: 10px 15px }
+  .btn--sm { min-height: 42px; padding: 8px 13px; font-size: 13px }
+  .btn-row { gap: 9px }
+  .btn-row > .btn, .btn-row > label.btn { flex: 1 1 132px }
+  .btn-row > .muted { flex-basis: 100% }
+
+  .part { padding: 16px 18px }
+  .part-name { font-size: 16px; line-height: 1.5 }
+  .part-tag { margin-left: 6px; font-size: 11px }
+  .part-note { font-size: 13px }
+  .q { padding: 18px 16px; scroll-margin-top: 74px }
+  .q-head { gap: 6px; margin-bottom: 8px }
+  .q-stem { font-size: 15px; line-height: 1.75 }
+  .q-stem pre, .code-read { padding: 11px 12px; font-size: 12px; line-height: 1.65 }
+  .opts { gap: 8px; margin-top: 12px }
+  .opt { min-height: 48px; align-items: flex-start; gap: 10px; padding: 11px 12px; font-size: 14.5px }
+  .opt input { width: 18px; height: 18px; margin: 2px 0 0 }
+  .opt-key { line-height: 1.6 }
+  .table-scroll { margin-top: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch }
+  .table-scroll table { min-width: 560px; margin-top: 0 }
+  .verdict .table-scroll table { min-width: 460px }
+  .q th, .q td, .section-pad th, .section-pad td { padding: 7px 9px }
+  .why { padding: 11px 12px; font-size: 13.5px }
+  .why, .ref-answer, .note-strip { overflow-wrap: anywhere }
+
+  .ide textarea { min-height: 190px; padding: 12px; font-size: 16px; line-height: 1.6 }
+  .blank { flex-direction: column; gap: 6px; padding: 11px 12px }
+  .blank-t { min-width: 0; padding-top: 0 }
+  .blank input, .blank textarea { width: 100%; min-height: 44px; padding: 10px; font-size: 16px }
+  .steps { padding-left: 20px; font-size: 14px }
+  .steps li { margin-bottom: 7px }
+  .files { gap: 8px }
+  .file-btn { flex: 1 1 100%; min-height: 44px; padding: 10px 12px; font-size: 13.5px }
+  .proof { padding: 12px }
+  .proof-list { gap: 9px }
+  .thumb { width: 94px; height: 72px }
+  .thumb button { width: 28px; height: 28px; font-size: 16px; line-height: 26px }
+
+  .tray {
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    gap: 8px; border-radius: 12px 12px 0 0;
+  }
+  .tray-top { gap: 8px }
+  .tray-stat { font-size: 12.5px }
+  .tray-actions { display: flex; align-items: center; gap: 7px }
+  .tray-actions .btn { min-height: 40px; padding: 8px 14px }
+  .tray-toggle { display: inline-flex !important }
+  .tray-body { display: none; flex-direction: column; gap: 8px }
+  .tray--open .tray-body {
+    display: flex; max-height: 38dvh; overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-width: thin; padding-right: 2px;
+  }
+  .tray-row { display: block }
+  .tray-cap { display: block; padding: 0 0 5px; font-size: 11.5px }
+  .tray-nums { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px }
+  .cell { width: 100%; height: 30px; font-size: 12px }
+  .note-strip { padding: 11px 13px; font-size: 13px }
+
+  .score-hero { padding: 24px 18px }
+  .score-num { font-size: 48px }
+  .score-of { font-size: 13px; overflow-wrap: anywhere }
+  .score-bars { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 16px }
+  .score-bar { min-width: 0; width: 100%; padding: 10px 12px }
+  .score-bar b { font-size: 18px }
+  .section-pad { padding: 20px 18px }
+  .retake { padding: 13px }
+  .paper-list { gap: 10px; padding: 12px }
+  .paper-card { padding: 15px 15px 13px }
+  .paper-card h3 { font-size: 16px; line-height: 1.5 }
+  .paper-card p { font-size: 12.5px }
+  .paper-card .pc-meta { gap: 6px; margin-top: 10px }
+  .pc-meta em { font-size: 11px; padding: 2px 7px }
+  .paper-card-print { padding: 0 12px 12px }
+  .paper-card-print .btn { width: 100%; padding: 9px 12px; border-color: var(--line); background: var(--paper-2) }
+  .print-entries { display: block; margin-top: 18px; padding-top: 14px }
+  .print-entries-title { margin-bottom: 9px }
+
+  .mask { align-items: end; padding: 0 }
+  .modal {
+    max-width: none; max-height: calc(100dvh - 20px); overflow-y: auto;
+    padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
+    border-radius: 16px 16px 0 0;
+  }
+  .modal h3 { font-size: 18px }
+  .modal .btn-row > .btn { flex: 1 1 120px }
+
+  .print-toolbar { position: relative; padding: 12px; margin-bottom: 12px; gap: 10px }
+  .print-toolbar > div:first-child { width: 100% }
+  .print-toolbar strong { font-size: 14px }
   .print-toolbar span { display: none }
-  .print-document { min-height: 0; padding: 22px 18px; border-radius: 0 }
+  .print-toolbar .btn-row { width: 100%; margin-left: 0 }
+  .print-toolbar .btn { flex: 1 1 90px; padding-left: 9px; padding-right: 9px }
+  .print-shell { padding-top: 0 }
+  .print-document { min-height: 0; padding: 20px 12px; border-radius: 0; font-size: 10pt }
   .paper-print-head h1 { font-size: 16pt }
-  .paper-identification { gap: 3mm 5mm }
-  .paper-identification i { width: 24mm }
+  .paper-print-subtitle { font-size: 11pt }
+  .paper-identification { gap: 3mm 5mm; margin: 3mm 0 }
+  .paper-identification i { width: 22mm }
+  .paper-instructions { display: block; font-size: 9.5pt }
+  .paper-instructions span { display: block; margin-top: 1mm }
+  .print-question-head { flex-wrap: wrap }
   .print-options { grid-template-columns: 1fr; margin-left: 4mm }
-  .print-index { padding: 28px 14px 44px }
-  .print-picker-card { grid-template-columns: 44px minmax(0, 1fr); gap: 12px; padding: 14px }
-  .print-picker-no { width: 42px; height: 42px; font-size: 16px }
-  .print-picker-action { grid-column: 2; margin-top: -4px }
-  .print-asset, .print-blank, .print-field { grid-template-columns: 1fr }
+  .print-editor pre { overflow-x: auto }
+  .print-line-no { width: 24px; padding-right: 6px }
+  .print-code-line code { padding: 0 8px }
+  .print-index { padding: 24px 12px 40px }
+  .print-index-head { padding-bottom: 20px }
+  .print-index-head h1 { font-size: 25px }
+  .print-picker { gap: 10px }
+  .print-picker-card { grid-template-columns: 42px minmax(0, 1fr); gap: 11px; padding: 14px 12px }
+  .print-picker-no { width: 40px; height: 40px; font-size: 16px }
+  .print-picker-main strong { font-size: 15px; line-height: 1.5 }
+  .print-picker-main small { font-size: 11.5px; line-height: 1.5 }
+  .print-picker-action { grid-column: 2; margin-top: -3px; font-size: 12px }
+  .print-asset, .print-blank, .print-field { grid-template-columns: 1fr; gap: 2mm }
   .print-fields { grid-template-columns: 1fr }
-  .print-ip-table { font-size: 7.5pt }
-  .sheet-grid { font-size: 7pt }
+  .print-table-wrap { overscroll-behavior-x: contain }
+  .print-ip-table { min-width: 560px; font-size: 7.5pt }
+  .sheet-grid { min-width: 520px; font-size: 7pt }
+  .answer-sheet { overflow-x: auto }
+  .answer-sheet table { min-width: 480px }
+  .answer-operation > header { display: block }
+  .answer-operation > header span { display: block; margin-top: 1mm; text-align: left }
+  .answer-demo-case { grid-template-columns: 36px minmax(0, 1fr) }
   .knowledge-head h1 { font-size: 18pt }
   .knowledge-chapter-head h2 { font-size: 15pt }
   .knowledge-table-wrap { overflow-x: auto }
+  .knowledge-table-wrap table { min-width: 480px }
+}
+
+@media (max-width: 380px) {
+  .sheet { padding-left: 7px; padding-right: 7px }
+  .cover, .part, .section-pad { padding-left: 15px; padding-right: 15px }
+  .q { padding-left: 13px; padding-right: 13px }
+  .topbar-in { padding-left: 10px; padding-right: 10px }
+  .topbar h1 { font-size: 13px }
+  .cover h2 { font-size: 20px }
+  .tray { padding-left: 9px; padding-right: 9px }
+  .tray-nums { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px }
+  .tray-actions { gap: 5px }
+  .tray-actions .btn { padding-left: 10px; padding-right: 10px }
+  .print-document { padding-left: 9px; padding-right: 9px }
 }
 
 @media print {

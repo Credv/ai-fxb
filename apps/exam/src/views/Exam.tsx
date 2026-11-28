@@ -15,6 +15,7 @@ type Props = {
 
 export default function ExamView({ paper, record, over, onEdit, onSubmit }: Props) {
   const [confirming, setConfirming] = useState(false);
+  const [answerCardOpen, setAnswerCardOpen] = useState(false);
   const all = entries(paper);
   const done = answeredCount(paper, record.answers);
   const total = totalQuestions(paper);
@@ -33,6 +34,7 @@ export default function ExamView({ paper, record, over, onEdit, onSubmit }: Prop
   }
 
   function jump(number: number) {
+    setAnswerCardOpen(false);
     document.getElementById('q-' + number)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -66,49 +68,68 @@ export default function ExamView({ paper, record, over, onEdit, onSubmit }: Prop
         </div>
       ))}
 
-      <div className="tray">
+      <div className={'tray' + (answerCardOpen ? ' tray--open' : '')}>
         <div className="tray-top">
           <span className="tray-stat">
             已作答 <b>{done}</b> / {total}
           </span>
-          <button className="btn btn--primary" onClick={() => setConfirming(true)} disabled={over}>
-            交卷
-          </button>
-        </div>
-        {paper.sections.map((section) => (
-          <div className="tray-row" key={section.id}>
-            <span className="tray-cap">
-              {section.kind === 'theory' ? '理论' : '操作题'}（
-              {section.questions.reduce((t, q) => t + q.score, 0)} 分）
-            </span>
-            <div className="tray-nums">
-              {all
-                .filter((e) => e.section.id === section.id)
-                .map((e) => (
-                  <button
-                    key={e.q.id}
-                    className={[
-                      'cell',
-                      e.kind === 'practice' ? 'cell--prac' : '',
-                      isDone(e.q.id) ? 'cell--done' : ''
-                    ].join(' ')}
-                    title={`${e.number} ${section.name}`}
-                    onClick={() => jump(e.number)}
-                  >
-                    {e.number}
-                  </button>
-                ))}
-            </div>
+          <div className="tray-actions">
+            <button
+              type="button"
+              className="btn btn--sm tray-toggle"
+              aria-expanded={answerCardOpen}
+              aria-controls={`answer-card-${paper.id}`}
+              onClick={() => setAnswerCardOpen((v) => !v)}
+            >
+              {answerCardOpen ? '收起答题卡' : '答题卡'}
+            </button>
+            <button className="btn btn--primary" onClick={() => setConfirming(true)} disabled={over}>
+              交卷
+            </button>
           </div>
-        ))}
+        </div>
+        <div className="tray-body" id={`answer-card-${paper.id}`}>
+          {paper.sections.map((section) => (
+            <div className="tray-row" key={section.id}>
+              <span className="tray-cap">
+                {section.kind === 'theory' ? '理论' : '操作题'}（
+                {section.questions.reduce((t, q) => t + q.score, 0)} 分）
+              </span>
+              <div className="tray-nums">
+                {all
+                  .filter((e) => e.section.id === section.id)
+                  .map((e) => (
+                    <button
+                      key={e.q.id}
+                      className={[
+                        'cell',
+                        e.kind === 'practice' ? 'cell--prac' : '',
+                        isDone(e.q.id) ? 'cell--done' : ''
+                      ].join(' ')}
+                      title={`${e.number} ${section.name}`}
+                      onClick={() => jump(e.number)}
+                    >
+                      {e.number}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {over ? <p className="note-strip" style={{ marginTop: 12 }}>考试时间已到，答卷正在提交。</p> : null}
 
       {confirming ? (
         <div className="mask" onClick={() => setConfirming(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>确认交卷？</h3>
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`submit-title-${paper.id}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id={`submit-title-${paper.id}`}>确认交卷？</h3>
             {missing.length ? (
               <>
                 <p>

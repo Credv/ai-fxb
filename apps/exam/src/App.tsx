@@ -50,6 +50,10 @@ export default function App() {
     return () => window.removeEventListener('hashchange', on);
   }, []);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [route]);
+
   // 每份卷各自一份作答，切卷不能串；同一份卷内部翻页要保留刚判出的成绩
   useEffect(() => {
     const pid = route.view === 'list' || route.view === 'print' ? '' : route.paper.id;

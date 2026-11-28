@@ -165,7 +165,7 @@ function PrintQuestion({ question, number }: { question: SingleChoice; number: n
   return (
     <section className="print-question">
       <PrintHeading number={number} score={question.score} kind="单项选择题" />
-      <p className="print-stem"><RichStem text={question.stem} /></p>
+      <div className="print-stem"><RichStem text={question.stem} /></div>
       <ol className="print-options">
         {question.options.map((option, index) => (
           <li key={index}>
@@ -182,7 +182,7 @@ function PrintPython({ question, number }: { question: PythonTask; number: numbe
   return (
     <section className="print-question print-operation">
       <PrintHeading number={number} score={question.score} kind="程序设计" />
-      <p className="print-stem"><RichStem text={question.stem} /></p>
+      <div className="print-stem"><RichStem text={question.stem} /></div>
       {question.program ? <CodeEditor code={question.program} title="题目程序" /> : null}
       {question.requirements?.length ? (
         <ol className="print-step-list">
@@ -211,7 +211,7 @@ function PrintSheet({ question, number }: { question: SheetTask; number: number 
   return (
     <section className="print-question print-operation">
       <PrintHeading number={number} score={question.score} kind="电子表格操作" />
-      <p className="print-stem"><RichStem text={question.stem} /></p>
+      <div className="print-stem"><RichStem text={question.stem} /></div>
       <ol className="print-step-list">
         {question.steps.map((step, index) => <li key={index}>{step}</li>)}
       </ol>
@@ -226,7 +226,7 @@ function PrintIp({ question, number }: { question: IpTask; number: number }) {
   return (
     <section className="print-question print-operation">
       <PrintHeading number={number} score={question.score} kind="网络参数设置" />
-      <p className="print-stem"><RichStem text={question.stem} /></p>
+      <div className="print-stem"><RichStem text={question.stem} /></div>
       <div className="print-table-wrap">
         <table className="print-ip-table">
           <thead>

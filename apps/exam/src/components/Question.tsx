@@ -64,9 +64,9 @@ export default function Question(props: Props) {
         {mode === 'review' && result ? <Verdict r={result} /> : null}
       </header>
 
-      <p className="q-stem">
+      <div className="q-stem">
         <Rich text={stem(q)} />
-      </p>
+      </div>
 
       {q.type === 'single' ? <Choices q={q} ans={ans} mode={mode} locked={locked} onEdit={onEdit} /> : null}
       {q.type === 'ip' ? <IpBody q={q} ans={ans} mode={mode} locked={locked} onEdit={onEdit} /> : null}
@@ -173,28 +173,30 @@ function IpBody({
   const values = ans?.values ?? {};
   return (
     <>
-      <table className="opts">
-        <thead>
-          <tr>
-            <th>计算机</th>
-            <th>IP 地址</th>
-            <th>子网掩码</th>
-            <th>网关</th>
-            <th>DNS</th>
-          </tr>
-        </thead>
-        <tbody>
-          {q.given.map((g) => (
-            <tr key={g.name}>
-              <td>{g.name}</td>
-              <td>{g.ip}</td>
-              <td>{g.mask}</td>
-              <td>{g.gateway}</td>
-              <td>{g.dns}</td>
+      <div className="table-scroll">
+        <table className="opts">
+          <thead>
+            <tr>
+              <th>计算机</th>
+              <th>IP 地址</th>
+              <th>子网掩码</th>
+              <th>网关</th>
+              <th>DNS</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {q.given.map((g) => (
+              <tr key={g.name}>
+                <td>{g.name}</td>
+                <td>{g.ip}</td>
+                <td>{g.mask}</td>
+                <td>{g.gateway}</td>
+                <td>{g.dns}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <div className="field-grid">
         {q.fields.map((f) => (
           <div key={f.key}>
@@ -515,28 +517,30 @@ function Review({ q, r }: { q: Question; r: ItemResult }) {
     <>
       {r.points.length ? (
         <div className="verdict">
-          <table className="opts">
-            <thead>
-              <tr>
-                <th>{r.type === 'python' ? '作答空' : '设置项'}</th>
-                <th>考生答案</th>
-                <th>得分</th>
-              </tr>
-            </thead>
-            <tbody>
-              {r.points.map((p, i) => (
-                <tr key={i}>
-                  <td>{p.label}</td>
-                  <td>
-                    <span className={p.ok ? 'tag-ok' : 'tag-bad'}>{p.ok ? '符合' : '不符'}</span> <code>{clip(p.got ?? '')}</code>
-                  </td>
-                  <td className="q-mark">
-                    {p.score} / {p.full}
-                  </td>
+          <div className="table-scroll">
+            <table className="opts">
+              <thead>
+                <tr>
+                  <th>{r.type === 'python' ? '作答空' : '设置项'}</th>
+                  <th>考生答案</th>
+                  <th>得分</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {r.points.map((p, i) => (
+                  <tr key={i}>
+                    <td>{p.label}</td>
+                    <td>
+                      <span className={p.ok ? 'tag-ok' : 'tag-bad'}>{p.ok ? '符合' : '不符'}</span> <code>{clip(p.got ?? '')}</code>
+                    </td>
+                    <td className="q-mark">
+                      {p.score} / {p.full}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : null}
 
