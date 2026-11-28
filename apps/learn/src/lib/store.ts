@@ -1,15 +1,11 @@
 import { useSyncExternalStore } from 'react';
 import { fetchEnvelope, GateError, unlock, type Decrypted, type Envelope } from './crypto';
-import type { PrivateParts } from './types';
+import type { Cert, PrivateParts } from './types';
 
-export type PrivateView = 'prep' | 'students' | 'map' | 'cert';
+export type PrivateView = 'cert';
 
-/** 这一站只剩自己看的那几页,所以地址栏直接就是视图名:#/prep #/students #/map #/cert。 */
 export const PRIVATE_VIEWS: { id: PrivateView; ico: string; label: string; hint: string }[] = [
-  { id: 'prep', ico: '⚑', label: '试讲准备', hint: '要问清楚的、话术、要带的' },
-  { id: 'students', ico: '☗', label: '学生相处', hint: '高中部怎么带' },
-  { id: 'map', ico: '▦', label: '知识地图', hint: '任职要求 → 缺口' },
-  { id: 'cert', ico: '✎', label: '教师资格证', hint: '笔试面试认定' }
+  { id: 'cert', ico: '✎', label: '教资备考', hint: '三科笔试学习与练习' }
 ];
 
 const PW_KEY = 'learn-pw-v1';
@@ -18,7 +14,7 @@ const OPEN_KEY = 'learn-open-v1';
 export type Gate = 'idle' | 'loading' | 'locked' | 'opening' | 'open' | 'error';
 
 export const state = {
-  view: 'prep' as PrivateView,
+  view: 'cert' as PrivateView,
   gate: 'idle' as Gate,
   error: '',
   env: null as Envelope | null,
@@ -93,7 +89,7 @@ function isLegacyCoursewareHash(): boolean {
 export function parseHash(): PrivateView {
   const seg = location.hash.replace(/^#\/?/, '').split('/');
   const want = seg[0] === 'private' ? seg[1] : seg[0];
-  return PRIVATE_VIEWS.some((v) => v.id === want) ? (want as PrivateView) : 'prep';
+  return PRIVATE_VIEWS.some((v) => v.id === want) ? (want as PrivateView) : 'cert';
 }
 
 export function go(view: PrivateView) {
@@ -154,9 +150,13 @@ async function ensurePrivate() {
 
 function partsOf(d: Decrypted): PrivateParts {
   const p = (d.parts || {}) as Record<string, unknown>;
-  const need = ['prep', 'students', 'map', 'cert'];
+  const need = ['cert'];
   const missing = need.filter((k) => !p[k]);
   if (missing.length) throw new GateError('私密内容里缺片段:' + missing.join('、') + '。重跑 npm run learn:data 并把生成的 content.json 提交。');
+  const cert = p.cert as Partial<Cert>;
+  if (!Array.isArray(cert.subjects) || cert.subjects.length !== 3) {
+    throw new GateError('教资内容还是旧版。请在本机运行 npm run learn:data 重新生成 content.json，并把新密文一起提交。');
+  }
   return p as unknown as PrivateParts;
 }
 

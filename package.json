@@ -2,7 +2,7 @@
   "name": "ai-fxb-site",
   "private": true,
   "version": "1.0.0",
-  "description": "3ecat.me 单仓:根路由是简历,子路由 /ai-fxb 是 AI 窗口情报控制台,/learn 是教案与课件(公开课件 + 加密私密区)",
+  "description": "3ecat.me 单仓:根路由是简历,/ai-fxb 是 AI 窗口情报控制台,/learn 是三科教资冲刺台,/exam 是信息技术模拟考",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -21,7 +21,8 @@
     "build:console": "npm run build --workspace @ai-fxb/console",
     "build:learn": "npm run build --workspace @ai-fxb/learn",
     "build:exam": "npm run build --workspace @ai-fxb/exam",
-    "learn:data": "node tools/build-learn-content.mjs",
+    "learn:data": "npm run learn:check && node tools/build-learn-content.mjs",
+    "learn:check": "node tools/check-learn-content.mjs",
     "dev:resume": "npm run build:core && npm run dev --workspace resume-react",
     "dev:console": "npm run build:core && npm run dev --workspace @ai-fxb/console",
     "dev:learn": "npm run dev --workspace @ai-fxb/learn",

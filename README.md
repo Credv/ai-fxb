@@ -6,7 +6,7 @@
 
 - `/` —— 个人简历站（`apps/resume`）
 - `/ai-fxb/` —— 本控制台（`apps/console`）
-- `/learn` —— 备课台（`apps/learn`，四页内容全部加密，打开就要密码）
+- `/learn` —— 教资冲刺台（`apps/learn`，三科备考内容加密，打开就要密码）
 - `/exam` —— 信息技术模拟考（`apps/exam`，十套卷，交卷当场判理论题与程序题，编写题与表格题留给教师；支持理论卷和知识点汇总打印）
 
 四者共用一个仓库、一次构建、一个域名（Cloudflare Workers 静态资产托管，push 即部署）。
@@ -15,7 +15,7 @@
 
 - **无后端**：只有静态产物。构建工具是 Vite + React 18 + TypeScript（npm workspaces 单仓库：`packages/core` 共享核心 + `apps/resume` + `apps/console` + `apps/learn` + `apps/exam`）。three.js 从 npm 取，按需动态加载，不再 vendored 进仓库。`apps/learn` 不依赖 `@ai-fxb/core`，它没有 API 调用，是纯内容站；`apps/exam` 同样不依赖 `@ai-fxb/core`，也不发任何网络请求（只有表格题的素材 `.xlsx` 是学生主动点下载才取的静态文件）。
 - **公开快照模式**：站长每天定时用自己的 Key 生成一次数据快照（GitHub Actions → `apps/console/public/data/snapshot.json` → 站点自动部署），任何访客打开 https://3ecat.me/ai-fxb/ 无需配置即可查看，页面显示「数据截至」时间；访客自己的 Key 永不参与。
-- **`/learn` 是备课台**：试讲准备、学生相处、知识地图、教师资格证四页，整站要密码。公开的课件区和学生版已经拆掉，旧链接一律并到备课台。详见「备课台（`/learn`）」。
+- **`/learn` 是教资冲刺台**：漳州高中信息技术教资三科笔试，含分章讲义、练习、错题本、120 分钟限时模拟和本地进度。整站要密码，不再保留试讲、学生相处、知识地图页面。详见「教资冲刺台（`/learn`）」。
 - 浏览器直接调用大模型 API（可选，自选 Key 才启用）：内置千问(阿里云百炼)、DeepSeek、OpenAI、Claude(Anthropic) 与自定义 OpenAI 兼容网关五档预设，切换即自动填地址与默认模型；千问档支持 `enable_search` 联网检索。
 - **API Key 只保存在你自己浏览器的 localStorage**，不进入代码、不进入构建产物、不上传任何服务器；站长的 Key 只存在 GitHub Actions Secret 里。
 - **历史保留 + NEW 标记**：每次拉取与缓存按稳定 id 合并，未见过的条目标 NEW 并置顶，历史保留 21 天。
@@ -35,13 +35,13 @@
 ```bash
 cd /d D:\ai-fxb
 npm install            # 首次
-npm run build          # core → 简历 → 控制台 → 备课台 → 模拟考 → 拼装到 dist/
+npm run build          # core → 简历 → 控制台 → 教资冲刺台 → 模拟考 → 拼装到 dist/
 npm run preview        # 起本地静态服务器,默认 0.0.0.0:5178
 ```
 
 - 简历 → http://127.0.0.1:5178/
 - AI 窗口 → http://127.0.0.1:5178/ai-fxb/
-- 备课台 → http://127.0.0.1:5178/learn/ （打开就是锁屏，要密码。改内容后先 `npm run learn:data`，见「备课台（`/learn`）」）
+- 教资冲刺台 → http://127.0.0.1:5178/learn/ （打开就是锁屏，要密码。改内容后先 `npm run learn:data`，见「教资冲刺台（`/learn`）」）
 - 模拟考 → http://127.0.0.1:5178/exam/ （十套卷在 `#/list`，理论题与程序题按卷面标准答案当场给分，编写题与表格题交截图等教师评定；`#/print` 选择并打印完整试卷，`#/print/knowledge` 打印知识点汇总）
 
 或直接双击 `启动.bat`（Windows），自动装依赖、构建、起服务并打开浏览器。
@@ -51,12 +51,12 @@ npm run preview        # 起本地静态服务器,默认 0.0.0.0:5178
 ```bash
 npm run dev:console         # 控制台 http://127.0.0.1:5178/ai-fxb/
 npm run dev:resume          # 简历   http://127.0.0.1:3000/
-npm run dev:learn           # 备课台 http://127.0.0.1:5179/learn/  (起服务不要密码,但页面解不开——密文得先重加密)
+npm run dev:learn           # 教资冲刺台 http://127.0.0.1:5179/learn/  (起服务不要密码,但页面解不开——密文得先重加密)
 AIFXB_LEARN_PASSWORD=xxx npm run dev:learn:private   # 先重加密内容再起服务,要看真东西用这条
 npm run dev:exam            # 模拟考 http://127.0.0.1:5180/exam/
 ```
 
-> 四条 dev 服务的端口各不相同（5178 / 3000 / 5179 / 5180，写在各自 app 的 `vite.config.ts` 里），且都只服务自己那个 app——`/learn` 的开发地址不带 5178。要走**和线上一样的四条路由**（简历在 `/`、控制台在 `/ai-fxb/`、备课台在 `/learn/`、模拟考在 `/exam/`），用 `npm run build && npm run preview`。
+> 四条 dev 服务的端口各不相同（5178 / 3000 / 5179 / 5180，写在各自 app 的 `vite.config.ts` 里），且都只服务自己那个 app——`/learn` 的开发地址不带 5178。要走**和线上一样的四条路由**（简历在 `/`、控制台在 `/ai-fxb/`、教资冲刺台在 `/learn/`、模拟考在 `/exam/`），用 `npm run build && npm run preview`。
 
 `packages/core` 被两个 app 直接引用源码之外的编译产物，改动后先 `npm run build:core`。
 
@@ -66,7 +66,7 @@ npm run dev:exam            # 模拟考 http://127.0.0.1:5180/exam/
 
 - 若手机打不开，多半是 Windows 防火墙拦了入站，需要给该端口放行；只想给本机用可以 `set HOST=127.0.0.1 && npm run preview` 收回监听。
 - API Key 存在各设备浏览器自己的 localStorage 里，手机上要重新填一次；局域网里其他设备只能拿到静态页面，拿不到你的 Key。
-- **备课台手机上解不开局域网地址**（只能 `127.0.0.1` 或线上 https）：解密用的 WebCrypto 只在安全上下文里存在，手机走 `http://192.168.x.x` 时浏览器根本没有 `crypto.subtle`，页面会直接说明这个原因而不是卡在「密码不对」。要在手机上看，走线上地址。
+- **教资冲刺台手机上解不开局域网地址**（只能 `127.0.0.1` 或线上 https）：解密用的 WebCrypto 只在安全上下文里存在，手机走 `http://192.168.x.x` 时浏览器根本没有 `crypto.subtle`，页面会直接说明这个原因而不是卡在「密码不对」。要在手机上看，走线上地址。
 
 ## 首次使用
 
@@ -127,43 +127,46 @@ Cloudflare 侧需要且只需要两个字段（设置 → 构建 → 构建设�
 
 `scripts/assemble.mjs` 把四个 app 的产物拼成发布目录：`apps/resume/dist` → `dist/`（根路由），`apps/console/dist` → `dist/ai-fxb/`，`apps/learn/dist` → `dist/learn/`，`apps/exam/dist` → `dist/exam/`，并带上根目录的 `_headers`。产物不入库（`.gitignore` 已忽略 `dist/`）。子路径完全由各 app 的 vite `base` 决定，`wrangler.jsonc` 不用改。
 
-## 备课台（`/learn`）
+## 教资冲刺台（`/learn`）
 
-自己备课和考证用的四页：**试讲准备、学生相处、知识地图、教师资格证**。打开就是锁屏，输入密码才解得开——整站没有不需要密码的那一半了。
+只保留一件事：**漳州高中信息技术教师资格三科笔试**。打开就是锁屏，输入密码才解得开。
 
-原来的公开课件区（章节目录、课件页、给学生投屏的学生版）已经拆掉：试讲结束，那一套不再往上加内容。源码里删干净了，但**发出去的旧链接不留死链**：
+- 科目：301 综合素质（中学）、302 教育知识与能力（中学）、415 信息技术学科知识与教学能力（高级中学）。
+- 功能：三科冲刺总览、26 章讲义、85 道配套练习、即时判分与解析、参考答案与评分点、错题本、三科各一套 120 分钟限时模拟。
+- 进度：章节完成、选择题结果、开放题自评、答案草稿和模拟成绩只保存在当前浏览器 localStorage（`learn-cert-progress-v1`），不传服务器；清除浏览器数据会一并清除。
+- 日期边界：截至 2026-11-28，2027 年上半年福建报名、漳州考区和笔试日期均未公布。页面目标写“2027 上半年，按 4 月做准备”，并提示以官方公告为准；福建 2026 上半年笔试是 3 月 7 日，不能据此推定 2027 也在 4 月。
+- 模拟卷按近年常见题量编排，不是真题，也不代表 2027 官方承诺。三科大纲与福建公告链接放在页内“官方来源”。
 
-- `https://3ecat.me/learn/#/c/<课件号>`、`#/s/<课件号>`、`#/private` → 一律落到备课台（`store.ts` 的 `boot` 认这几个旧 hash，直接换到 `#/`）。
-- `https://3ecat.me/learn/student/...`（另一份 HTML，链接真发出去过）→ 由 `apps/learn/public/student/index.html` 这个跳转桩并回 `/learn/`，404 不会出现。
+原来的公开课件区、学生版，以及私密区里的试讲准备、学生相处、知识地图都已移除。**旧链接不留死链**：
 
-四页内容全在加密区，走**构建时加密**：
+- `#/c/<课件号>`、`#/s/<课件号>`、`#/private` → 回到教资冲刺台。
+- `#/prep`、`#/students`、`#/map`、`#/private/<旧视图>` → 统一落到 `#/cert`。
+- `/learn/student/...` → 由 `apps/learn/public/student/index.html` 跳转桩并回 `/learn/`。
 
-- 仓库是 **public** 的，而这站没有后端，所以「输密码才能看」不能写成前端判断——那样密码和答案都在 JS 里，等于没锁。
-- 明文只存在本地：`apps/learn/content/private/*.json`（四份，已被 `.gitignore` 忽略，永远不会进仓库）。
-- `tools/build-learn-content.mjs` 读这几份文件，用密码派生密钥（PBKDF2-SHA256，210 000 次迭代）后以 AES-256-GCM 加密，写出唯一入库的产物 `apps/learn/public/data/content.json` —— 里面只有密文和 salt/iv。
-- 浏览器端 `src/lib/crypto.ts` 做同样的派生再解密。**密码不对时 GCM 认证标签校验失败，什么都解不出来**，页面只会显示一句「密码不对。」
-- 210 000 次迭代是故意的：让离线爆破密码的代价高，代价是解锁要等约一秒。
-- 密码只从环境变量 `AIFXB_LEARN_PASSWORD` 读，命令行给一次即可，**不写进任何文件、不设 CI Secret**：`npm run build` 里不包含加密步骤，云端构建只搬运已经加密好的 `content.json`，所以 Cloudflare 和 Actions 都不需要知道密码。
-- 解锁状态放 `sessionStorage`（`learn-pw-v1`），关掉标签页就没了，点「退出」立即清掉并回到锁屏；不落 localStorage、不进 cookie。
-- 折叠状态放 `localStorage`（`learn-open-v1`），里面没有任何内容明文。
+教资内容走**构建时加密**：
 
-> **已知的边界（诚实版）**：加密的是四页的**内容**，不是它们**存在**。四个标签的名字（试讲准备 / 学生相处 / 知识地图 / 教师资格证）和页面骨架写在 `src/lib/store.ts` 与 `src/views/*.tsx` 里，跟着 `main-*.js` 入库、能读到。别人知道「有这么几页」，读不到里面写了什么。
->
-> 还有一层要说清：`src/views/*.tsx` 的**源码本身**在 public 仓库里能翻到，那几页的表格结构、字段名、页面上的固定说明文字都在里面——加密挡住的是 JSON 里那些写给学校、日期、任职要求逐条对照和我自己缺口的具体条目，不是这套版式。真要连版式都不露，得把这几页也做成密文驱动渲染，目前没做。
+- 仓库是 **public**，而站点没有后端，所以“输密码才能看”不能写成前端判断——那样等于没锁。
+- 明文只存在本地：`apps/learn/content/private/cert.json`（已被 `.gitignore` 忽略，永远不会进仓库）。
+- `tools/build-learn-content.mjs` 只接收这一份文件，用 PBKDF2-SHA256（210 000 次迭代）派生密钥，再以 AES-256-GCM 加密，写出唯一入库产物 `apps/learn/public/data/content.json`。
+- 浏览器端 `src/lib/crypto.ts` 同样派生再解密。密码不对时 GCM 认证标签校验失败，什么都解不出来。
+- 密码只从环境变量 `AIFXB_LEARN_PASSWORD` 读，不写进任何文件、不设 CI Secret。云端构建只搬运已加密的 `content.json`。
+- 解锁状态放 `sessionStorage`（`learn-pw-v1`），关掉标签页就没了；点“退出”立即清掉。
+- 页面骨架与固定说明文字在 public 仓库中可见；加密保护的是具体学习内容、参考答案和个人计划，不是“有这个页面”这件事。
 
-改内容只有一条路，**别走错**：
+改内容与发布：
 
 ```bash
 cd /d D:\ai-fxb
-# 1. 改 apps/learn/content/private/*.json
-set AIFXB_LEARN_PASSWORD=<你的密码> && npm run learn:data   # 重新加密
+# 1. 改 apps/learn/content/private/cert.json
+npm run learn:check   # 校验三科题量、答案、章节引用与写作字数
+set AIFXB_LEARN_PASSWORD=<你的密码> && npm run learn:data   # 本地重新加密
 npm run build:learn && node scripts/assemble.mjs && npm run preview   # 本地验证 /learn/
 git add apps/learn/public/data/content.json && git commit && git push
 ```
 
-忘了跑 `learn:data` 是最容易踩的坑：构建和推送都成功，但线上还是旧内容——因为入库的密文没变。`learn:data` 会打印明文/密文字节数与 `builtAt`，对不上就是没跑。`npm run build:learn` 只产出 `apps/learn/dist`，`/learn/` 走的是 `dist/learn/`，所以本地验证还得跟一条 `node scripts/assemble.mjs`（`npm run build` 已经包含这两步）。
+忘了跑 `learn:data` 会导致线上仍是旧内容：构建和推送都成功，但入库密文没变。脚本只接受 `cert.json`，防止已移除的旧页面再次被加密发布。
 
-**明文丢了怎么办**：`content/private/` 从未入库，换机器或删过就没了。这时候线上那份密文仍然读得出来（有密码即可），但要改内容得先把它解回明文——`tools/build-learn-content.mjs` 只有加密方向，需要一个反向脚本。这件事在密码到手之前没法验证。
+**明文丢了怎么办**：`content/private/` 从未入库，换机器或删过就没了。线上密文仍可解密阅读，但要修改内容需要先解回明文；加密脚本只负责加密方向。
 
 ## 目录结构
 
@@ -190,18 +193,19 @@ ai-fxb/
 │  │     ├─ net/              # 情报蛛网页签 + vendor/spider(MIT 第三方动画层)
 │  │     ├─ three/            # 3D 背景(three.js 从 npm 取,动态 import)
 │  │     └─ styles/console.css
-│  └─ learn/                  # 备课台(Vite + React + TS,base = /learn/,不依赖 @ai-fxb/core)
-│     ├─ content/private/*.json        # 四页明文:prep / students / map / cert —— 已 gitignore,只留本机
-│     ├─ public/data/content.json      # 上面四份加密后的唯一入库产物,浏览器用它解密
+│  └─ learn/                  # 教资冲刺台(Vite + React + TS,base = /learn/,不依赖 @ai-fxb/core)
+│     ├─ content/private/cert.json     # 三科教资明文 —— 已 gitignore,只留本机
+│     ├─ public/data/content.json      # cert.json 加密后的唯一入库产物,浏览器用它解密
 │     ├─ public/student/index.html     # 旧学生版链接的跳转桩(/learn/student/ → /learn/)
 │     └─ src/
-│        ├─ components/       # ui(块/标签/要点)、Accordion(折叠块)、Gate(锁屏)
-│        ├─ views/            # Prep / Students / Map / Cert 四页
-│        ├─ lib/              # crypto(解密)/store(路由+门禁)/types
+│        ├─ components/       # Gate(锁屏)/Quiz(练习)/MockExam(限时模拟)
+│        ├─ views/            # Cert(三科备考工作台)
+│        ├─ lib/              # crypto(解密)/store(路由+门禁)/progress(本地进度)/types
 │        └─ styles/learn.css
 ├─ tools/
 │  ├─ generate-snapshot.mjs   # 每日快照生成脚本(GitHub Actions 调用)
-│  └─ build-learn-content.mjs # 把 content/private/*.json 加密成 public/data/content.json(本地跑,不进 CI)
+│  ├─ check-learn-content.mjs # 校验三科章节、题目、分值与模拟卷引用
+│  └─ build-learn-content.mjs # 把 content/private/cert.json 加密成 public/data/content.json(本地跑,不进 CI)
 └─ .github/workflows/
    └─ update-snapshot.yml     # 每日定时生成快照并提交
 ```
@@ -212,5 +216,5 @@ ai-fxb/
 - 本项目为个人本地工具，API 调用按你自己的千问 token 计费。
 - **首屏只加载正文**：`three.js`(172KB gzip)只为装饰性 3D 背景服务，不在首屏请求——页面 `load` 后走空闲队列才动态 `import`；关掉 3D 时完全不下载。蛛网动画层(`net`)是独立懒加载 chunk，它那个页签目前下线（`SHOW_NET_TAB=false`），正常情况下访客不会拉到。构建按 `react`/`three` 拆了 chunk，两个 app 的 React chunk 内容一致、哈希相同，跨路由只下载一次。
 - `_headers` 负责缓存策略：`/assets/*` 与 `/ai-fxb/assets/*`、`/learn/assets/*` 带 content-hash，给一年 `immutable`；首页与 `/ai-fxb/data/snapshot.json`、`/learn/data/content.json` 每次回源（保证当天快照与最新内容可见）；其余 5 分钟 + `stale-while-revalidate`（国内到边缘节点一次往返 1~8 秒，能不回源就不回源）。
-- `/learn` 的页面：`/learn/` 这一张走 hash（`#/prep`、`#/students`、`#/map`、`#/cert`，不带 hash 进来就是试讲准备）。hash + 静态目录，托管端不用配任何重写规则；从前的 `#/c/<课件号>`、`#/s/<课件号>`、`#/private/<视图>` 和 `/learn/student/` 都还在跳，发出去的链接不会变死链。
-- localStorage 键名沿用旧版（`ai-fxb-settings-v1` / `ai-fxb-cache-v4` / `ai-fxb-models-v1` / `ai-fxb-usage-v1` / `ai-fxb-3d`），改造前配好的 Key、缓存与用量统计不会丢。
+- `/learn` 的页面：`/learn/` 这一张只保留 `#/cert`，不带 hash 也进入教资冲刺总览。hash + 静态目录，托管端不用配任何重写规则；从前的 `#/c/<课件号>`、`#/s/<课件号>`、`#/prep`、`#/students`、`#/map`、`#/private/<视图>` 和 `/learn/student/` 都还会跳，发出去的链接不会变死链。
+- localStorage 键名沿用旧版（`ai-fxb-settings-v1` / `ai-fxb-cache-v4` / `ai-fxb-models-v1` / `ai-fxb-usage-v1` / `ai-fxb-3d`），改造前配好的 Key、缓存与用量统计不会丢；教资学习进度另用 `learn-cert-progress-v1`，与旧折叠键互不影响。

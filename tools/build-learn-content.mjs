@@ -1,11 +1,10 @@
-/* 把 apps/learn/content/private/*.json 的明文加密成 apps/learn/public/data/content.json。
+/* 把 apps/learn/content/private/cert.json 的明文加密成 apps/learn/public/data/content.json。
  *
- * 备课台就四页:试讲准备、学生相处、知识地图、教资。全部走加密,没有公开那半了。
+ * 私密区只保留教资备考:三科讲义、练习、参考答案、冲刺计划与官方来源。
  *
- * 为什么要绕这一圈:仓库是 public 的,而私密区里写着学校、日期、任职要求逐条对照和我的缺口。
- * 前端静态站没有后端,拿密码校验等于把密码写进 JS——谁都能翻出来,那种「密码框」是假的。
- * 所以改成:明文只留本机(content/private/ 已 gitignore),入库的只有这一份 AES-256-GCM 密文;
- * 浏览器里用输入的密码 PBKDF2 派生同一把密钥去解,密码错了 GCM 校验直接失败,拿不到任何内容。
+ * 为什么要绕这一圈:仓库是 public 的,而前端没有后端,把密码判断写进 JS 等于没锁。
+ * 明文只留本机(content/private/ 已 gitignore),入库的只有 AES-256-GCM 密文;
+ * 浏览器里用输入的密码 PBKDF2 派生同一把密钥去解,密码错了 GCM 校验直接失败。
  *
  * 用法(密码只出现在这一行命令里,不写进任何文件):
  *   AIFXB_LEARN_PASSWORD=xxxxxxxx npm run learn:data
@@ -43,8 +42,8 @@ if (!existsSync(contentDir)) {
 }
 
 const files = readdirSync(contentDir).filter((f) => f.endsWith('.json')).sort();
-if (!files.length) {
-  console.error(contentDir + ' 里没有 .json 文件,没什么可加密的。');
+if (files.length !== 1 || files[0] !== 'cert.json') {
+  console.error('私密区只保留 cert.json;当前文件:' + (files.join('、') || '空'));
   process.exit(1);
 }
 
@@ -107,7 +106,7 @@ console.log(
   ' · ' + ITERATIONS + ' 轮 PBKDF2-' + HASH + ' · 内容片段 ' + Object.keys(parts).join('/')
 );
 console.log('下一步:content/private/ 的明文别提交(已在 .gitignore),把 ' + outFile.replace(root, '.') + ' 一起提交上去。');
-console.log('改内容就改 content/private/ 里那几个 json,重跑这一脚本,再把 content.json 提交。');
+console.log('改内容就改 content/private/cert.json,重跑这一脚本,再把 content.json 提交。');
 
 function kb(n) {
   return (n / 1024).toFixed(1) + ' KB';

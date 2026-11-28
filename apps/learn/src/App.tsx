@@ -1,10 +1,7 @@
 import { useEffect } from 'react';
 import { Gate } from './components/Gate';
-import { applyRoute, boot, go, leave, parseHash, PRIVATE_VIEWS, state, useVersion } from './lib/store';
+import { applyRoute, boot, leave, parseHash, state, useVersion } from './lib/store';
 import { CertView } from './views/Cert';
-import { MapView } from './views/Map';
-import { PrepView } from './views/Prep';
-import { StudentsView } from './views/Students';
 
 function Bg() {
   return (
@@ -16,14 +13,14 @@ function Bg() {
   );
 }
 
-function Masthead({ sub, right }: { sub: string; right?: React.ReactNode }) {
+function Masthead({ right }: { right?: React.ReactNode }) {
   return (
     <header className="masthead">
       <div className="brand">
         <div className="logo">▤</div>
         <div>
-          <h1>备课台</h1>
-          <p>{sub}</p>
+          <h1>教资冲刺台</h1>
+          <p>三科笔试 · 漳州高中信息技术</p>
         </div>
       </div>
       <div className="mh-right">{right}</div>
@@ -82,7 +79,6 @@ export default function App() {
       <Bg />
       <div className="shell">
         <Masthead
-          sub="我自己看的那几页"
           right={
             <>
               <a className="chip-i" href="/ai-fxb/">
@@ -94,24 +90,7 @@ export default function App() {
             </>
           }
         />
-        <nav className="tabs">
-          {PRIVATE_VIEWS.map((x) => (
-            <button
-              key={x.id}
-              type="button"
-              className={'tab' + (state.view === x.id ? ' is-active' : '')}
-              onClick={() => go(x.id)}
-              title={x.hint}
-            >
-              <span className="tab__ico">{x.ico}</span>
-              {x.label}
-            </button>
-          ))}
-        </nav>
-        {state.view === 'prep' ? <PrepView d={p.prep} /> : null}
-        {state.view === 'students' ? <StudentsView d={p.students} /> : null}
-        {state.view === 'map' ? <MapView d={p.map} /> : null}
-        {state.view === 'cert' ? <CertView d={p.cert} /> : null}
+        <CertView d={p.cert} />
         <footer className="foot">
           <div>
             <a href="/">← 3ecat.me</a>
